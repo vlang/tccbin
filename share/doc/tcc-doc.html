@@ -508,13 +508,36 @@ fault</code>.
 <dd><p>Generate additional support code to check
 memory allocations and array/pointer bounds. <samp>-g</samp> is implied. Note
 that the generated code is slower and bigger in this case.
+The bound checking code is not included in shared libaries. The main executable should always be compiled with the <samp>-b</samp>.
 </p>
-<p>Note: <samp>-b</samp> is only available on i386 when using libtcc for the moment.
+<p>There are five environment variables that can be used:
+</p><dl compact="compact">
+<dt><samp>TCC_BOUNDS_WARN_POINTER_ADD</samp></dt>
+<dd><p>Print warning when pointer add creates an illegal pointer.
+</p></dd>
+<dt><samp>TCC_BOUNDS_PRINT_CALLS</samp></dt>
+<dd><p>Print bound checking calls. Can be used for debugging.
+</p></dd>
+<dt><samp>TCC_BOUNDS_PRINT_HEAP</samp></dt>
+<dd><p>Print heap objects that are not freed at exit of program.
+</p></dd>
+<dt><samp>TCC_BOUNDS_PRINT_STATISTIC</samp></dt>
+<dd><p>Print statistic information at exit of program.
+</p></dd>
+<dt><samp>TCC_BOUNDS_NEVER_FATAL</samp></dt>
+<dd><p>Try to continue in case of a bound checking error.
+</p></dd>
+</dl>
+
+<p>Note: <samp>-b</samp> is only available on i386 (linux and windows) and x86_64 (linux and windows) for the moment.
 </p>
 </dd>
-<dt><samp>-bt N</samp></dt>
-<dd><p>Display N callers in stack traces. This is useful with <samp>-g</samp> or
-<samp>-b</samp>.
+<dt><samp>-bt[N]</samp></dt>
+<dd><p>Display N callers in stack traces. This is useful with <samp>-g</samp> or <samp>-b</samp>.
+With executables, additional support for stack traces is included.
+</p>
+<p>A function <code> int tcc_backtrace(const char *fmt, ...); </code> is provided
+to trigger a stack trace with a message on demand.
 </p>
 </dd>
 </dl>
@@ -1074,7 +1097,7 @@ valid. Even very obscure C code with casts should work correctly.
     int *tab;
     tab = malloc(20 * sizeof(int));
     for(i=0;i&lt;21;i++) {
-        sum += tab4[i];
+        sum += tab[i];
     }
     free(tab);
 }
@@ -1088,7 +1111,7 @@ valid. Even very obscure C code with casts should work correctly.
     tab = malloc(20 * sizeof(int));
     free(tab);
     for(i=0;i&lt;20;i++) {
-        sum += tab4[i];
+        sum += tab[i];
     }
 }
 </pre></div>
@@ -1106,6 +1129,41 @@ valid. Even very obscure C code with casts should work correctly.
 
 </dd>
 </dl>
+
+<p>Signal handlers are not compatible with bounds checking. The code
+below can be used to protect signal handlers.
+The call to __bound_checking(1) will disable bounds checking in the
+whole application.
+</p>
+<p>The BOUNDS_CHECKING_OFF and BOUNDS_CHECKING_ON can also be used to
+disable bounds checking for some code. This is not recommended.
+It is better to fix the code.
+</p>
+<div class="example">
+<pre class="example">
+
+#ifdef __BOUNDS_CHECKING_ON
+extern void __bound_checking (int no_check);
+#define BOUNDS_CHECKING_OFF __bound_checking(1)
+#define BOUNDS_CHECKING_ON  __bound_checking(-1)
+#else
+#define BOUNDS_CHECKING_OFF
+#define BOUNDS_CHECKING_ON
+#endif
+
+void real_signal_handler(int sig, siginfo_t *info, void *ucontext)
+{
+    ...
+}
+
+void signal_handler(int sig, void *info, void *ucontext)
+{
+    BOUNDS_CHECKING_OFF;
+    real_signal_handler(sig, info, data);
+    BOUNDS_CHECKING_ON;
+}
+
+</pre></div>
 
 <hr>
 <a name="Libtcc"></a>

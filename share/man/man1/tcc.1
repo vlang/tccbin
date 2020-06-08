@@ -132,8 +132,8 @@
 .rm #[ #] #H #V #F C
 .\" ========================================================================
 .\"
-.IX Title "TCC 1"
-.TH TCC 1 "2019-10-04" "0.9.27" "Tiny C Compiler"
+.IX Title "TCC-DOC 1"
+.TH TCC-DOC 1 "2020-06-07" "0.9.27" "Tiny C Compiler"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -409,12 +409,37 @@ fault\*(C'\fR.
 Generate additional support code to check
 memory allocations and array/pointer bounds. \fB\-g\fR is implied. Note
 that the generated code is slower and bigger in this case.
+The bound checking code is not included in shared libaries. The main executable should always be compiled with the \fB\-b\fR.
 .Sp
-Note: \fB\-b\fR is only available on i386 when using libtcc for the moment.
-.IP "\fB\-bt N\fR" 4
-.IX Item "-bt N"
-Display N callers in stack traces. This is useful with \fB\-g\fR or
-\&\fB\-b\fR.
+There are five environment variables that can be used:
+.RS 4
+.IP "\fB\s-1TCC_BOUNDS_WARN_POINTER_ADD\s0\fR" 4
+.IX Item "TCC_BOUNDS_WARN_POINTER_ADD"
+Print warning when pointer add creates an illegal pointer.
+.IP "\fB\s-1TCC_BOUNDS_PRINT_CALLS\s0\fR" 4
+.IX Item "TCC_BOUNDS_PRINT_CALLS"
+Print bound checking calls. Can be used for debugging.
+.IP "\fB\s-1TCC_BOUNDS_PRINT_HEAP\s0\fR" 4
+.IX Item "TCC_BOUNDS_PRINT_HEAP"
+Print heap objects that are not freed at exit of program.
+.IP "\fB\s-1TCC_BOUNDS_PRINT_STATISTIC\s0\fR" 4
+.IX Item "TCC_BOUNDS_PRINT_STATISTIC"
+Print statistic information at exit of program.
+.IP "\fB\s-1TCC_BOUNDS_NEVER_FATAL\s0\fR" 4
+.IX Item "TCC_BOUNDS_NEVER_FATAL"
+Try to continue in case of a bound checking error.
+.RE
+.RS 4
+.Sp
+Note: \fB\-b\fR is only available on i386 (linux and windows) and x86_64 (linux and windows) for the moment.
+.RE
+.IP "\fB\-bt[N]\fR" 4
+.IX Item "-bt[N]"
+Display N callers in stack traces. This is useful with \fB\-g\fR or \fB\-b\fR.
+With executables, additional support for stack traces is included.
+.Sp
+A function \f(CW\*(C` int tcc_backtrace(const char *fmt, ...); \*(C'\fR is provided
+to trigger a stack trace with a message on demand.
 .PP
 Misc options:
 .IP "\fB\-MD\fR" 4
