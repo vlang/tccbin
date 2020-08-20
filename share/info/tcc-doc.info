@@ -309,8 +309,8 @@ beginning with '-Wno-'.
      Generate additional support code to check memory allocations and
      array/pointer bounds.  '-g' is implied.  Note that the generated
      code is slower and bigger in this case.  The bound checking code is
-     not included in shared libaries.  The main executable should always
-     be compiled with the '-b'.
+     not included in shared libraries.  The main executable should
+     always be compiled with the '-b'.
 
      There are five environment variables that can be used:
      'TCC_BOUNDS_WARN_POINTER_ADD'
@@ -324,8 +324,8 @@ beginning with '-Wno-'.
      'TCC_BOUNDS_NEVER_FATAL'
           Try to continue in case of a bound checking error.
 
-     Note: '-b' is only available on i386 (linux and windows) and x86_64
-     (linux and windows) for the moment.
+     Note: '-b' is only available on i386 (linux and windows), x86_64
+     (linux and windows), arm, arm64 and riscv64 for the moment.
 
 '-bt[N]'
      Display N callers in stack traces.  This is useful with '-g' or
@@ -773,34 +773,53 @@ Double free:
           }
 
    Signal handlers are not compatible with bounds checking.  The code
-below can be used to protect signal handlers.  The call to
-__bound_checking(1) will disable bounds checking in the whole
-application.
+below can be used to protect signal handlers.  The
+'__attribute__((bound_no_checking))' will prevent all bound checking
+code generation.  If a signal handler calls another function this
+function must also use '__attribute__((bound_no_checking))'.
 
-   The BOUNDS_CHECKING_OFF and BOUNDS_CHECKING_ON can also be used to
-disable bounds checking for some code.  This is not recommended.  It is
-better to fix the code.
+   The fork() function call in a multi threaded application is also a
+problem.  To solve this all bounds checking can be disabled by calling
+'__bound_checking(1)'.  The call to '__bound_checking(1)' will disable
+bounds checking in the whole application.
+
+   The 'BOUNDS_CHECKING_OFF' and 'BOUNDS_CHECKING_ON' can also be used
+to disable bounds checking for some code.  This is not recommended.  It
+is better to fix the code.
 
 
-     #ifdef __BOUNDS_CHECKING_ON
+     #if defined(__TINYC__) && __BOUNDS_CHECKING_ON
+     #undef __attribute__
      extern void __bound_checking (int no_check);
      #define BOUNDS_CHECKING_OFF __bound_checking(1)
      #define BOUNDS_CHECKING_ON  __bound_checking(-1)
+     #define BOUNDS_NO_CHECKING __attribute__((bound_no_checking))
      #else
      #define BOUNDS_CHECKING_OFF
      #define BOUNDS_CHECKING_ON
+     #define BOUNDS_NO_CHECKING
      #endif
 
-     void real_signal_handler(int sig, siginfo_t *info, void *ucontext)
+     void signal_handler(int sig, void *info, void *ucontext) BOUNDS_NO_CHECKING
      {
-         ...
+         ... signal handler code without generated bounds checking code.
      }
 
-     void signal_handler(int sig, void *info, void *ucontext)
+     void run(const char *cmd)
      {
-         BOUNDS_CHECKING_OFF;
-         real_signal_handler(sig, info, data);
-         BOUNDS_CHECKING_ON;
+         switch (fork()) {
+         case 0:
+           BOUNDS_CHECKING_OFF;
+           ...
+           exec...
+           exit(1);
+         case -1:
+           ...
+           break;
+         default:
+           ...
+           break;
+         }
      }
 
 
@@ -1163,10 +1182,6 @@ See the 'i386-gen.c' file to have an example.
 'gen_cvt_ftof()'
      floating point to floating point of different size conversion.
 
-'gen_bounded_ptr_add()'
-'gen_bounded_ptr_deref()'
-     are only used for bounds checking.
-
 8.8 Optimizations done
 ======================
 
@@ -1194,11 +1209,11 @@ Concept Index
 * bound checks:                          Bounds.              (line   6)
 * bss directive:                         asm.                 (line  63)
 * byte directive:                        asm.                 (line  63)
-* caching processor flags:               devel.               (line 350)
+* caching processor flags:               devel.               (line 346)
 * cdecl attribute:                       Clang.               (line  84)
 * code generation:                       devel.               (line 177)
-* comparison operators:                  devel.               (line 350)
-* constant propagation:                  devel.               (line 350)
+* comparison operators:                  devel.               (line 346)
+* constant propagation:                  devel.               (line 346)
 * CPU dependent:                         devel.               (line 304)
 * data directive:                        asm.                 (line  63)
 * directives, assembler:                 asm.                 (line  63)
@@ -1206,20 +1221,20 @@ Concept Index
 * ELF:                                   linker.              (line   9)
 * FILE, linker command:                  linker.              (line  40)
 * fill directive:                        asm.                 (line  63)
-* flags, caching:                        devel.               (line 350)
+* flags, caching:                        devel.               (line 346)
 * gas:                                   Clang.               (line 164)
 * global directive:                      asm.                 (line  63)
 * globl directive:                       asm.                 (line  63)
 * GROUP, linker command:                 linker.              (line  40)
 * inline assembly:                       Clang.               (line 145)
 * int directive:                         asm.                 (line  63)
-* jump optimization:                     devel.               (line 350)
+* jump optimization:                     devel.               (line 346)
 * linker:                                linker.              (line   5)
 * linker scripts:                        linker.              (line  40)
 * long directive:                        asm.                 (line  63)
 * memory checks:                         Bounds.              (line   6)
 * nodecorate attribute:                  Clang.               (line  84)
-* optimizations:                         devel.               (line 350)
+* optimizations:                         devel.               (line 346)
 * org directive:                         asm.                 (line  63)
 * OUTPUT_FORMAT, linker command:         linker.              (line  40)
 * packed attribute:                      Clang.               (line  84)
@@ -1234,7 +1249,7 @@ Concept Index
 * skip directive:                        asm.                 (line  63)
 * space directive:                       asm.                 (line  63)
 * stdcall attribute:                     Clang.               (line  84)
-* strength reduction:                    devel.               (line 350)
+* strength reduction:                    devel.               (line 346)
 * string directive:                      asm.                 (line  63)
 * TARGET, linker command:                linker.              (line  40)
 * text directive:                        asm.                 (line  63)
@@ -1249,11 +1264,11 @@ Tag Table:
 Node: Top207
 Node: Introduction927
 Node: Invoke2242
-Node: Clang11428
-Node: asm17288
-Node: linker19874
-Node: Bounds21608
-Node: Libtcc24108
-Node: devel24608
+Node: Clang11450
+Node: asm17310
+Node: linker19896
+Node: Bounds21630
+Node: Libtcc24821
+Node: devel25321
 
 End Tag Table

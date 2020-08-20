@@ -508,7 +508,7 @@ fault</code>.
 <dd><p>Generate additional support code to check
 memory allocations and array/pointer bounds. <samp>-g</samp> is implied. Note
 that the generated code is slower and bigger in this case.
-The bound checking code is not included in shared libaries. The main executable should always be compiled with the <samp>-b</samp>.
+The bound checking code is not included in shared libraries. The main executable should always be compiled with the <samp>-b</samp>.
 </p>
 <p>There are five environment variables that can be used:
 </p><dl compact="compact">
@@ -529,7 +529,7 @@ The bound checking code is not included in shared libaries. The main executable 
 </p></dd>
 </dl>
 
-<p>Note: <samp>-b</samp> is only available on i386 (linux and windows) and x86_64 (linux and windows) for the moment.
+<p>Note: <samp>-b</samp> is only available on i386 (linux and windows), x86_64 (linux and windows), arm, arm64 and riscv64 for the moment.
 </p>
 </dd>
 <dt><samp>-bt[N]</samp></dt>
@@ -1132,35 +1132,54 @@ valid. Even very obscure C code with casts should work correctly.
 
 <p>Signal handlers are not compatible with bounds checking. The code
 below can be used to protect signal handlers.
-The call to __bound_checking(1) will disable bounds checking in the
-whole application.
+The <code>__attribute__((bound_no_checking))</code> will prevent all bound checking
+code generation. If a signal handler calls another function this
+function must also use <code>__attribute__((bound_no_checking))</code>.
 </p>
-<p>The BOUNDS_CHECKING_OFF and BOUNDS_CHECKING_ON can also be used to
+<p>The fork() function call in a multi threaded application is also a problem.
+To solve this all bounds checking can be disabled by calling
+<code>__bound_checking(1)</code>. The call to <code>__bound_checking(1)</code> will disable bounds
+checking in the whole application.
+</p>
+<p>The <code>BOUNDS_CHECKING_OFF</code> and <code>BOUNDS_CHECKING_ON</code> can also be used to
 disable bounds checking for some code. This is not recommended.
 It is better to fix the code.
 </p>
 <div class="example">
 <pre class="example">
 
-#ifdef __BOUNDS_CHECKING_ON
+#if defined(__TINYC__) &amp;&amp; __BOUNDS_CHECKING_ON
+#undef __attribute__
 extern void __bound_checking (int no_check);
 #define BOUNDS_CHECKING_OFF __bound_checking(1)
 #define BOUNDS_CHECKING_ON  __bound_checking(-1)
+#define BOUNDS_NO_CHECKING __attribute__((bound_no_checking))
 #else
 #define BOUNDS_CHECKING_OFF
 #define BOUNDS_CHECKING_ON
+#define BOUNDS_NO_CHECKING
 #endif
 
-void real_signal_handler(int sig, siginfo_t *info, void *ucontext)
+void signal_handler(int sig, void *info, void *ucontext) BOUNDS_NO_CHECKING
 {
-    ...
+    ... signal handler code without generated bounds checking code.
 }
 
-void signal_handler(int sig, void *info, void *ucontext)
+void run(const char *cmd)
 {
-    BOUNDS_CHECKING_OFF;
-    real_signal_handler(sig, info, data);
-    BOUNDS_CHECKING_ON;
+    switch (fork()) {
+    case 0:
+      BOUNDS_CHECKING_OFF;
+      ...
+      exec...
+      exit(1);
+    case -1: 
+      ...
+      break;
+    default:
+      ...
+      break;
+    }
 }
 
 </pre></div>
@@ -1582,11 +1601,6 @@ same types.
 </dd>
 <dt><code>gen_cvt_ftof()</code></dt>
 <dd><p>floating point to floating point of different size conversion.
-</p>
-</dd>
-<dt><code>gen_bounded_ptr_add()</code></dt>
-<dt><code>gen_bounded_ptr_deref()</code></dt>
-<dd><p>are only used for bounds checking.
 </p>
 </dd>
 </dl>
