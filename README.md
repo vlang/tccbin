@@ -1,8 +1,4 @@
-# tccbin
+# thirdparty-windows-amd64
 
-This is a prebuild tcc (git://repo.or.cz/tinycc.git), cut at commit 9eef339 .
+This is a prebuild tcc, imported from https://github.com/vlang/tccbin_win
 
-It is compiled with:
-```shell
-./configure --prefix=/var/tmp/tcc --crtprefix=/var/tmp/tcc/lib:/usr/lib64:/usr/lib/x86_64-linux-gnu --libpaths=/var/tmp/tcc/lib:/usr/lib/x86_64-linux-gnu:/usr/lib64:/usr/lib:/lib/x86_64-linux-gnu:/lib:/usr/local/lib/x86_64-linux-gnu:/usr/local/lib  --debug
-```
