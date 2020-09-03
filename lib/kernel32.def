@@ -427,7 +427,6 @@ InitializeCriticalSection
 InitializeCriticalSectionAndSpinCount
 InitializeSRWLock
 InterlockedCompareExchange
-InterlockedCompareExchange16
 InterlockedDecrement
 InterlockedExchange
 InterlockedExchangeAdd
