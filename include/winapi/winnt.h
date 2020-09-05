@@ -1456,6 +1456,15 @@ typedef DWORD LCID;
 	:"Ir" (Bit));
       return (BOOLEAN) (old!=0);
     }
+	  
+    __CRT_INLINE SHORT InterlockedCompareExchange16(SHORT volatile *Destination,SHORT ExChange,SHORT Comperand) {
+      SHORT prev;
+      __asm__ __volatile__("lock ; cmpxchgw %w1,%2"
+	:"=a"(prev)
+	:"q"(ExChange), "m"(*Destination), "0"(Comperand)
+	: "memory");
+      return prev;
+    }
 
 #ifdef _PREFIX_
     BYTE __readfsbyte(DWORD Offset);
