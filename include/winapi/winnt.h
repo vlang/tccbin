@@ -1465,7 +1465,18 @@ typedef DWORD LCID;
 	: "memory");
       return prev;
     }
-
+	  
+    __CRT_INLINE LONG64 InterlockedCompareExchange64(LONG64 volatile *Destination,LONG64 ExChange,LONG64 Comperand) {
+      LONG64 prev = Comperand;
+      LONG ex_h = (LONG)(ExChange >> 32);
+      LONG ex_l = (LONG)(ExChange & 0xffffffff);
+      __asm__ __volatile__("lock ; cmpxchg8b (%%esi)"
+	: "=A" (prev)
+	: "A" (prev), "c" (ex_h), "b" (ex_l), "S" (Destination)
+	: "memory");
+      return prev;
+    }
+	  
 #ifdef _PREFIX_
     BYTE __readfsbyte(DWORD Offset);
     WORD __readfsword(DWORD Offset);
