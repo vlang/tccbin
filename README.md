@@ -6,7 +6,7 @@ Please note that it is intended to be a *minimalism* version just enough to supp
 
 However, you may find this [official full version of tcc](http://download.savannah.gnu.org/releases/tinycc/winapi-full-for-0.9.27.zip) helpful as it includes many extra header files.
 
-## How is it made?
+## How is it made? / What are the differences from original tcc? 
 
 1、Collect tcc source code and compile it with [mingw32](https://sourceforge.net/projects/mingw-w64/files), just following steps in `tcc-win32.txt`.
 
@@ -38,6 +38,6 @@ __CRT_INLINE LONG64 InterlockedCompareExchange64(LONG64 volatile *Destination,LO
 }
 ```
 
-Serach `#ifdef I_X86_` in this file and then you should find the right position to add them.
+Search `#ifdef I_X86_` in this file to help you find the right position to add them.
 
 5、In `include\winapi\winbase.h` comment this line `LONGLONG WINAPI InterlockedCompareExchange64(LONGLONG volatile *Destination,LONGLONG Exchange,LONGLONG Comperand);`.
