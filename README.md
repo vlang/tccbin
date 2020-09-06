@@ -8,7 +8,7 @@ However, you may find this [official full version of tcc](http://download.savann
 
 ## How is it made?
 
-1、Collect tcc source code and compile it with mingw32, just following steps in `tcc-win32.txt`.
+1、Collect tcc source code and compile it with [mingw32](https://sourceforge.net/projects/mingw-w64/files), just following steps in `tcc-win32.txt`.
 
 2、Apply all fix commits [here](https://github.com/vlang/tccbin_win/commits/master) except for introduction of `openlibm.o` there as it's for tcc64.
 
