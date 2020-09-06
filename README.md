@@ -14,7 +14,7 @@ However, you may find this [official full version of tcc](http://download.savann
 
 3、Build `opeblibm.o` for tcc32 following instructions [here](https://github.com/spaceface777/openlibm-tcc) and copy it to `lib` folder.
 
-4、Add implementations of `InterlockedCompareExchange16` and `InterlockedCompareExchange64` below into `include\winapi\winnt.h`
+4、Add implementations of `InterlockedCompareExchange16` and `InterlockedCompareExchange64` below into `include\winapi\winnt.h`.
 
 ```C
 __CRT_INLINE SHORT InterlockedCompareExchange16(SHORT volatile *Destination,SHORT ExChange,SHORT Comperand) {
@@ -40,4 +40,8 @@ __CRT_INLINE LONG64 InterlockedCompareExchange64(LONG64 volatile *Destination,LO
 
 Search `#ifdef I_X86_` in this file to help you find the right position to add them.
 
-5、In `include\winapi\winbase.h` comment this line `LONGLONG WINAPI InterlockedCompareExchange64(LONGLONG volatile *Destination,LONGLONG Exchange,LONGLONG Comperand);`.
+5、In `include\winapi\winbase.h` comment this line.
+
+```C
+LONGLONG WINAPI InterlockedCompareExchange64(LONGLONG volatile *Destination,LONGLONG Exchange,LONGLONG Comperand);
+```
