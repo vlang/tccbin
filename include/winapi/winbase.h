@@ -976,7 +976,7 @@ extern "C" {
 
   LONG WINAPI InterlockedExchangeAdd(LONG volatile *Addend,LONG Value);
   LONG WINAPI InterlockedCompareExchange(LONG volatile *Destination,LONG Exchange,LONG Comperand);
-  LONGLONG WINAPI InterlockedCompareExchange64(LONGLONG volatile *Destination,LONGLONG Exchange,LONGLONG Comperand);
+  // LONGLONG WINAPI InterlockedCompareExchange64(LONGLONG volatile *Destination,LONGLONG Exchange,LONGLONG Comperand);
 
   __CRT_INLINE LONGLONG InterlockedAnd64 (LONGLONG volatile *Destination,LONGLONG Value) {
     LONGLONG Old;
