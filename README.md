@@ -2,13 +2,14 @@
 
 This is based on prebuilt [tcc compiler](https://repo.or.cz/tinycc.git), cut at commit [53d815b](https://repo.or.cz/tinycc.git/commit/53d815b8a0364a85b66c3b37884fca087b923267) (20200822) from mob branch. 
 
-Please note that it is intended to be a ***minimalism*** version just enough to support V on ***32-bit/64-bit Windows***. One of the beauties of tcc is its portability. 
+Please note that it is intended to be a ***minimalism*** version just enough to support V on ***32-bit/64-bit Windows***. One of the beauties of tcc is its portability.
 
-However, you may find [this](http://download.savannah.gnu.org/releases/tinycc/winapi-full-for-0.9.27.zip) official full version of tcc helpful as it includes many extra header files.
+## What if V reports lack of C header files?
+Please try finding extra header files in [this](http://download.savannah.gnu.org/releases/tinycc/winapi-full-for-0.9.27.zip) official full version of tcc. What's more, in this case please create a PR to help us improve tccbin.
 
 ## How is it made? / What are the differences from original tcc? 
 
-1、Collect tcc source code and compile it with [mingw32](https://sourceforge.net/projects/mingw-w64/files), just following steps in `tcc-win32.txt`.
+1、Collect tcc source code ([tar.gz](https://repo.or.cz/tinycc.git/snapshot/53d815b8a0364a85b66c3b37884fca087b923267.tar.gz) or [zip](https://repo.or.cz/tinycc.git/snapshot/53d815b8a0364a85b66c3b37884fca087b923267.zip)) and compile it with latest [mingw32](https://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/8.1.0/threads-posix/dwarf/i686-8.1.0-release-posix-dwarf-rt_v6-rev0.7z), just following steps in `tcc-win32.txt`.
 
 2、Apply all fix commits [here](https://github.com/vlang/tccbin_win/commits/master) except for introduction of `openlibm.o` there as it's for tcc64.
 
