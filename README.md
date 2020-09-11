@@ -9,7 +9,7 @@ Please try finding extra header files in [this](http://download.savannah.gnu.org
 
 ## How is it made? / What are the differences from original tcc? 
 
-1、Collect tcc source code ([tar.gz](https://repo.or.cz/tinycc.git/snapshot/53d815b8a0364a85b66c3b37884fca087b923267.tar.gz) or [zip](https://repo.or.cz/tinycc.git/snapshot/53d815b8a0364a85b66c3b37884fca087b923267.zip)) and compile it with [latest mingw32](https://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/8.1.0/threads-posix/dwarf/i686-8.1.0-release-posix-dwarf-rt_v6-rev0.7z), just following steps in `doc\tcc-win32.txt`.
+1、Collect aforesaid tcc source code ([tar.gz](https://repo.or.cz/tinycc.git/snapshot/53d815b8a0364a85b66c3b37884fca087b923267.tar.gz) or [zip](https://repo.or.cz/tinycc.git/snapshot/53d815b8a0364a85b66c3b37884fca087b923267.zip)) and compile it with [latest mingw32](https://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/8.1.0/threads-posix/dwarf/i686-8.1.0-release-posix-dwarf-rt_v6-rev0.7z), just following steps in `doc\tcc-win32.txt`.
 
 2、Apply all fix commits [here](https://github.com/vlang/tccbin_win/commits/master) except for introduction of `openlibm.o` there as it's for tcc64.
 
