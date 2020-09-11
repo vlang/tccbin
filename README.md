@@ -4,7 +4,7 @@ This is based on prebuilt [tcc compiler](https://repo.or.cz/tinycc.git), cut at 
 
 Please note that it is intended to be a ***minimalism*** version just enough to support V on ***32-bit/64-bit Windows***. One of the beauties of tcc is its portability.
 
-## What if V reports lack of C header files?
+## What if V reports lack of C header files in use?
 Please try finding extra header files in [this](http://download.savannah.gnu.org/releases/tinycc/winapi-full-for-0.9.27.zip) official full version of tcc. What's more, in this case please create a PR to help us improve tccbin.
 
 ## How is it made? / What are the differences from original tcc? 
