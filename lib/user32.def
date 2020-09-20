@@ -312,6 +312,7 @@ GetProcessWindowStation
 GetPropA
 GetPropW
 GetQueueStatus
+GetRawInputData
 GetScrollBarInfo
 GetScrollInfo
 GetScrollPos
@@ -490,6 +491,7 @@ RegisterDeviceNotificationW
 RegisterHotKey
 RegisterLogonProcess
 RegisterNetworkCapabilities
+RegisterRawInputDevices
 RegisterSystemThread
 RegisterTasklist
 RegisterWindowMessageA
