@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "TCC-DOC 1"
-.TH TCC-DOC 1 "2020-08-20" "0.9.27" "Tiny C Compiler"
+.TH TCC-DOC 1 "2020-11-24" "0.9.27" "Tiny C Compiler"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -406,33 +406,8 @@ invalid pointer\*(C'\fR instead of the laconic \f(CW\*(C`Segmentation
 fault\*(C'\fR.
 .IP "\fB\-b\fR" 4
 .IX Item "-b"
-Generate additional support code to check
-memory allocations and array/pointer bounds. \fB\-g\fR is implied. Note
-that the generated code is slower and bigger in this case.
-The bound checking code is not included in shared libraries. The main executable should always be compiled with the \fB\-b\fR.
-.Sp
-There are five environment variables that can be used:
-.RS 4
-.IP "\fB\s-1TCC_BOUNDS_WARN_POINTER_ADD\s0\fR" 4
-.IX Item "TCC_BOUNDS_WARN_POINTER_ADD"
-Print warning when pointer add creates an illegal pointer.
-.IP "\fB\s-1TCC_BOUNDS_PRINT_CALLS\s0\fR" 4
-.IX Item "TCC_BOUNDS_PRINT_CALLS"
-Print bound checking calls. Can be used for debugging.
-.IP "\fB\s-1TCC_BOUNDS_PRINT_HEAP\s0\fR" 4
-.IX Item "TCC_BOUNDS_PRINT_HEAP"
-Print heap objects that are not freed at exit of program.
-.IP "\fB\s-1TCC_BOUNDS_PRINT_STATISTIC\s0\fR" 4
-.IX Item "TCC_BOUNDS_PRINT_STATISTIC"
-Print statistic information at exit of program.
-.IP "\fB\s-1TCC_BOUNDS_NEVER_FATAL\s0\fR" 4
-.IX Item "TCC_BOUNDS_NEVER_FATAL"
-Try to continue in case of a bound checking error.
-.RE
-.RS 4
-.Sp
-Note: \fB\-b\fR is only available on i386 (linux and windows), x86_64 (linux and windows), arm, arm64 and riscv64 for the moment.
-.RE
+Generate additional support code to check memory allocations and array/pointer
+bounds. \fB\-g\fR is implied.
 .IP "\fB\-bt[N]\fR" 4
 .IX Item "-bt[N]"
 Display N callers in stack traces. This is useful with \fB\-g\fR or \fB\-b\fR.

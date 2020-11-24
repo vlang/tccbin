@@ -362,21 +362,8 @@ error messages: <code> test.c:68: in function 'test5()': dereferencing
 invalid pointer</code> instead of the laconic <code>Segmentation
 fault</code>.
 
-     <br><dt><samp><span class="option">-b</span></samp><dd>Generate additional support code to check
-memory allocations and array/pointer bounds. <samp><span class="option">-g</span></samp> is implied. Note
-that the generated code is slower and bigger in this case. 
-The bound checking code is not included in shared libraries. The main executable should always be compiled with the <samp><span class="option">-b</span></samp>.
-
-     <p>There are five environment variables that can be used:
-          <dl>
-<dt><samp><span class="option">TCC_BOUNDS_WARN_POINTER_ADD</span></samp><dd>Print warning when pointer add creates an illegal pointer. 
-<br><dt><samp><span class="option">TCC_BOUNDS_PRINT_CALLS</span></samp><dd>Print bound checking calls. Can be used for debugging. 
-<br><dt><samp><span class="option">TCC_BOUNDS_PRINT_HEAP</span></samp><dd>Print heap objects that are not freed at exit of program. 
-<br><dt><samp><span class="option">TCC_BOUNDS_PRINT_STATISTIC</span></samp><dd>Print statistic information at exit of program. 
-<br><dt><samp><span class="option">TCC_BOUNDS_NEVER_FATAL</span></samp><dd>Try to continue in case of a bound checking error. 
-</dl>
-
-     <p>Note: <samp><span class="option">-b</span></samp> is only available on i386 (linux and windows), x86_64 (linux and windows), arm, arm64 and riscv64 for the moment.
+     <br><dt><samp><span class="option">-b</span></samp><dd>Generate additional support code to check memory allocations and array/pointer
+bounds (see <a href="#Bounds">Bounds</a>). <samp><span class="option">-g</span></samp> is implied.
 
      <br><dt><samp><span class="option">-bt[N]</span></samp><dd>Display N callers in stack traces. This is useful with <samp><span class="option">-g</span></samp> or <samp><span class="option">-b</span></samp>. 
 With executables, additional support for stack traces is included.
@@ -625,8 +612,6 @@ are supported.
      <li>Binary digits can be entered (<code>0b101</code> instead of
 <code>5</code>).
 
-     <li><code>__BOUNDS_CHECKING_ON</code> is defined if bound checking is activated.
-
 </ul>
 
 <div class="node">
@@ -810,17 +795,8 @@ Up:&nbsp;<a rel="up" accesskey="u" href="#Top">Top</a>
 <h2 class="chapter">6 TinyCC Memory and Bound checks</h2>
 
 <p><a name="index-bound-checks-47"></a><a name="index-memory-checks-48"></a>
-This feature is activated with the <samp><span class="option">-b</span></samp> (see <a href="#Invoke">Invoke</a>).
-
-   <p>Note that pointer size is <em>unchanged</em> and that code generated
-with bound checks is <em>fully compatible</em> with unchecked
-code. When a pointer comes from unchecked code, it is assumed to be
-valid. Even very obscure C code with casts should work correctly.
-
-   <p>For more information about the ideas behind this method, see
-<a href="http://www.doc.ic.ac.uk/~phjk/BoundsChecking.html">http://www.doc.ic.ac.uk/~phjk/BoundsChecking.html</a>.
-
-   <p>Here are some examples of caught errors:
+This feature is activated with the <samp><span class="option">-b</span></samp> option (see <a href="#Invoke">Invoke</a>). 
+Here are some examples of caught errors:
 
      <dl>
 <dt>Invalid range with standard string function:<dd>
@@ -867,58 +843,65 @@ valid. Even very obscure C code with casts should work correctly.
      </pre>
      </dl>
 
-   <p>Signal handlers are not compatible with bounds checking. The code
-below can be used to protect signal handlers. 
-The <code>__attribute__((bound_no_checking))</code> will prevent all bound checking
-code generation. If a signal handler calls another function this
-function must also use <code>__attribute__((bound_no_checking))</code>.
+   <p>TCC defines <code>__BOUNDS_CHECKING_ON</code> if activated.
 
-   <p>The fork() function call in a multi threaded application is also a problem. 
-To solve this all bounds checking can be disabled by calling
-<code>__bound_checking(1)</code>. The call to <code>__bound_checking(1)</code> will disable bounds
-checking in the whole application.
+   <p>There are five environment variables that can be used to control the behavior:
+     <ul>
+<li>TCC_BOUNDS_WARN_POINTER_ADD
+- Print warning when pointer add creates an illegal pointer. 
+<li>TCC_BOUNDS_PRINT_CALLS
+- Print bound checking calls. Can be used for debugging. 
+<li>TCC_BOUNDS_PRINT_HEAP
+- Print heap objects that are not freed at exit of program. 
+<li>TCC_BOUNDS_PRINT_STATISTIC
+- Print statistic information at exit of program. 
+<li>TCC_BOUNDS_NEVER_FATAL
+- Try to continue in case of a bound checking error. 
+</ul>
 
-   <p>The <code>BOUNDS_CHECKING_OFF</code> and <code>BOUNDS_CHECKING_ON</code> can also be used to
-disable bounds checking for some code. This is not recommended. 
-It is better to fix the code.
+   <p>Also, a function <code>__bounds_checking(x)</code> can be used to turn off/on bounds
+checking from usercode (see below).
 
-<pre class="example">     
-     #if defined(__TINYC__) &amp;&amp; __BOUNDS_CHECKING_ON
-     #undef __attribute__
-     extern void __bound_checking (int no_check);
-     #define BOUNDS_CHECKING_OFF __bound_checking(1)
-     #define BOUNDS_CHECKING_ON  __bound_checking(-1)
-     #define BOUNDS_NO_CHECKING __attribute__((bound_no_checking))
+   <p>Notes:
+     <ul>
+<li>Only available on i386 (linux and windows), x86_64 (linux and windows),
+arm, arm64 and riscv64 for the moment. 
+<li>The generated code is slower and bigger. 
+<li>The bound checking code is not included in shared libraries. The main
+executable should always be compiled with the <samp><span class="option">-b</span></samp>. 
+<li>Pointer size is <em>unchanged</em> and code generated with bound checks is
+<em>fully compatible</em> with unchecked code. When a pointer comes from
+unchecked code, it is assumed to be valid. Even very obscure C code with
+casts should work correctly. 
+<li>Signal handlers are not compatible with bounds checking. The
+bounds checking code disables checking in signal/sigaction handlers. 
+The fork() function call in a multi threaded application is also a problem. 
+The bound checking code fixes this for the child process. 
+<li>The reason that signals and fork have problems is that we use locking
+inside the bounds checking code. 
+Inside a signal handler we can not use locks. Also in a multi threaded
+application after a fork the child process can have the lock set
+by another thread. 
+<li>The BOUNDS_CHECKING_OFF and BOUNDS_CHECKING_ON can also be used to
+disable bounds checking for some code. 
+<li>The __bounds_checking call adds a value to a thread local value. 
+The value starts at 0. If the value is not 0 the code is not checked
+for bounds checking errors. 
+</ul>
+
+<pre class="example">     #if defined(__TINYC__) &amp;&amp; __BOUNDS_CHECKING_ON
+     extern void __bounds_checking (int x);
+     # define BOUNDS_CHECKING_OFF __bounds_checking(1)
+     # define BOUNDS_CHECKING_ON  __bounds_checking(-1)
      #else
-     #define BOUNDS_CHECKING_OFF
-     #define BOUNDS_CHECKING_ON
-     #define BOUNDS_NO_CHECKING
+     # define BOUNDS_CHECKING_OFF
+     # define BOUNDS_CHECKING_ON
      #endif
-     
-     void signal_handler(int sig, void *info, void *ucontext) BOUNDS_NO_CHECKING
-     {
-         ... signal handler code without generated bounds checking code.
-     }
-     
-     void run(const char *cmd)
-     {
-         switch (fork()) {
-         case 0:
-           BOUNDS_CHECKING_OFF;
-           ...
-           exec...
-           exit(1);
-         case -1:
-           ...
-           break;
-         default:
-           ...
-           break;
-         }
-     }
-     
 </pre>
-   <div class="node">
+   <p>For more information about the ideas behind this method, see
+<a href="http://www.doc.ic.ac.uk/~phjk/BoundsChecking.html">http://www.doc.ic.ac.uk/~phjk/BoundsChecking.html</a>.
+
+<div class="node">
 <p><hr>
 <a name="Libtcc"></a>
 Next:&nbsp;<a rel="next" accesskey="n" href="#devel">devel</a>,
