@@ -1,8 +1,10 @@
 #!/bin/bash
 
+# Ensure that thirdparty/tcc/ exists (simplifies the script logic)
+mkdir -p thirdparty/tcc/
+
 rm -rf tinycc/
-rm -rf thirdparty/tcc/
-mkdir -p thirdparty/
+rm -rf thirdparty/tcc/tcc.exe  thirdparty/tcc/include thirdparty/tcc/lib thirdparty/tcc/share
 
 pushd .
 git clone git://repo.or.cz/tinycc.git
@@ -17,8 +19,7 @@ make
 make install
 popd
 
-
-mv tinycc/thirdparty/tcc thirdparty/tcc
+mv tinycc/thirdparty/tcc/* thirdparty/tcc/
 mv thirdparty/tcc/tcc thirdparty/tcc/tcc.exe
 
 thirdparty/tcc/tcc.exe -v -v
