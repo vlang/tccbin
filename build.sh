@@ -12,6 +12,7 @@ cd tinycc
 
 ./configure --prefix=thirdparty/tcc \
             --bindir=thirdparty/tcc \
+            --sysincludepaths=thirdparty/tcc/lib/tcc/include:thirdparty/tcc/include:/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include:/usr/include \
             --crtprefix=thirdparty/tcc/lib:/usr/lib \
             --libpaths=thirdparty/tcc/lib:/usr/lib:/lib:/usr/local/lib \
             --debug
