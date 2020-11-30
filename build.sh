@@ -10,11 +10,14 @@ pushd .
 git clone git://repo.or.cz/tinycc.git
 cd tinycc
 
+### NB: /v/v/tinycc/include is needed below,
+### to ensure proper support for bootstrapping tcc,
+### otherwise backtraces will be disabled
 ./configure --prefix=thirdparty/tcc \
             --bindir=thirdparty/tcc \
-            --sysincludepaths=thirdparty/tcc/lib/tcc/include:thirdparty/tcc/include:/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include:/usr/include \
             --crtprefix=thirdparty/tcc/lib:/usr/lib \
             --libpaths=thirdparty/tcc/lib:/usr/lib:/lib:/usr/local/lib \
+            --sysincludepaths=thirdparty/tcc/lib/tcc/include:/v/v/tinycc/include:/usr/local/include:/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include:/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include \
             --debug
 make
 make install
