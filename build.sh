@@ -25,5 +25,7 @@ popd
 
 mv tinycc/thirdparty/tcc/* thirdparty/tcc/
 mv thirdparty/tcc/tcc thirdparty/tcc/tcc.exe
-
 thirdparty/tcc/tcc.exe -v -v
+
+## needed for Big Sur
+ln -s /System/DriverKit/usr/lib/libSystem.dylib $PWD/thirdparty/tcc/lib/libc.dylib
