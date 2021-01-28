@@ -118,6 +118,9 @@ typedef CONST void *LPCVOID;
   typedef unsigned int UINT;
   typedef unsigned int *PUINT;
 
+  typedef struct CONDITION_VARIABLE CONDITION_VARIABLE;
+  typedef struct CONDITION_VARIABLE { LPVOID Ptr; };
+
 #ifndef NT_INCLUDED
 #include <winnt.h>
 #endif
