@@ -423,6 +423,7 @@ HeapUnlock
 HeapValidate
 HeapWalk
 InitAtomTable
+InitializeConditionVariable
 InitializeCriticalSection
 InitializeCriticalSectionAndSpinCount
 InitializeSRWLock
@@ -672,6 +673,7 @@ SignalObjectAndWait
 SignalSysMsgHandlers
 SizeofResource
 Sleep
+SleepConditionVariableSRW
 SleepEx
 SuspendThread
 SwitchToFiber
@@ -724,6 +726,7 @@ WaitForSingleObject
 WaitForSingleObjectEx
 WaitNamedPipeA
 WaitNamedPipeW
+WakeConditionVariable
 WideCharToMultiByte
 WinExec
 WriteConsoleA
