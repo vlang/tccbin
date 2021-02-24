@@ -1495,11 +1495,14 @@ typedef DWORD LCID;
 #endif
 
 #if(defined(_X86_) && !defined(__x86_64))
-  __CRT_INLINE VOID MemoryBarrier(VOID) {
+__CRT_INLINE VOID MemoryBarrier(VOID) {
     LONG Barrier;
-    __asm__ __volatile__("xchgl %%eax,%0 "
-      :"=r" (Barrier));
-  }
+	LONG New;
+    __asm__ __volatile__("lock ; xchgl %0,%1"
+	  : "=r"(New)
+	  : "m" (Barrier), "0"(New)
+	  : "memory");
+}
 #define YieldProcessor() __asm__ __volatile__("rep nop ");
 
 #define PreFetchCacheLine(l,a)
