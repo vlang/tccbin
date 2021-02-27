@@ -9,7 +9,7 @@ As V's backend it produces ***32-bit executables*** compatiable with both ***32-
 In this case please create a PR to help us improve it. Please try finding lacked header files in [this](http://download.savannah.gnu.org/releases/tinycc/winapi-full-for-0.9.27.zip) official full version of tcc, or releases of [MinGW64](https://sourceforge.net/projects/mingw-w64/). For most cases the ported headers should just work nicely. However, small modification is sometimes needed to make them work with V.
 
 ## How is it made? / What are the differences from original tcc? 
-Besides later modifications shown in this branch's commit history, the initial was made following these steps.
+The initial was made following these steps.
 
 (1) Collect tcc source code ([tar.gz](https://repo.or.cz/tinycc.git/snapshot/53d815b8a0364a85b66c3b37884fca087b923267.tar.gz) or [zip](https://repo.or.cz/tinycc.git/snapshot/53d815b8a0364a85b66c3b37884fca087b923267.zip)) and compile it with [latest MinGW32](https://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/8.1.0/threads-posix/dwarf/i686-8.1.0-release-posix-dwarf-rt_v6-rev0.7z), just following steps in `doc\tcc-win32.txt`.
 
