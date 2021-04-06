@@ -10,6 +10,7 @@ AllocConsole
 AllocLSCallback
 AllocSLCallback
 AreFileApisANSI
+AttachConsole
 BackupRead
 BackupSeek
 BackupWrite
