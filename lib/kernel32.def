@@ -73,6 +73,8 @@ CreateFileA
 CreateFileMappingA
 CreateFileMappingW
 CreateFileW
+CreateHardLinkA
+CreateHardLinkW
 CreateIoCompletionPort
 CreateKernelThread
 CreateMailslotA
@@ -88,6 +90,7 @@ CreateRemoteThread
 CreateSemaphoreA
 CreateSemaphoreW
 CreateSocketHandle
+CreateSymbolicLinkA
 CreateSymbolicLinkW
 CreateTapePartition
 CreateThread
@@ -271,7 +274,7 @@ GetFileInformationByHandle
 GetFileSize
 GetFileTime
 GetFileType
-GetFinalPathNameByHandle
+GetFinalPathNameByHandleA
 GetFinalPathNameByHandleW
 GetFullPathNameA
 GetFullPathNameW
