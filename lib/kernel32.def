@@ -73,6 +73,7 @@ CreateFileA
 CreateFileMappingA
 CreateFileMappingW
 CreateFileW
+CreateHardLinkW
 CreateIoCompletionPort
 CreateKernelThread
 CreateMailslotA
