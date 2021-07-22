@@ -1318,3 +1318,4 @@ wprintf
 wprintf_s
 wscanf
 wscanf_s
+_ftelli64
