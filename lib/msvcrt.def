@@ -318,6 +318,7 @@ _fsopen
 _fstat
 _fstat64
 _fstati64
+_ftelli64
 _ftime
 _ftime32
 _ftime32_s
