@@ -1,7 +1,9 @@
 LIBRARY advapi32.dll
 
 EXPORTS
+
 GetUserNameW
-RegQueryValueExW
-RegOpenKeyExW
-RegCloseKey
+_RegOpenKeyExW@20
+_RegQueryValueExW@24
+_RegSetValueExW@24
+_RegCloseKey@4
