@@ -5,3 +5,4 @@ GetUserNameW
 RegQueryValueExW
 RegOpenKeyExW
 RegCloseKey
+RegSetValueExW
