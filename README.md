@@ -18,7 +18,7 @@ cd tinycc
 
 ./configure --prefix=thirdparty/tcc \
             --bindir=thirdparty/tcc \
-            --crtprefix=thirdparty/tcc/lib:/usr/lib64:/usr/lib/aarch64-linux-gnu \
+            --crtprefix=thirdparty/tcc/lib:/usr/lib:/usr/lib64:/usr/lib/aarch64-linux-gnu \
             --libpaths=thirdparty/tcc/lib:/usr/lib/aarch64-linux-gnu:/usr/lib64:/usr/lib:/lib/aarch64-linux-gnu:/lib:/usr/local/lib/aarch64-linux-gnu:/usr/local/lib \
             --debug
 make
