@@ -1,6 +1,6 @@
 # thirdparty-linux-arm64
 
-This is a prebuild tcc (git://repo.or.cz/tinycc.git), cut at commit 696b765 .
+This is a prebuild tcc (git://repo.or.cz/tinycc.git), cut at commit da11cf6 .
 
 It is compiled with:
 ```shell
@@ -18,7 +18,8 @@ cd tinycc
 
 ./configure --prefix=thirdparty/tcc \
             --bindir=thirdparty/tcc \
-            --crtprefix=thirdparty/tcc/lib:/usr/lib64:/usr/lib/aarch64-linux-gnu \
+            --crtprefix=thirdparty/tcc/lib:/usr/lib:/usr/lib64:/usr/lib/aarch64-linux-gnu \
+            --sysincludepaths=thirdparty/tcc/lib/tcc/include:/usr/local/include:/usr/include/aarch64-linux-gnu:/usr/include \
             --libpaths=thirdparty/tcc/lib:/usr/lib/aarch64-linux-gnu:/usr/lib64:/usr/lib:/lib/aarch64-linux-gnu:/lib:/usr/local/lib/aarch64-linux-gnu:/usr/local/lib \
             --debug
 make
