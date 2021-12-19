@@ -302,6 +302,7 @@ GetModuleHandleExW
 GetNamedPipeHandleStateA
 GetNamedPipeHandleStateW
 GetNamedPipeInfo
+GetNativeSystemInfo
 GetNumberFormatA
 GetNumberFormatW
 GetNumberOfConsoleInputEvents
