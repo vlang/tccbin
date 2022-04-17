@@ -1,0 +1,12 @@
+CC=arm-linux-gnueabihf-gcc CXX=arm-linux-gnueabihf-gcc CFLAGS='-Os' LDFLAGS='-Os' ./configure \
+	--enable-threads=pthreads \
+	--enable-static \
+	--enable-shared=no \
+	--enable-thread-local-alloc=no \
+	--enable-parallel-mark \
+	--enable-single-obj-compilation \
+	--enable-gc-debug \
+	--host arm-linux-gnueabihf \
+	--with-libatomic-ops=none
+
+make
