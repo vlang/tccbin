@@ -1,0 +1,12 @@
+CFLAGS='-Os -mtune=generic -arch x86_64 -arch arm64' LDFLAGS='-Os -arch x86_64 -arch arm64' ./configure \
+    --enable-threads=pthreads \
+    --enable-static \
+    --enable-shared=no \
+    --enable-parallel-mark \
+    --enable-single-obj-compilation \
+    --enable-gc-debug \
+    --with-libatomic-ops=none 
+
+make
+
+cp .libs/libgc.a /path/to/v/thirdparty/tcc/lib/libgc.a
