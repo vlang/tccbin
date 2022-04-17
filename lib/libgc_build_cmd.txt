@@ -1,0 +1,10 @@
+CC=x86_64-w64-mingw32-gcc CFLAGS='-Os -mtune=generic' LDFLAGS='-Os' ./configure \
+    --enable-threads=win32 \
+    --enable-shared \
+    --enable-parallel-mark \
+    --enable-single-obj-compilation \
+    --enable-gc-debug \
+    --host=x86_64-w64-mingw32 \
+    --with-libatomic-ops=none 
+
+make
