@@ -1,12 +1,19 @@
+#!/bin/bash
+
+echo "Configuring ..."
 CC=gcc CFLAGS='-Os -mtune=generic' LDFLAGS='-Os' ./configure \
 	--enable-threads=pthreads \
 	--enable-static \
 	--enable-shared=no \
 	--enable-thread-local-alloc=no \
-	--enable-parallel-mark \
 	--enable-single-obj-compilation \
-	--enable-gc-debug
+        --disable-parallel-mark \
+	--enable-gc-assertions
 
+echo "Compiling libgc.a ..."
 make
 
-cp .libs/libgc.a /path/to/v/thirdparty/tcc/lib/libgc.a
+echo "Copying libgc.a to its final place in V's thirdparty/tcc/lib/libgc.a ..."
+cp .libs/libgc.a /opt/v/thirdparty/tcc/lib/libgc.a
+
+echo "Done"
