@@ -1,6 +1,6 @@
-# thirdparty-linux-arm64
+# thirdparty-freebsd-arm64
 
-This is a prebuild tcc (git://repo.or.cz/tinycc.git), cut at commit da11cf6 .
+This is a prebuild tcc (git://repo.or.cz/tinycc.git), cut at commit d3e940c .
 
 It is compiled with:
 ```shell
