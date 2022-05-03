@@ -10,7 +10,8 @@ pushd .
 git clone git://repo.or.cz/tinycc.git
 cd tinycc
 
-./configure \
+LDFLAGS='-O3 -flto -static' ./configure \
+    --extra-cflags="-O3 -flto -static" \
     --config-musl \
     --config-backtrace=yes \
     --config-bcheck=yes \
