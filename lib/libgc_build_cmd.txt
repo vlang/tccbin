@@ -1,10 +1,5 @@
-CC=x86_64-w64-mingw32-gcc CFLAGS='-Os -mtune=generic' LDFLAGS='-Os' ./configure \
-    --enable-threads=win32 \
-    --enable-shared \
-    --enable-parallel-mark \
-    --enable-single-obj-compilation \
-    --enable-gc-debug \
-    --host=x86_64-w64-mingw32 \
-    --with-libatomic-ops=none 
+`thirdparty\libgc\gc.c` needs to be patched: https://gist.github.com/spaceface777/e93ddc20a894280895ddf142d7c3d76e
 
-make
+---
+
+.\thirdparty\tcc\tcc.exe .\thirdparty\libgc\gc.c -DGC_NOT_DLL -DGC_WIN32_THREADS -DGC_THREADS -DGC_BUILTIN_ATOMIC -Ithirdparty\libgc\include -c -o gc.o
