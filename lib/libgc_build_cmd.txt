@@ -1,4 +1,4 @@
-CC=gcc CFLAGS='-Os -mtune=generic -mno-outline-atomics' LDFLAGS='-Os' ./configure \
+CC=gcc CFLAGS='-Os -mtune=generic -mno-outline-atomics -fPIC' LDFLAGS='-Os -fPIC' ./configure \
 	--enable-threads=pthreads \
 	--enable-static \
 	--enable-shared=no \
