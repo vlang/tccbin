@@ -1,4 +1,4 @@
-CC=gcc CFLAGS='-Os -mtune=generic' LDFLAGS='-Os' ./configure \
+CC=gcc CFLAGS='-Os -mtune=generic -fPIC' LDFLAGS='-Os -fPIC' ./configure \
 	--enable-threads=pthreads \
 	--enable-static \
 	--enable-shared=no \
