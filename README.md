@@ -1,6 +1,6 @@
 # thirdparty-linux-amd64
 
-This is a prebuild tcc (git://repo.or.cz/tinycc.git), cut at commit 696b765 .
+This is a prebuild tcc (git://repo.or.cz/tinycc.git), cut at commit 5ac959b .
 
 It is compiled with:
 
@@ -16,6 +16,8 @@ pushd .
 
 git clone git://repo.or.cz/tinycc.git
 cd tinycc
+mkdir build
+cd build
 
 ./configure \
             --prefix=thirdparty/tcc \
@@ -29,9 +31,7 @@ make install
 
 popd
 
-mv tinycc/thirdparty/tcc thirdparty/tcc
-
-mv thirdparty/tcc/tcc thirdparty/tcc/tcc.exe
+mv tinycc/thirdparty/tcc thirdparty/tcc.exe
 
 thirdparty/tcc/tcc.exe -v -v
 
