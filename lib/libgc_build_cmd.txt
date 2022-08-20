@@ -1,4 +1,4 @@
-CC=gcc CFLAGS='-Os -mtune=generic -mno-outline-atomics' LDFLAGS='-Os' ./configure \
+CC=cc CFLAGS='-Os -mtune=generic -mno-outline-atomics' LDFLAGS='-Os' ./configure \
 	--enable-threads=pthreads \
 	--enable-static \
 	--enable-shared=no \
@@ -7,6 +7,6 @@ CC=gcc CFLAGS='-Os -mtune=generic -mno-outline-atomics' LDFLAGS='-Os' ./configur
 	--enable-single-obj-compilation \
 	--enable-gc-debug
 
-make
+gmake
 
 cp .libs/libgc.a /path/to/v/thirdparty/tcc/lib/libgc.a
