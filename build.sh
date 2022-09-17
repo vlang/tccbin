@@ -19,9 +19,13 @@ cd tinycc
             --prefix=thirdparty/tcc \
             --bindir=thirdparty/tcc \
             --crtprefix=thirdparty/tcc/lib:/usr/lib/x86_64-linux-gnu:/usr/lib64:/usr/lib:/lib/x86_64-linux-gnu:/lib \
-            --libpaths=thirdparty/tcc/lib:/usr/lib/x86_64-linux-gnu:/usr/lib64:/usr/lib:/lib/x86_64-linux-gnu:/lib:/usr/local/lib/x86_64-linux-gnu:/usr/local/lib \
+            --libpaths=thirdparty/tcc/lib/tcc:thirdparty/tcc/lib:/usr/lib/x86_64-linux-gnu:/usr/lib64:/usr/lib:/lib/x86_64-linux-gnu:/lib:/usr/local/lib/x86_64-linux-gnu:/usr/local/lib \
+            --cc=gcc-11 \
+            --extra-cflags=-O3 \
+            --config-bcheck=yes \
+            --config-backtrace=yes \
             --debug
-            
+
 make
 make install
 
