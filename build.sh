@@ -2,13 +2,19 @@
 
 ## should be run in V's main repo folder!
 
+export TCC_COMMIT="${TCC_COMMIT:-mob}"
+export TCC_FOLDER="${TCC_FOLDER:-thirdparty/tcc.$TCC_COMMIT}"
+
 rm -rf tinycc/
-rm -rf thirdparty/tcc/
+rm -rf $TCC_FOLDER
 
 pushd .
 
 git clone git://repo.or.cz/tinycc.git
+
 cd tinycc
+
+git checkout $TCC_COMMIT
 
 ## Note: crt1.o is located in:
 ## /usr/lib/x86_64-linux-gnu on Debian/Ubuntu
@@ -16,10 +22,10 @@ cd tinycc
 ## /usr/lib on ArchLinux
 
 ./configure \
-            --prefix=thirdparty/tcc \
-            --bindir=thirdparty/tcc \
-            --crtprefix=thirdparty/tcc/lib:/usr/lib/x86_64-linux-gnu:/usr/lib64:/usr/lib:/lib/x86_64-linux-gnu:/lib \
-            --libpaths=thirdparty/tcc/lib/tcc:thirdparty/tcc/lib:/usr/lib/x86_64-linux-gnu:/usr/lib64:/usr/lib:/lib/x86_64-linux-gnu:/lib:/usr/local/lib/x86_64-linux-gnu:/usr/local/lib \
+            --prefix=$TCC_FOLDER \
+            --bindir=$TCC_FOLDER \
+            --crtprefix=$TCC_FOLDER/lib:/usr/lib/x86_64-linux-gnu:/usr/lib64:/usr/lib:/lib/x86_64-linux-gnu:/lib \
+            --libpaths=$TCC_FOLDER/lib/tcc:$TCC_FOLDER/lib:/usr/lib/x86_64-linux-gnu:/usr/lib64:/usr/lib:/lib/x86_64-linux-gnu:/lib:/usr/local/lib/x86_64-linux-gnu:/usr/local/lib \
             --cc=gcc-11 \
             --extra-cflags=-O3 \
             --config-bcheck=yes \
@@ -31,8 +37,10 @@ make install
 
 popd
 
-mv tinycc/thirdparty/tcc thirdparty/tcc
+mv tinycc/$TCC_FOLDER $TCC_FOLDER
 
-mv thirdparty/tcc/tcc thirdparty/tcc/tcc.exe
+mv $TCC_FOLDER/tcc $TCC_FOLDER/tcc.exe
 
-thirdparty/tcc/tcc.exe -v -v
+$TCC_FOLDER/tcc.exe -v -v
+
+echo "tcc commit: $TCC_COMMIT . The tcc executable is ready in $TCC_FOLDER/tcc.exe "
