@@ -78,6 +78,13 @@
 #endif
     #endif
 
+    #define __ATOMIC_RELAXED 0
+    #define __ATOMIC_CONSUME 1
+    #define __ATOMIC_ACQUIRE 2
+    #define __ATOMIC_RELEASE 3
+    #define __ATOMIC_ACQ_REL 4
+    #define __ATOMIC_SEQ_CST 5
+
 #if defined _WIN32
     #define __declspec(x) __attribute__((x))
     #define __cdecl
@@ -88,15 +95,9 @@
     #define __GNUC_PATCHLEVEL__ 0
     #define __GNUC_STDC_INLINE__ 1
     #define __NO_TLS 1
-    #define __RUNETYPE_INTERNAL 1
 # if __SIZEOF_POINTER__ == 8
     /* FIXME, __int128_t is used by setjump */
     #define __int128_t struct { unsigned char _dummy[16] __attribute((aligned(16))); }
-    #define __SIZEOF_SIZE_T__ 8
-    #define __SIZEOF_PTRDIFF_T__ 8
-#else
-    #define __SIZEOF_SIZE_T__ 4
-    #define __SIZEOF_PTRDIFF_T__ 4
 # endif
 
 #elif defined __FreeBSD_kernel__
@@ -119,29 +120,15 @@
     /* emulate APPLE-GCC to make libc's headerfiles compile: */
     #define __GNUC__ 4   /* darwin emits warning on GCC<4 */
     #define __APPLE_CC__ 1 /* for <TargetConditionals.h> */
-    #define __LITTLE_ENDIAN__ 1
     #define _DONT_USE_CTYPE_INLINE_ 1
     /* avoids usage of GCC/clang specific builtins in libc-headerfiles: */
     #define __FINITE_MATH_ONLY__ 1
     #define _FORTIFY_SOURCE 0
 
-#elif defined __ANDROID__
-    #define  BIONIC_IOCTL_NO_SIGNEDNESS_OVERLOAD
-    #define  __PRETTY_FUNCTION__ __FUNCTION__
-    #define __has_builtin(x) 0
-    #define _Nonnull
-    #define _Nullable
-
 #else
     /* Linux */
 
 #endif
-    /* Some derived integer types needed to get stdint.h to compile correctly on some platforms */
-#ifndef __NetBSD__
-    #define __UINTPTR_TYPE__ unsigned __PTRDIFF_TYPE__
-    #define __INTPTR_TYPE__ __PTRDIFF_TYPE__
-#endif
-    #define __INT32_TYPE__ int
 
 #if !defined _WIN32
     /* glibc defines */
@@ -236,7 +223,6 @@
     #else
     # define __RENAME(X) __asm__(X)
     #endif
-
     #ifdef __BOUNDS_CHECKING_ON
     # define __BUILTINBC(ret,name,params) ret __builtin_##name params __RENAME("__bound_"#name);
     # define __BOUND(ret,name,params) ret name params __RENAME("__bound_"#name);
@@ -244,13 +230,8 @@
     # define __BUILTINBC(ret,name,params) ret __builtin_##name params __RENAME(#name);
     # define __BOUND(ret,name,params)
     #endif
-#ifdef _WIN32
-    #define __BOTH __BOUND
-    #define __BUILTIN(ret,name,params)
-#else
     #define __BOTH(ret,name,params) __BUILTINBC(ret,name,params)__BOUND(ret,name,params)
     #define __BUILTIN(ret,name,params) ret __builtin_##name params __RENAME(#name);
-#endif
 
     __BOTH(void*, memcpy, (void *, const void*, __SIZE_TYPE__))
     __BOTH(void*, memmove, (void *, const void*, __SIZE_TYPE__))

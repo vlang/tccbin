@@ -317,12 +317,11 @@ Make string constants be of type \f(CW\*(C`const char *\*(C'\fR instead of \f(CW
 *\*(C'\fR.
 .IP "\fB\-Werror\fR" 4
 .IX Item "-Werror"
-Abort compilation if a warning is issued. Can be given an option to enable
-the specified warning and turn it into an error, for example
-\&\fB\-Werror=unsupported\fR.
+Abort compilation if warnings are issued.
 .IP "\fB\-Wall\fR" 4
 .IX Item "-Wall"
-Activate some useful warnings.
+Activate all warnings, except \fB\-Werror\fR, \fB\-Wunusupported\fR and
+\&\fB\-Wwrite\-strings\fR.
 .PP
 Linker options:
 .IP "\fB\-Ldir\fR" 4
@@ -405,13 +404,10 @@ Turn on/off linking of all objects in archives.
 Debugger options:
 .IP "\fB\-g\fR" 4
 .IX Item "-g"
-Generate run time stab debug information so that you get clear run time
+Generate run time debug information so that you get clear run time
 error messages: \f(CW\*(C` test.c:68: in function \*(Aqtest5()\*(Aq: dereferencing
 invalid pointer\*(C'\fR instead of the laconic \f(CW\*(C`Segmentation
 fault\*(C'\fR.
-.IP "\fB\-gdwarf[\-x]\fR" 4
-.IX Item "-gdwarf[-x]"
-Generate run time dwarf debug information instead of stab debug information.
 .IP "\fB\-b\fR" 4
 .IX Item "-b"
 Generate additional support code to check memory allocations and array/pointer
@@ -425,18 +421,9 @@ A function \f(CW\*(C` int tcc_backtrace(const char *fmt, ...); \*(C'\fR is provi
 to trigger a stack trace with a message on demand.
 .PP
 Misc options:
-.IP "\fB\-M\fR" 4
-.IX Item "-M"
-Just output makefile fragment with dependencies
-.IP "\fB\-MM\fR" 4
-.IX Item "-MM"
-Like \-M except mention only user header files, not system header files.
 .IP "\fB\-MD\fR" 4
 .IX Item "-MD"
 Generate makefile fragment with dependencies.
-.IP "\fB\-MMD\fR" 4
-.IX Item "-MMD"
-Like \-MD except mention only user header files, not system header files.
 .IP "\fB\-MF depfile\fR" 4
 .IX Item "-MF depfile"
 Use \fIdepfile\fR as output for \-MD.

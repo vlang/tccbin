@@ -230,12 +230,11 @@ beginning with '-Wno-'.
      *'.
 
 '-Werror'
-     Abort compilation if a warning is issued.  Can be given an option
-     to enable the specified warning and turn it into an error, for
-     example '-Werror=unsupported'.
+     Abort compilation if warnings are issued.
 
 '-Wall'
-     Activate some useful warnings.
+     Activate all warnings, except '-Werror', '-Wunusupported' and
+     '-Wwrite-strings'.
 
    Linker options:
 
@@ -307,14 +306,9 @@ beginning with '-Wno-'.
    Debugger options:
 
 '-g'
-     Generate run time stab debug information so that you get clear run
-     time error messages: ' test.c:68: in function 'test5()':
-     dereferencing invalid pointer' instead of the laconic 'Segmentation
-     fault'.
-
-'-gdwarf[-x]'
-     Generate run time dwarf debug information instead of stab debug
-     information.
+     Generate run time debug information so that you get clear run time
+     error messages: ' test.c:68: in function 'test5()': dereferencing
+     invalid pointer' instead of the laconic 'Segmentation fault'.
 
 '-b'
      Generate additional support code to check memory allocations and
@@ -330,19 +324,8 @@ beginning with '-Wno-'.
 
    Misc options:
 
-'-M'
-     Just output makefile fragment with dependencies
-
-'-MM'
-     Like -M except mention only user header files, not system header
-     files.
-
 '-MD'
      Generate makefile fragment with dependencies.
-
-'-MMD'
-     Like -MD except mention only user header files, not system header
-     files.
 
 '-MF depfile'
      Use 'depfile' as output for -MD.
@@ -1261,12 +1244,12 @@ Tag Table:
 Node: Top207
 Node: Introduction927
 Node: Invoke2242
-Node: Clang11177
-Node: asm16965
-Node: linker19551
-Node: Bounds21285
-Node: Libtcc25034
-Node: devel25534
+Node: Clang10753
+Node: asm16541
+Node: linker19127
+Node: Bounds20861
+Node: Libtcc24610
+Node: devel25110
 
 End Tag Table
 

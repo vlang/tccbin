@@ -383,13 +383,12 @@ or sofile.tcov file is generated with code coverage.
 </p>
 </dd>
 <dt><samp>-Werror</samp></dt>
-<dd><p>Abort compilation if a warning is issued. Can be given an option to enable
-the specified warning and turn it into an error, for example
-<samp>-Werror=unsupported</samp>.
+<dd><p>Abort compilation if warnings are issued.
 </p>
 </dd>
 <dt><samp>-Wall</samp></dt>
-<dd><p>Activate some useful warnings.
+<dd><p>Activate all warnings, except <samp>-Werror</samp>, <samp>-Wunusupported</samp> and
+<samp>-Wwrite-strings</samp>.
 </p>
 </dd>
 </dl>
@@ -487,14 +486,10 @@ opened with <code>dlopen()</code> needs to access executable symbols.
 </p>
 <dl compact="compact">
 <dt><samp>-g</samp></dt>
-<dd><p>Generate run time stab debug information so that you get clear run time
+<dd><p>Generate run time debug information so that you get clear run time
 error messages: <code> test.c:68: in function 'test5()': dereferencing
 invalid pointer</code> instead of the laconic <code>Segmentation
 fault</code>.
-</p>
-</dd>
-<dt><samp>-gdwarf[-x]</samp></dt>
-<dd><p>Generate run time dwarf debug information instead of stab debug information.
 </p>
 </dd>
 <dt><samp>-b</samp></dt>
@@ -515,20 +510,8 @@ to trigger a stack trace with a message on demand.
 <p>Misc options:
 </p>
 <dl compact="compact">
-<dt><samp>-M</samp></dt>
-<dd><p>Just output makefile fragment with dependencies
-</p>
-</dd>
-<dt><samp>-MM</samp></dt>
-<dd><p>Like -M except mention only user header files, not system header files.
-</p>
-</dd>
 <dt><samp>-MD</samp></dt>
 <dd><p>Generate makefile fragment with dependencies.
-</p>
-</dd>
-<dt><samp>-MMD</samp></dt>
-<dd><p>Like -MD except mention only user header files, not system header files.
 </p>
 </dd>
 <dt><samp>-MF depfile</samp></dt>
