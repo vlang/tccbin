@@ -154,6 +154,8 @@ extern "C" {
   _CRTIMP __time64_t __cdecl _mktime64(struct tm *_Tm);
   _CRTIMP __time64_t __cdecl _mkgmtime64(struct tm *_Tm);
   _CRTIMP __time64_t __cdecl _time64(__time64_t *_Time);
+  _CRTIMP errno_t __cdecl _gmtime64_s(struct tm *_Tm,const __time64_t *_Time);
+
 #endif
   unsigned __cdecl _getsystime(struct tm *_Tm);
   unsigned __cdecl _setsystime(struct tm *_Tm,unsigned _MilliSec);
@@ -237,6 +239,13 @@ __CRT_INLINE time_t __cdecl mktime(struct tm *_Tm) { return _mktime64(_Tm); }
 __CRT_INLINE time_t __cdecl _mkgmtime(struct tm *_Tm) { return _mkgmtime64(_Tm); }
 __CRT_INLINE time_t __cdecl time(time_t *_Time) { return _time64(_Time); }
 #endif
+#endif
+
+errno_t __cdecl gmtime_s(struct tm *_Tm, const time_t *_Time);
+#ifdef _USE_32BIT_TIME_T
+__CRT_INLINE errno_t __cdecl gmtime_s(struct tm *_Tm, const time_t *_Time) { return _gmtime32_s(_Tm, _Time); }
+#else
+__CRT_INLINE errno_t __cdecl gmtime_s(struct tm *_Tm, const time_t *_Time) { return _gmtime64_s(_Tm, _Time); }
 #endif
 
 #if !defined(NO_OLDNAMES) || defined(_POSIX)
