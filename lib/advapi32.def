@@ -6,3 +6,6 @@ RegQueryValueExW
 RegOpenKeyExW
 RegCloseKey
 RegSetValueExW
+CryptAcquireContextA
+CryptGenRandom
+CryptReleaseContext
