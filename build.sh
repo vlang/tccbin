@@ -18,8 +18,7 @@ for i in include/*.h; do echo $i; ln -s $i $(basename $i); done
             --crtprefix=thirdparty/tcc/lib:/usr/lib \
             --libpaths=thirdparty/tcc/lib:/usr/local/lib:/usr/lib:/lib \
             --sysincludepaths=thirdparty/tcc/lib/tcc/include:/usr/local/include:/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include:/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include \
-	    --config-bcheck=yes --config-new_macho=yes --config-codesign --config-backtrace=yes \
-            --debug
+	    --config-bcheck=yes --config-new_macho=yes --config-codesign --config-backtrace=yes
 make
 make install
 popd
