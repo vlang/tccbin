@@ -277,6 +277,9 @@ behaves like an unnamed one.
 
      <br><dt><samp><span class="option">-fdollars-in-identifiers</span></samp><dd>Allow dollar signs in identifiers
 
+     <br><dt><samp><span class="option">-ftest-coverage</span></samp><dd>Create code coverage code. After running the resulting code an executable.tcov
+or sofile.tcov file is generated with code coverage.
+
    </dl>
 
    <p>Warning options:
@@ -297,10 +300,11 @@ behaves like an unnamed one.
      <br><dt><samp><span class="option">-Wwrite-strings</span></samp><dd>Make string constants be of type <code>const char *</code> instead of <code>char
 *</code>.
 
-     <br><dt><samp><span class="option">-Werror</span></samp><dd>Abort compilation if warnings are issued.
+     <br><dt><samp><span class="option">-Werror</span></samp><dd>Abort compilation if a warning is issued. Can be given an option to enable
+the specified warning and turn it into an error, for example
+<samp><span class="option">-Werror=unsupported</span></samp>.
 
-     <br><dt><samp><span class="option">-Wall</span></samp><dd>Activate all warnings, except <samp><span class="option">-Werror</span></samp>, <samp><span class="option">-Wunusupported</span></samp> and
-<samp><span class="option">-Wwrite-strings</span></samp>.
+     <br><dt><samp><span class="option">-Wall</span></samp><dd>Activate some useful warnings.
 
    </dl>
 
@@ -357,10 +361,12 @@ opened with <code>dlopen()</code> needs to access executable symbols.
    <p>Debugger options:
 
      <dl>
-<dt><samp><span class="option">-g</span></samp><dd>Generate run time debug information so that you get clear run time
+<dt><samp><span class="option">-g</span></samp><dd>Generate run time stab debug information so that you get clear run time
 error messages: <code> test.c:68: in function 'test5()': dereferencing
 invalid pointer</code> instead of the laconic <code>Segmentation
 fault</code>.
+
+     <br><dt><samp><span class="option">-gdwarf[-x]</span></samp><dd>Generate run time dwarf debug information instead of stab debug information.
 
      <br><dt><samp><span class="option">-b</span></samp><dd>Generate additional support code to check memory allocations and array/pointer
 bounds (see <a href="#Bounds">Bounds</a>). <samp><span class="option">-g</span></samp> is implied.
@@ -376,7 +382,13 @@ to trigger a stack trace with a message on demand.
    <p>Misc options:
 
      <dl>
-<dt><samp><span class="option">-MD</span></samp><dd>Generate makefile fragment with dependencies.
+<dt><samp><span class="option">-M</span></samp><dd>Just output makefile fragment with dependencies
+
+     <br><dt><samp><span class="option">-MM</span></samp><dd>Like -M except mention only user header files, not system header files.
+
+     <br><dt><samp><span class="option">-MD</span></samp><dd>Generate makefile fragment with dependencies.
+
+     <br><dt><samp><span class="option">-MMD</span></samp><dd>Like -MD except mention only user header files, not system header files.
 
      <br><dt><samp><span class="option">-MF depfile</span></samp><dd>Use <samp><span class="file">depfile</span></samp> as output for -MD.
 
