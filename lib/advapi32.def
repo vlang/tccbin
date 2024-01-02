@@ -2,11 +2,14 @@ LIBRARY advapi32.dll
 
 EXPORTS
 GetUserNameW
-RegQueryValueExW
 RegOpenKeyExW
 RegCloseKey
+RegCreateKeyExW
+RegDeleteKeyExW
+RegQueryValueExW
 RegSetValueExW
 RegDeleteValueW
+RegEnumValueW
 CryptAcquireContextA
 CryptGenRandom
 CryptReleaseContext
