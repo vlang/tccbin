@@ -43,12 +43,12 @@ make install
 
 popd
 
-rsync -av --delete --exclude .git/ tinycc/$TCC_FOLDER/                 $TCC_FOLDER/
-rsync -av                          thirdparty/tcc.original/lib/libgc*  $TCC_FOLDER/lib/
-rsync -av                          thirdparty/tcc.original/README.md   $TCC_FOLDER/README.md
-rsync -av                          thirdparty/tcc.original/.git/       $TCC_FOLDER/.git/
-rsync -av                          build.sh                            $TCC_FOLDER/build.sh
-mv                                 $TCC_FOLDER/tcc                     $TCC_FOLDER/tcc.exe
+rsync -a --delete tinycc/$TCC_FOLDER/                 $TCC_FOLDER/
+rsync -a          thirdparty/tcc.original/.git/       $TCC_FOLDER/.git/
+rsync -a          thirdparty/tcc.original/lib/libgc*  $TCC_FOLDER/lib/
+rsync -a          thirdparty/tcc.original/README.md   $TCC_FOLDER/README.md
+rsync -a          build.sh                            $TCC_FOLDER/build.sh
+mv                $TCC_FOLDER/tcc                     $TCC_FOLDER/tcc.exe
 
 $TCC_FOLDER/tcc.exe -v -v
 
