@@ -5,8 +5,14 @@
 export TCC_COMMIT="${TCC_COMMIT:-mob}"
 export TCC_FOLDER="${TCC_FOLDER:-thirdparty/tcc.$TCC_COMMIT}"
 
+echo "TCC_COMMIT: $TCC_COMMIT"
+echo "TCC_FOLDER: $TCC_FOLDER"
+echo ===============================================================
+
 rm -rf tinycc/
-rm -rf $TCC_FOLDER
+rm -rf thirdparty/tcc.original/
+rsync -a thirdparty/tcc/ thirdparty/tcc.original/
+## rm -rf $TCC_FOLDER
 
 pushd .
 
@@ -37,9 +43,12 @@ make install
 
 popd
 
-mv tinycc/$TCC_FOLDER $TCC_FOLDER
-
-mv $TCC_FOLDER/tcc $TCC_FOLDER/tcc.exe
+rsync -av --delete --exclude .git/ tinycc/$TCC_FOLDER/                 $TCC_FOLDER/
+rsync -av                          thirdparty/tcc.original/lib/libgc*  $TCC_FOLDER/lib/
+rsync -av                          thirdparty/tcc.original/README.md   $TCC_FOLDER/README.md
+rsync -av                          thirdparty/tcc.original/.git/       $TCC_FOLDER/.git/
+rsync -av                          build.sh                            $TCC_FOLDER/build.sh
+mv                                 $TCC_FOLDER/tcc                     $TCC_FOLDER/tcc.exe
 
 $TCC_FOLDER/tcc.exe -v -v
 
