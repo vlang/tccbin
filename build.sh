@@ -24,8 +24,8 @@ cd tinycc
 
 git checkout $TCC_COMMIT
 
-export CC=cc
-export CFLAGS='-O3 -flto'
+export CC=gcc
+export CFLAGS='-O3'
 
 ./configure \
             --prefix=$TCC_FOLDER \
@@ -35,10 +35,12 @@ export CFLAGS='-O3 -flto'
             --libpaths=$TCC_FOLDER/lib/tcc:$TCC_FOLDER/lib:/usr/lib64:/usr/lib:/lib:/usr/local/lib \
             --cc="$CC" \
             --extra-cflags="$CFLAGS" \
-	    --extra-ldflags="-L/usr/local/lib -ltcc" \
 	    --config-backtrace=yes \
 	    --config-bcheck=yes \
             --debug
+
+##     --extra-ldflags="-L/usr/home/ec2-user/v/tinycc -ltcc" \
+
 gmake
 gmake install
 
