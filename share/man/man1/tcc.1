@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "TCC-DOC 1"
-.TH TCC-DOC 1 "2022-08-20" "0.9.27" "Tiny C Compiler"
+.TH TCC-DOC 1 "2024-02-06" "0.9.28rc" "Tiny C Compiler"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -419,10 +419,11 @@ bounds. \fB\-g\fR is implied.
 .IP "\fB\-bt[N]\fR" 4
 .IX Item "-bt[N]"
 Display N callers in stack traces. This is useful with \fB\-g\fR or \fB\-b\fR.
-With executables, additional support for stack traces is included.
+When activated, \f(CW\*(C`_\|_TCC_BACKTRACE_\|_\*(C'\fR is defined.
 .Sp
-A function \f(CW\*(C` int tcc_backtrace(const char *fmt, ...); \*(C'\fR is provided
-to trigger a stack trace with a message on demand.
+With executables, additional support for stack traces is included. A function
+    \f(CW\*(C` int tcc_backtrace(const char *fmt, ...); \*(C'\fR
+is provided to trigger a stack trace with a message on demand.
 .PP
 Misc options:
 .IP "\fB\-M\fR" 4
