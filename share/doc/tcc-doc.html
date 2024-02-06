@@ -105,7 +105,7 @@ Next: <a href="#Introduction" accesskey="n" rel="next">Introduction</a>, Previou
 </div>
 <span id="Tiny-C-Compiler-Reference-Documentation"></span><h1 class="top">Tiny C Compiler Reference Documentation</h1>
 
-<p>This manual documents version 0.9.27 of the Tiny C Compiler.
+<p>This manual documents version 0.9.28rc of the Tiny C Compiler.
 </p>
 <table class="menu" border="0" cellspacing="0">
 <tr><td align="left" valign="top">&bull; <a href="#Introduction" accesskey="1">Introduction</a></td><td>&nbsp;&nbsp;</td><td align="left" valign="top">Introduction to tcc.
@@ -383,12 +383,13 @@ or sofile.tcov file is generated with code coverage.
 </p>
 </dd>
 <dt><samp>-Werror</samp></dt>
-<dd><p>Abort compilation if warnings are issued.
+<dd><p>Abort compilation if a warning is issued. Can be given an option to enable
+the specified warning and turn it into an error, for example
+<samp>-Werror=unsupported</samp>.
 </p>
 </dd>
 <dt><samp>-Wall</samp></dt>
-<dd><p>Activate all warnings, except <samp>-Werror</samp>, <samp>-Wunusupported</samp> and
-<samp>-Wwrite-strings</samp>.
+<dd><p>Activate some useful warnings.
 </p>
 </dd>
 </dl>
@@ -486,10 +487,14 @@ opened with <code>dlopen()</code> needs to access executable symbols.
 </p>
 <dl compact="compact">
 <dt><samp>-g</samp></dt>
-<dd><p>Generate run time debug information so that you get clear run time
+<dd><p>Generate run time stab debug information so that you get clear run time
 error messages: <code> test.c:68: in function 'test5()': dereferencing
 invalid pointer</code> instead of the laconic <code>Segmentation
 fault</code>.
+</p>
+</dd>
+<dt><samp>-gdwarf[-x]</samp></dt>
+<dd><p>Generate run time dwarf debug information instead of stab debug information.
 </p>
 </dd>
 <dt><samp>-b</samp></dt>
@@ -499,10 +504,11 @@ bounds (see <a href="#Bounds">Bounds</a>). <samp>-g</samp> is implied.
 </dd>
 <dt><samp>-bt[N]</samp></dt>
 <dd><p>Display N callers in stack traces. This is useful with <samp>-g</samp> or <samp>-b</samp>.
-With executables, additional support for stack traces is included.
+When activated, <code>__TCC_BACKTRACE__</code> is defined.
 </p>
-<p>A function <code> int tcc_backtrace(const char *fmt, ...); </code> is provided
-to trigger a stack trace with a message on demand.
+<p>With executables, additional support for stack traces is included. A function
+    <code> int tcc_backtrace(const char *fmt, ...); </code>
+is provided to trigger a stack trace with a message on demand.
 </p>
 </dd>
 </dl>
@@ -510,8 +516,20 @@ to trigger a stack trace with a message on demand.
 <p>Misc options:
 </p>
 <dl compact="compact">
+<dt><samp>-M</samp></dt>
+<dd><p>Just output makefile fragment with dependencies
+</p>
+</dd>
+<dt><samp>-MM</samp></dt>
+<dd><p>Like -M except mention only user header files, not system header files.
+</p>
+</dd>
 <dt><samp>-MD</samp></dt>
 <dd><p>Generate makefile fragment with dependencies.
+</p>
+</dd>
+<dt><samp>-MMD</samp></dt>
+<dd><p>Like -MD except mention only user header files, not system header files.
 </p>
 </dd>
 <dt><samp>-MF depfile</samp></dt>
@@ -1062,7 +1080,7 @@ Here are some examples of caught errors:
 </dd>
 </dl>
 
-<p>TCC defines <code>__BOUNDS_CHECKING_ON</code> if activated.
+<p>TCC defines <code>__TCC_BCHECK__</code> if activated.
 </p>
 <p>There are five environment variables that can be used to control the behavior:
 </p><ul>
@@ -1109,7 +1127,7 @@ for bounds checking errors.
 </li></ul>
 
 <div class="example">
-<pre class="example">#if defined(__TINYC__) &amp;&amp; __BOUNDS_CHECKING_ON
+<pre class="example">#ifdef __TCC_BCHECK__
 extern void __bounds_checking (int x);
 # define BOUNDS_CHECKING_OFF __bounds_checking(1)
 # define BOUNDS_CHECKING_ON  __bounds_checking(-1)

@@ -12,7 +12,7 @@ File: tcc-doc.info,  Node: Top,  Next: Introduction,  Prev: (dir),  Up: (dir)
 Tiny C Compiler Reference Documentation
 ***************************************
 
-This manual documents version 0.9.27 of the Tiny C Compiler.
+This manual documents version 0.9.28rc of the Tiny C Compiler.
 
 * Menu:
 
@@ -230,11 +230,12 @@ beginning with '-Wno-'.
      *'.
 
 '-Werror'
-     Abort compilation if warnings are issued.
+     Abort compilation if a warning is issued.  Can be given an option
+     to enable the specified warning and turn it into an error, for
+     example '-Werror=unsupported'.
 
 '-Wall'
-     Activate all warnings, except '-Werror', '-Wunusupported' and
-     '-Wwrite-strings'.
+     Activate some useful warnings.
 
    Linker options:
 
@@ -306,9 +307,14 @@ beginning with '-Wno-'.
    Debugger options:
 
 '-g'
-     Generate run time debug information so that you get clear run time
-     error messages: ' test.c:68: in function 'test5()': dereferencing
-     invalid pointer' instead of the laconic 'Segmentation fault'.
+     Generate run time stab debug information so that you get clear run
+     time error messages: ' test.c:68: in function 'test5()':
+     dereferencing invalid pointer' instead of the laconic 'Segmentation
+     fault'.
+
+'-gdwarf[-x]'
+     Generate run time dwarf debug information instead of stab debug
+     information.
 
 '-b'
      Generate additional support code to check memory allocations and
@@ -316,16 +322,27 @@ beginning with '-Wno-'.
 
 '-bt[N]'
      Display N callers in stack traces.  This is useful with '-g' or
-     '-b'.  With executables, additional support for stack traces is
-     included.
+     '-b'.  When activated, '__TCC_BACKTRACE__' is defined.
 
+     With executables, additional support for stack traces is included.
      A function ' int tcc_backtrace(const char *fmt, ...); ' is provided
      to trigger a stack trace with a message on demand.
 
    Misc options:
 
+'-M'
+     Just output makefile fragment with dependencies
+
+'-MM'
+     Like -M except mention only user header files, not system header
+     files.
+
 '-MD'
      Generate makefile fragment with dependencies.
+
+'-MMD'
+     Like -MD except mention only user header files, not system header
+     files.
 
 '-MF depfile'
      Use 'depfile' as output for -MD.
@@ -748,7 +765,7 @@ Double free:
               free(tab);
           }
 
-   TCC defines '__BOUNDS_CHECKING_ON' if activated.
+   TCC defines '__TCC_BCHECK__' if activated.
 
    There are five environment variables that can be used to control the
 behavior:
@@ -791,7 +808,7 @@ bounds checking from usercode (see below).
      The value starts at 0.  If the value is not 0 the code is not
      checked for bounds checking errors.
 
-     #if defined(__TINYC__) && __BOUNDS_CHECKING_ON
+     #ifdef __TCC_BCHECK__
      extern void __bounds_checking (int x);
      # define BOUNDS_CHECKING_OFF __bounds_checking(1)
      # define BOUNDS_CHECKING_ON  __bounds_checking(-1)
@@ -1242,14 +1259,14 @@ Concept Index
 
 Tag Table:
 Node: Top207
-Node: Introduction927
-Node: Invoke2242
-Node: Clang10753
-Node: asm16541
-Node: linker19127
-Node: Bounds20861
-Node: Libtcc24610
-Node: devel25110
+Node: Introduction929
+Node: Invoke2244
+Node: Clang11227
+Node: asm17015
+Node: linker19601
+Node: Bounds21335
+Node: Libtcc25053
+Node: devel25553
 
 End Tag Table
 
