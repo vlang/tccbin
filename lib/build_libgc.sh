@@ -14,15 +14,18 @@ LIBGC_COMMIT=$(git -C bdwgc rev-parse HEAD)
 cd bdwgc/
 ./autogen.sh
 CC=$CC CFLAGS='-Os -mtune=generic -fPIC' LDFLAGS='-Os -fPIC' ./configure \
+	--disable-dependency-tracking \
+	--disable-docs \
 	--enable-handle-fork=yes \
-	--enable-sigrt-signals \
 	--enable-rwlock \
 	--enable-threads=pthreads \
 	--enable-static \
 	--enable-shared=no \
 	--enable-parallel-mark \
 	--enable-single-obj-compilation \
-	--enable-gc-debug
+	--enable-gc-debug \
+	--with-libatomic-ops=yes \
+	--enable-sigrt-signals
 
 make
 cd ..
