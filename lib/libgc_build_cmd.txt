@@ -1,8 +1,11 @@
 CC=gcc CFLAGS='-Os -mtune=generic -fPIC' LDFLAGS='-Os -fPIC' ./configure \
+	--enable-handle-fork=yes \
+	--enable-redirect-malloc \
+	--enable-sigrt-signals \
+	--enable-rwlock \
 	--enable-threads=pthreads \
 	--enable-static \
 	--enable-shared=no \
-	--enable-thread-local-alloc=no \
 	--enable-parallel-mark \
 	--enable-single-obj-compilation \
 	--enable-gc-debug
