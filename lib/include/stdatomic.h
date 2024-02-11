@@ -78,6 +78,7 @@ typedef struct {
 } atomic_flag;
 
 #define ATOMIC_FLAG_INIT {0}
+#define ATOMIC_VAR_INIT(value) (value)
 
 #define atomic_flag_test_and_set_explicit(object, order)                  \
     __atomic_test_and_set((void *)(&((object)->value)), order)
@@ -134,7 +135,7 @@ typedef struct {
        __atomic_compare_exchange(ptr, expected, &tmp, 1, success, failure); \
     })
 #define atomic_compare_exchange_weak(object, expected, desired)           \
-    atomic_compare_exchange_weak_explicit (PTR, VAL, DES,                 \
+    atomic_compare_exchange_weak_explicit (object, expected, desired,     \
                                            __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)
 
 #define atomic_fetch_add(object, operand) \

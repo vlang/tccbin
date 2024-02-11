@@ -18,7 +18,7 @@
 
 #if __SIZEOF_POINTER__ == 4
     /* 32bit systems. */
-#if defined TARGETOS_OpenBSD
+#if defined  __OpenBSD__
     #define __SIZE_TYPE__ unsigned long
     #define __PTRDIFF_TYPE__ long
 #else
@@ -68,7 +68,7 @@
     #define __WINT_TYPE__ int
 #endif
 
-    #if __STDC_VERSION__ == 201112L
+    #if __STDC_VERSION__ >= 201112L
     # define __STDC_NO_ATOMICS__ 1
     # define __STDC_NO_COMPLEX__ 1
     # define __STDC_NO_THREADS__ 1
@@ -124,18 +124,16 @@
     /* avoids usage of GCC/clang specific builtins in libc-headerfiles: */
     #define __FINITE_MATH_ONLY__ 1
     #define _FORTIFY_SOURCE 0
+    //#define __has_builtin(x) 0
 
 #elif defined __ANDROID__
     #define  BIONIC_IOCTL_NO_SIGNEDNESS_OVERLOAD
-    #define  __PRETTY_FUNCTION__ __FUNCTION__
-    #define __has_builtin(x) 0
-    #define _Nonnull
-    #define _Nullable
 
 #else
     /* Linux */
 
 #endif
+
     /* Some derived integer types needed to get stdint.h to compile correctly on some platforms */
 #ifndef __NetBSD__
     #define __UINTPTR_TYPE__ unsigned __PTRDIFF_TYPE__
@@ -144,10 +142,21 @@
     #define __INT32_TYPE__ int
 
 #if !defined _WIN32
-    /* glibc defines */
+    /* glibc defines. We do not support __USER_NAME_PREFIX__ */
     #define __REDIRECT(name, proto, alias) name proto __asm__ (#alias)
     #define __REDIRECT_NTH(name, proto, alias) name proto __asm__ (#alias) __THROW
+    #define __REDIRECT_NTHNL(name, proto, alias) name proto __asm__ (#alias) __THROWNL
 #endif
+
+    /* not implemented */
+    #define  __PRETTY_FUNCTION__ __FUNCTION__
+    #define __has_builtin(x) 0
+    #define __has_feature(x) 0
+    /* C23 Keywords */
+    #define _Nonnull
+    #define _Nullable
+    #define _Nullable_result
+    #define _Null_unspecified
 
     /* skip __builtin... with -E */
     #ifndef __TCC_PP__
@@ -244,7 +253,7 @@
     # define __RENAME(X) __asm__(X)
     #endif
 
-    #ifdef __BOUNDS_CHECKING_ON
+    #ifdef __TCC_BCHECK__
     # define __BUILTINBC(ret,name,params) ret __builtin_##name params __RENAME("__bound_"#name);
     # define __BOUND(ret,name,params) ret name params __RENAME("__bound_"#name);
     #else
@@ -309,12 +318,10 @@
     #undef __MAYBE_REDIR
     #undef __RENAME
 
-#if !defined _WIN32
     #define __BUILTIN_EXTERN(name,u) 		\
         int __builtin_##name(u int);		\
         int __builtin_##name##l(u long);	\
         int __builtin_##name##ll(u long long);
-
     __BUILTIN_EXTERN(ffs,)
     __BUILTIN_EXTERN(clz, unsigned)
     __BUILTIN_EXTERN(ctz, unsigned)
@@ -322,6 +329,5 @@
     __BUILTIN_EXTERN(popcount, unsigned)
     __BUILTIN_EXTERN(parity, unsigned)
     #undef __BUILTIN_EXTERN
-#endif
 
     #endif /* ndef __TCC_PP__ */
