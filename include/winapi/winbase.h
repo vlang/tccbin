@@ -14,6 +14,54 @@
 extern "C" {
 #endif
 
+#if _WIN32_WINNT >= 0x0600
+  typedef enum _FILE_INFO_BY_HANDLE_CLASS {
+    FileBasicInfo /* is zero? */,
+    FileStandardInfo,
+    FileNameInfo,
+    FileRenameInfo,
+    FileDispositionInfo,
+    FileAllocationInfo,
+    FileEndOfFileInfo,
+    FileStreamInfo,
+    FileCompressionInfo,
+    FileAttributeTagInfo,
+    FileIdBothDirectoryInfo,
+    FileIdBothDirectoryRestartInfo,
+    FileIoPriorityHintInfo,
+    FileRemoteProtocolInfo,
+    FileFullDirectoryInfo,
+    FileFullDirectoryRestartInfo,
+#if _WIN32_WINNT >= 0x0602
+    FileStorageInfo,
+    FileAlignmentInfo,
+    FileIdInfo,
+    FileIdExtdDirectoryInfo,
+    FileIdExtdDirectoryRestartInfo,
+#endif
+#if _WIN32_WINNT >= 0x0A000002
+    FileDispositionInfoEx,
+    FileRenameInfoEx,
+#endif
+    FileCaseSensitiveInfo,
+    FileNormalizedNameInfo,
+    MaximumFileInfoByHandleClass
+  } FILE_INFO_BY_HANDLE_CLASS, *PFILE_INFO_BY_HANDLE_CLASS;
+#endif
+
+
+typedef struct _FILE_NAME_INFO {
+  DWORD FileNameLength;
+  WCHAR FileName[1];
+} FILE_NAME_INFO, *PFILE_NAME_INFO;
+
+
+WINBASEAPI WINBOOL WINAPI GetFileInformationByHandleEx (
+HANDLE hFile,
+FILE_INFO_BY_HANDLE_CLASS FileInformationClass,
+LPVOID lpFileInformation,
+DWORD dwBufferSize);
+
 #define DefineHandleTable(w) ((w),TRUE)
 #define LimitEmsPages(dw)
 #define SetSwapAreaSize(w) (w)

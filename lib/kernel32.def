@@ -270,6 +270,7 @@ GetFileAttributesExA
 GetFileAttributesExW
 GetFileAttributesW
 GetFileInformationByHandle
+GetFileInformationByHandleEx
 GetFileSize
 GetFileTime
 GetFileType
