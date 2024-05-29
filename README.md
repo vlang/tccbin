@@ -5,7 +5,7 @@ This is a prebuild tcc (git://repo.or.cz/tinycc.git), cut at commit 0378168 .
 It is compiled with:
 
 ```shell
-#!/bin/bash
+#!/usr/bin/env bash
 
 ## should be run in V's main repo folder!
 
@@ -24,7 +24,7 @@ cd tinycc
             --libpaths=thirdparty/tcc/lib:/usr/lib/arm-linux-gnueabihf:/usr/lib:/lib/arm-linux-gnueabihf:/lib:/usr/local/lib/arm-linux-gnueabihf:/usr/local/lib \
             --extra-cflags="-O3 -flto" \
             --debug
-            
+
 make
 make install
 
