@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Ensure that thirdparty/tcc/ exists (simplifies the script logic)
 mkdir -p thirdparty/tcc/
