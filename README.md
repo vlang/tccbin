@@ -3,8 +3,9 @@
 This is a prebuild tcc (git://repo.or.cz/tinycc.git), cut at commit da11cf6 .
 
 It is compiled with:
+
 ```shell
-#!/bin/bash
+#!/usr/bin/env bash
 
 ## should be run in V's main repo folder!
 
