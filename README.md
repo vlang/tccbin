@@ -1,6 +1,6 @@
 # thirdparty-freebsd-aarch64
 
-This is a prebuild tcc (git://repo.or.cz/tinycc.git), cut at commit d3e940c .
+This is a prebuild tcc (git://repo.or.cz/tinycc.git), cut at commit 08a4c52 .
 
 It is compiled with:
 ```shell
