@@ -1,8 +1,11 @@
-# tccbin
+# thirdparty-openbsd-amd64
 
-This is a prebuild tcc (git://repo.or.cz/tinycc.git), cut at commit 9eef339 .
+This is a prebuild tcc (git://repo.or.cz/tinycc.git), cut at commit b8b6a5fd (2024-09-14) .
 
-It is compiled with:
-```shell
-./configure --prefix=/var/tmp/tcc --crtprefix=/var/tmp/tcc/lib:/usr/lib64:/usr/lib/x86_64-linux-gnu --libpaths=/var/tmp/tcc/lib:/usr/lib/x86_64-linux-gnu:/usr/lib64:/usr/lib:/lib/x86_64-linux-gnu:/lib:/usr/local/lib/x86_64-linux-gnu:/usr/local/lib  --debug
+It is compiled by copying the file `build.sh` into the V main repo folder, and doing:
+
+```bash
+TCC_FOLDER=thirdparty/tcc TCC_COMMIT=b8b6a5fd ./build.sh
 ```
+
+on an AMD64/Intel based OpenBSD system.
