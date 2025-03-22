@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "TCC-DOC 1"
-.TH TCC-DOC 1 "2024-08-05" "0.9.28rc" "Tiny C Compiler"
+.TH TCC-DOC 1 "2025-03-22" "0.9.28rc" "Tiny C Compiler"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -145,7 +145,7 @@ tcc \- Tiny C Compiler
 usage: tcc [options] [\fIinfile1\fR \fIinfile2\fR...] [\fB\-run\fR \fIinfile\fR \fIargs\fR...]
 .SH "DESCRIPTION"
 .IX Header "DESCRIPTION"
-\&\s-1TCC\s0 options are a very much like gcc options. The main difference is that \s-1TCC\s0
+\&\s-1TCC\s0 options are very much like gcc options. The main difference is that \s-1TCC\s0
 can also execute directly the resulting program and give it runtime
 arguments.
 .PP
@@ -246,6 +246,16 @@ Show included files.  As sole argument, print search dirs.  \-vvv shows tries to
 .IP "\fB\-bench\fR" 4
 .IX Item "-bench"
 Display compilation statistics.
+.IP "\fB\-pthread\fR" 4
+.IX Item "-pthread"
+Preprocess with \fB\-D_REENTRANT\fR, link with \fB\-lpthread\fR.
+.IP "\fB\-On\fR" 4
+.IX Item "-On"
+Pretend to optimise: set \fB\-D_\|_OPTIMIZE_\|_\fR to the numeric value of n.
+Note that \s-1TCC\s0 performs no additional optimisation.
+.IP "\fB\-dt\fR" 4
+.IX Item "-dt"
+With \fB\-run\fR/\fB\-E\fR: auto-define 'test_...' macros
 .PP
 Preprocessor options:
 .IP "\fB\-Idir\fR" 4
@@ -257,6 +267,16 @@ System include paths are always searched after. The default system
 include paths are: \fI/usr/local/include\fR, \fI/usr/include\fR
 and \fIPREFIX/lib/tcc/include\fR. (\fI\s-1PREFIX\s0\fR is usually
 \&\fI/usr\fR or \fI/usr/local\fR).
+.IP "\fB\-isystem dir\fR" 4
+.IX Item "-isystem dir"
+Specify a system include path to be added to the defaults.
+.IP "\fB\-nostdinc\fR" 4
+.IX Item "-nostdinc"
+Do not search the default system include paths; only search include paths
+provided on the command line.
+.IP "\fB\-include file\fR" 4
+.IX Item "-include file"
+Include \fBfile\fR above each input file.
 .IP "\fB\-Dsym[=val]\fR" 4
 .IX Item "-Dsym[=val]"
 Define preprocessor symbol \fBsym\fR to
@@ -268,6 +288,18 @@ Undefine preprocessor symbol \fBsym\fR.
 .IP "\fB\-E\fR" 4
 .IX Item "-E"
 Preprocess only, to stdout or file (with \-o).
+.IP "\fB\-P\fR" 4
+.IX Item "-P"
+Do not output \f(CW\*(C`#line\*(C'\fR directives.
+.IP "\fB\-P1\fR" 4
+.IX Item "-P1"
+Output alternative \f(CW\*(C`#line\*(C'\fR directives.
+.IP "\fB\-dD, \-dM\fR" 4
+.IX Item "-dD, -dM"
+Output \f(CW\*(C`#define\*(C'\fR directives.
+.IP "\fB\-Wp,\-opt\fR" 4
+.IX Item "-Wp,-opt"
+Same as \fB\-opt\fR.
 .PP
 Compilation flags:
 .PP
@@ -293,6 +325,15 @@ behaves like an unnamed one.
 .IP "\fB\-fdollars\-in\-identifiers\fR" 4
 .IX Item "-fdollars-in-identifiers"
 Allow dollar signs in identifiers
+.IP "\fB\-freverse\-funcargs\fR" 4
+.IX Item "-freverse-funcargs"
+Evaluate function arguments right to left.
+.IP "\fB\-fgnu89\-inline\fR" 4
+.IX Item "-fgnu89-inline"
+\&\f(CW\*(C`extern inline\*(C'\fR is like \f(CW\*(C`static inline\*(C'\fR.
+.IP "\fB\-fasynchronous\-unwind\-tables\fR" 4
+.IX Item "-fasynchronous-unwind-tables"
+Create eh_frame section [on]
 .IP "\fB\-ftest\-coverage\fR" 4
 .IX Item "-ftest-coverage"
 Create code coverage code. After running the resulting code an executable.tcov
@@ -307,7 +348,10 @@ Note: each of the following warning options has a negative form beginning with
 \&\fB\-Wno\-\fR.
 .IP "\fB\-Wimplicit\-function\-declaration\fR" 4
 .IX Item "-Wimplicit-function-declaration"
-Warn about implicit function declaration.
+Warn about implicit function declaration (missing prototype).
+.IP "\fB\-Wdiscarded\-qualifiers\fR" 4
+.IX Item "-Wdiscarded-qualifiers"
+Warn when const is dropped.
 .IP "\fB\-Wunsupported\fR" 4
 .IX Item "-Wunsupported"
 Warn about unsupported \s-1GCC\s0 features that are ignored by \s-1TCC.\s0
@@ -322,7 +366,8 @@ the specified warning and turn it into an error, for example
 \&\fB\-Werror=unsupported\fR.
 .IP "\fB\-Wall\fR" 4
 .IX Item "-Wall"
-Activate some useful warnings.
+Activate some useful warnings (\fB\-Wimplicit\-function\-declaration\fR,
+\&\fB\-Wdiscard\-qualifiers\fR).
 .PP
 Linker options:
 .IP "\fB\-Ldir\fR" 4
@@ -355,9 +400,25 @@ opened with \f(CW\*(C`dlopen()\*(C'\fR needs to access executable symbols.
 .IP "\fB\-r\fR" 4
 .IX Item "-r"
 Generate an object file combining all input files.
+.IP "\fB\-nostdlib\fR" 4
+.IX Item "-nostdlib"
+Don't implicitly link with libc, the C runtime files, and libtcc1.
+.IP "\fB\-Wl,\-nostdlib\fR" 4
+.IX Item "-Wl,-nostdlib"
+Don't search the default paths for libraries (\fI/usr/local/lib\fR,
+\&\fI/usr/lib\fR and \fI/lib\fR). Only the paths specified with \fB\-L\fR
+and \fB\s-1LIBRARY_PATH\s0\fR are searched.
 .IP "\fB\-Wl,\-rpath=path\fR" 4
 .IX Item "-Wl,-rpath=path"
 Put custom search path for dynamic libraries into executable.
+.IP "\fB\-Wl,\-Ipath\fR" 4
+.IX Item "-Wl,-Ipath"
+.PD 0
+.IP "\fB\-Wl,\-\-dynamic\-linker=path\fR" 4
+.IX Item "-Wl,--dynamic-linker=path"
+.PD
+Set the \s-1ELF\s0 interpreter (dynamic linker). This defaults to the value of the
+environment variable \fB\s-1LD_SO\s0\fR if set, or a compiled-in default.
 .IP "\fB\-Wl,\-\-enable\-new\-dtags\fR" 4
 .IX Item "-Wl,--enable-new-dtags"
 When putting a custom search path for dynamic libraries into the executable,
@@ -426,6 +487,13 @@ With executables, additional support for stack traces is included. A function
 is provided to trigger a stack trace with a message on demand.
 .PP
 Misc options:
+.IP "\fB\-std=version\fR" 4
+.IX Item "-std=version"
+Define \f(CW\*(C`_\|_STDC_VERSION_\|_\*(C'\fR: \f(CW201112\fR if \fBversion\fR is c11 or
+gnu11; \f(CW199901\fR otherwise.
+.IP "\fB\-x[c|a|b|n]\fR" 4
+.IX Item "-x[c|a|b|n]"
+Specify content of next input file: respectively C, assembly, binary, or none.
 .IP "\fB\-M\fR" 4
 .IX Item "-M"
 Just output makefile fragment with dependencies
@@ -464,8 +532,7 @@ Do not use sse registers on x86_64
 .IX Item "-m32, -m64"
 Pass command line to the i386/x86_64 cross compiler.
 .PP
-Note: \s-1GCC\s0 options \fB\-Ox\fR, \fB\-fx\fR and \fB\-mx\fR are
-ignored.
+Note: \s-1GCC\s0 options \fB\-fx\fR and \fB\-mx\fR are ignored.
 .SH "ENVIRONMENT"
 .IX Header "ENVIRONMENT"
 Environment variables that affect how tcc operates.
