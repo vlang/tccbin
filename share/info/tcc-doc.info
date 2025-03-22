@@ -293,6 +293,9 @@ beginning with '-Wno-'.
      libxxx.a.  The library is searched in the paths specified by the
      '-L' option and 'LIBRARY_PATH' variable.
 
+'-nostdlib'
+     Don't implicitly link with libc, the C runtime files, and libtcc1.
+
 '-Bdir'
      Set the path where the tcc internal libraries (and include files)
      can be found (default is 'PREFIX/lib/tcc').
@@ -314,22 +317,8 @@ beginning with '-Wno-'.
 '-r'
      Generate an object file combining all input files.
 
-'-nostdlib'
-     Don't implicitly link with libc, the C runtime files, and libtcc1.
-
-'-Wl,-nostdlib'
-     Don't search the default paths for libraries ('/usr/local/lib',
-     '/usr/lib' and '/lib').  Only the paths specified with '-L' and
-     'LIBRARY_PATH' are searched.
-
 '-Wl,-rpath=path'
      Put custom search path for dynamic libraries into executable.
-
-'-Wl,-Ipath'
-'-Wl,--dynamic-linker=path'
-     Set the ELF interpreter (dynamic linker).  This defaults to the
-     value of the environment variable 'LD_SO' if set, or a compiled-in
-     default.
 
 '-Wl,--enable-new-dtags'
      When putting a custom search path for dynamic libraries into the
@@ -1328,12 +1317,12 @@ Tag Table:
 Node: Top207
 Node: Introduction929
 Node: Invoke2244
-Node: Clang12962
-Node: asm18750
-Node: linker21336
-Node: Bounds23070
-Node: Libtcc26788
-Node: devel27288
+Node: Clang12576
+Node: asm18364
+Node: linker20950
+Node: Bounds22684
+Node: Libtcc26402
+Node: devel26902
 
 End Tag Table
 

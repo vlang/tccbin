@@ -379,6 +379,9 @@ default library paths are \fI/usr/local/lib\fR, \fI/usr/lib\fR and \fI/lib\fR.
 Link your program with dynamic library libxxx.so or static library
 libxxx.a. The library is searched in the paths specified by the
 \&\fB\-L\fR option and \fB\s-1LIBRARY_PATH\s0\fR variable.
+.IP "\fB\-nostdlib\fR" 4
+.IX Item "-nostdlib"
+Don't implicitly link with libc, the C runtime files, and libtcc1.
 .IP "\fB\-Bdir\fR" 4
 .IX Item "-Bdir"
 Set the path where the tcc internal libraries (and include files) can be
@@ -400,25 +403,9 @@ opened with \f(CW\*(C`dlopen()\*(C'\fR needs to access executable symbols.
 .IP "\fB\-r\fR" 4
 .IX Item "-r"
 Generate an object file combining all input files.
-.IP "\fB\-nostdlib\fR" 4
-.IX Item "-nostdlib"
-Don't implicitly link with libc, the C runtime files, and libtcc1.
-.IP "\fB\-Wl,\-nostdlib\fR" 4
-.IX Item "-Wl,-nostdlib"
-Don't search the default paths for libraries (\fI/usr/local/lib\fR,
-\&\fI/usr/lib\fR and \fI/lib\fR). Only the paths specified with \fB\-L\fR
-and \fB\s-1LIBRARY_PATH\s0\fR are searched.
 .IP "\fB\-Wl,\-rpath=path\fR" 4
 .IX Item "-Wl,-rpath=path"
 Put custom search path for dynamic libraries into executable.
-.IP "\fB\-Wl,\-Ipath\fR" 4
-.IX Item "-Wl,-Ipath"
-.PD 0
-.IP "\fB\-Wl,\-\-dynamic\-linker=path\fR" 4
-.IX Item "-Wl,--dynamic-linker=path"
-.PD
-Set the \s-1ELF\s0 interpreter (dynamic linker). This defaults to the value of the
-environment variable \fB\s-1LD_SO\s0\fR if set, or a compiled-in default.
 .IP "\fB\-Wl,\-\-enable\-new\-dtags\fR" 4
 .IX Item "-Wl,--enable-new-dtags"
 When putting a custom search path for dynamic libraries into the executable,

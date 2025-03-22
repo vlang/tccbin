@@ -467,6 +467,10 @@ libxxx.a. The library is searched in the paths specified by the
 <samp>-L</samp> option and <code>LIBRARY_PATH</code> variable.
 </p>
 </dd>
+<dt><samp>-nostdlib</samp></dt>
+<dd><p>Don&rsquo;t implicitly link with libc, the C runtime files, and libtcc1.
+</p>
+</dd>
 <dt><samp>-Bdir</samp></dt>
 <dd><p>Set the path where the tcc internal libraries (and include files) can be
 found (default is <samp>PREFIX/lib/tcc</samp>).
@@ -494,24 +498,8 @@ opened with <code>dlopen()</code> needs to access executable symbols.
 <dd><p>Generate an object file combining all input files.
 </p>
 </dd>
-<dt><samp>-nostdlib</samp></dt>
-<dd><p>Don&rsquo;t implicitly link with libc, the C runtime files, and libtcc1.
-</p>
-</dd>
-<dt><samp>-Wl,-nostdlib</samp></dt>
-<dd><p>Don&rsquo;t search the default paths for libraries (<samp>/usr/local/lib</samp>,
-<samp>/usr/lib</samp> and <samp>/lib</samp>). Only the paths specified with <samp>-L</samp>
-and <code>LIBRARY_PATH</code> are searched.
-</p>
-</dd>
 <dt><samp>-Wl,-rpath=path</samp></dt>
 <dd><p>Put custom search path for dynamic libraries into executable.
-</p>
-</dd>
-<dt><samp>-Wl,-Ipath</samp></dt>
-<dt><samp>-Wl,--dynamic-linker=path</samp></dt>
-<dd><p>Set the ELF interpreter (dynamic linker). This defaults to the value of the
-environment variable <code>LD_SO</code> if set, or a compiled-in default.
 </p>
 </dd>
 <dt><samp>-Wl,--enable-new-dtags</samp></dt>
