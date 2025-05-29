@@ -70,9 +70,9 @@ File: tcc-doc.info,  Node: Invoke,  Next: Clang,  Prev: Introduction,  Up: Top
 
      usage: tcc [options] [INFILE1 INFILE2...] [`-run' INFILE ARGS...]
 
-TCC options are a very much like gcc options. The main difference is
-that TCC can also execute directly the resulting program and give it
-runtime arguments.
+TCC options are very much like gcc options. The main difference is that
+TCC can also execute directly the resulting program and give it runtime
+arguments.
 
    Here are some examples to understand the logic:
 
@@ -172,6 +172,16 @@ General Options:
      `PREFIX/lib/tcc/include'. (`PREFIX' is usually `/usr' or
      `/usr/local').
 
+`-isystem dir'
+     Specify a system include path to be added to the defaults.
+
+`-nostdinc'
+     Do not search the default system include paths; only search
+     include paths provided on the command line.
+
+`-include file'
+     Include `file' above each input file.
+
 `-Dsym[=val]'
      Define preprocessor symbol `sym' to val. If val is not present,
      its value is `1'. Function-like macros can also be defined:
@@ -182,6 +192,18 @@ General Options:
 
 `-E'
      Preprocess only, to stdout or file (with -o).
+
+`-P'
+     Do not output `#line' directives.
+
+`-P1'
+     Output alternative `#line' directives.
+
+`-dD, -dM'
+     Output `#define' directives.
+
+`-Wp,-opt'
+     Same as `-opt'.
 
 
    Compilation flags:
@@ -209,6 +231,15 @@ with `-fno-'.
 `-fdollars-in-identifiers'
      Allow dollar signs in identifiers
 
+`-freverse-funcargs'
+     Evaluate function arguments right to left.
+
+`-fgnu89-inline'
+     `extern inline' is like `static inline'.
+
+`-fasynchronous-unwind-tables'
+     Create eh_frame section [on]
+
 `-ftest-coverage'
      Create code coverage code. After running the resulting code an
      executable.tcov or sofile.tcov file is generated with code
@@ -225,7 +256,10 @@ with `-fno-'.
 beginning with `-Wno-'.
 
 `-Wimplicit-function-declaration'
-     Warn about implicit function declaration.
+     Warn about implicit function declaration (missing prototype).
+
+`-Wdiscarded-qualifiers'
+     Warn when const is dropped.
 
 `-Wunsupported'
      Warn about unsupported GCC features that are ignored by TCC.
@@ -240,7 +274,8 @@ beginning with `-Wno-'.
      example `-Werror=unsupported'.
 
 `-Wall'
-     Activate some useful warnings.
+     Activate some useful warnings (`-Wimplicit-function-declaration',
+     `-Wdiscard-qualifiers').
 
 
    Linker options:
@@ -275,8 +310,23 @@ beginning with `-Wno-'.
 `-r'
      Generate an object file combining all input files.
 
+`-nostdlib'
+     Don't implicitly link with libc, the C runtime files, and libtcc1.
+
+`-Wl,-nostdlib'
+     Don't search the default paths for libraries (`/usr/local/lib',
+     `/usr/lib' and `/lib'). Only the paths specified with `-L' and
+     `LIBRARY_PATH' are searched.
+
 `-Wl,-rpath=path'
      Put custom search path for dynamic libraries into executable.
+
+`-Wl,-Ipath'
+
+`-Wl,--dynamic-linker=path'
+     Set the ELF interpreter (dynamic linker). This defaults to the
+     value of the environment variable `LD_SO' if set, or a compiled-in
+     default.
 
 `-Wl,--enable-new-dtags'
      When putting a custom search path for dynamic libraries into the
@@ -341,6 +391,20 @@ beginning with `-Wno-'.
 
    Misc options:
 
+`-std=version'
+     Define `__STDC_VERSION__': `201112' if `version' is c11 or gnu11;
+     `199901' otherwise.
+
+`-x[c|a|b|n]'
+     Specify content of next input file: respectively C, assembly,
+     binary, or none.
+
+`-O[n]'
+     Same as `-D__OPTIMIZE__' except for -O0.
+
+`-pthread'
+     Preprocess with `-D_REENTRANT', link with `-lpthread'.
+
 `-M'
      Just output makefile fragment with dependencies
 
@@ -358,12 +422,18 @@ beginning with `-Wno-'.
 `-MF depfile'
      Use `depfile' as output for -MD.
 
+`-MP'
+     Mention all dependencies as targets too.
+
 `-print-search-dirs'
      Print the configured installation directory and a list of library
      and include directories tcc will search.
 
 `-dumpversion'
      Print version.
+
+`-dt'
+     With `-run'/`-E': auto-define 'test_...' macros
 
 
    Target specific options:
@@ -382,7 +452,7 @@ beginning with `-Wno-'.
      Pass command line to the i386/x86_64 cross compiler.
 
 
-   Note: GCC options `-Ox', `-fx' and `-mx' are ignored.
+   Note: GCC options `-fx' and `-mx' are ignored.
 
    Environment variables that affect how tcc operates.
 
@@ -1319,11 +1389,11 @@ Tag Table:
 Node: Top207
 Node: Introduction929
 Node: Invoke2250
-Node: Clang11230
-Node: asm17019
-Node: linker19619
-Node: Bounds21350
-Node: Libtcc25072
-Node: devel25571
+Node: Clang12933
+Node: asm18722
+Node: linker21322
+Node: Bounds23053
+Node: Libtcc26775
+Node: devel27274
 
 End Tag Table

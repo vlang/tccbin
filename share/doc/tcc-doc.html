@@ -158,7 +158,7 @@ Up:&nbsp;<a rel="up" accesskey="u" href="#Top">Top</a>
      <!-- man end -->
 </pre>
 <p class="noindent"><!-- man begin DESCRIPTION -->
-TCC options are a very much like gcc options. The main difference is that TCC
+TCC options are very much like gcc options. The main difference is that TCC
 can also execute directly the resulting program and give it runtime
 arguments.
 
@@ -247,6 +247,13 @@ include paths are: <samp><span class="file">/usr/local/include</span></samp>, <s
 and <samp><span class="file">PREFIX/lib/tcc/include</span></samp>. (<samp><span class="file">PREFIX</span></samp> is usually
 <samp><span class="file">/usr</span></samp> or <samp><span class="file">/usr/local</span></samp>).
 
+     <br><dt><samp><span class="option">-isystem dir</span></samp><dd>Specify a system include path to be added to the defaults.
+
+     <br><dt><samp><span class="option">-nostdinc</span></samp><dd>Do not search the default system include paths; only search include paths
+provided on the command line.
+
+     <br><dt><samp><span class="option">-include file</span></samp><dd>Include <samp><span class="option">file</span></samp> above each input file.
+
      <br><dt><samp><span class="option">-Dsym[=val]</span></samp><dd>Define preprocessor symbol `<samp><span class="samp">sym</span></samp>' to
 val. If val is not present, its value is `<samp><span class="samp">1</span></samp>'. Function-like macros can
 also be defined: <samp><span class="option">-DF(a)=a+1</span></samp>
@@ -254,6 +261,14 @@ also be defined: <samp><span class="option">-DF(a)=a+1</span></samp>
      <br><dt><samp><span class="option">-Usym</span></samp><dd>Undefine preprocessor symbol `<samp><span class="samp">sym</span></samp>'.
 
      <br><dt><samp><span class="option">-E</span></samp><dd>Preprocess only, to stdout or file (with -o).
+
+     <br><dt><samp><span class="option">-P</span></samp><dd>Do not output <code>#line</code> directives.
+
+     <br><dt><samp><span class="option">-P1</span></samp><dd>Output alternative <code>#line</code> directives.
+
+     <br><dt><samp><span class="option">-dD, -dM</span></samp><dd>Output <code>#define</code> directives.
+
+     <br><dt><samp><span class="option">-Wp,-opt</span></samp><dd>Same as <samp><span class="option">-opt</span></samp>.
 
    </dl>
 
@@ -277,6 +292,12 @@ behaves like an unnamed one.
 
      <br><dt><samp><span class="option">-fdollars-in-identifiers</span></samp><dd>Allow dollar signs in identifiers
 
+     <br><dt><samp><span class="option">-freverse-funcargs</span></samp><dd>Evaluate function arguments right to left.
+
+     <br><dt><samp><span class="option">-fgnu89-inline</span></samp><dd><code>extern inline</code> is like <code>static inline</code>.
+
+     <br><dt><samp><span class="option">-fasynchronous-unwind-tables</span></samp><dd>Create eh_frame section [on]
+
      <br><dt><samp><span class="option">-ftest-coverage</span></samp><dd>Create code coverage code. After running the resulting code an executable.tcov
 or sofile.tcov file is generated with code coverage.
 
@@ -293,7 +314,9 @@ or sofile.tcov file is generated with code coverage.
 <samp><span class="option">-Wno-</span></samp>.
 
      <dl>
-<dt><samp><span class="option">-Wimplicit-function-declaration</span></samp><dd>Warn about implicit function declaration.
+<dt><samp><span class="option">-Wimplicit-function-declaration</span></samp><dd>Warn about implicit function declaration (missing prototype).
+
+     <br><dt><samp><span class="option">-Wdiscarded-qualifiers</span></samp><dd>Warn when const is dropped.
 
      <br><dt><samp><span class="option">-Wunsupported</span></samp><dd>Warn about unsupported GCC features that are ignored by TCC.
 
@@ -304,7 +327,8 @@ or sofile.tcov file is generated with code coverage.
 the specified warning and turn it into an error, for example
 <samp><span class="option">-Werror=unsupported</span></samp>.
 
-     <br><dt><samp><span class="option">-Wall</span></samp><dd>Activate some useful warnings.
+     <br><dt><samp><span class="option">-Wall</span></samp><dd>Activate some useful warnings (<samp><span class="option">-Wimplicit-function-declaration</span></samp>,
+<samp><span class="option">-Wdiscard-qualifiers</span></samp>).
 
    </dl>
 
@@ -333,7 +357,16 @@ opened with <code>dlopen()</code> needs to access executable symbols.
 
      <br><dt><samp><span class="option">-r</span></samp><dd>Generate an object file combining all input files.
 
+     <br><dt><samp><span class="option">-nostdlib</span></samp><dd>Don't implicitly link with libc, the C runtime files, and libtcc1.
+
+     <br><dt><samp><span class="option">-Wl,-nostdlib</span></samp><dd>Don't search the default paths for libraries (<samp><span class="file">/usr/local/lib</span></samp>,
+<samp><span class="file">/usr/lib</span></samp> and <samp><span class="file">/lib</span></samp>). Only the paths specified with <samp><span class="option">-L</span></samp>
+and <samp><span class="env">LIBRARY_PATH</span></samp> are searched.
+
      <br><dt><samp><span class="option">-Wl,-rpath=path</span></samp><dd>Put custom search path for dynamic libraries into executable.
+
+     <br><dt><samp><span class="option">-Wl,-Ipath</span></samp><br><dt><samp><span class="option">-Wl,--dynamic-linker=path</span></samp><dd>Set the ELF interpreter (dynamic linker). This defaults to the value of the
+environment variable <samp><span class="env">LD_SO</span></samp> if set, or a compiled-in default.
 
      <br><dt><samp><span class="option">-Wl,--enable-new-dtags</span></samp><dd>When putting a custom search path for dynamic libraries into the executable,
 create the new ELF dynamic tag DT_RUNPATH instead of the old legacy DT_RPATH.
@@ -383,7 +416,16 @@ is provided to trigger a stack trace with a message on demand.
    <p>Misc options:
 
      <dl>
-<dt><samp><span class="option">-M</span></samp><dd>Just output makefile fragment with dependencies
+<dt><samp><span class="option">-std=version</span></samp><dd>Define <code>__STDC_VERSION__</code>: <code>201112</code> if <samp><span class="option">version</span></samp> is c11 or
+gnu11; <code>199901</code> otherwise.
+
+     <br><dt><samp><span class="option">-x[c|a|b|n]</span></samp><dd>Specify content of next input file: respectively C, assembly, binary, or none.
+
+     <br><dt><samp><span class="option">-O[n]</span></samp><dd>Same as <samp><span class="option">-D__OPTIMIZE__</span></samp> except for -O0.
+
+     <br><dt><samp><span class="option">-pthread</span></samp><dd>Preprocess with <samp><span class="option">-D_REENTRANT</span></samp>, link with <samp><span class="option">-lpthread</span></samp>.
+
+     <br><dt><samp><span class="option">-M</span></samp><dd>Just output makefile fragment with dependencies
 
      <br><dt><samp><span class="option">-MM</span></samp><dd>Like -M except mention only user header files, not system header files.
 
@@ -393,10 +435,14 @@ is provided to trigger a stack trace with a message on demand.
 
      <br><dt><samp><span class="option">-MF depfile</span></samp><dd>Use <samp><span class="file">depfile</span></samp> as output for -MD.
 
+     <br><dt><samp><span class="option">-MP</span></samp><dd>Mention all dependencies as targets too.
+
      <br><dt><samp><span class="option">-print-search-dirs</span></samp><dd>Print the configured installation directory and a list of library
 and include directories tcc will search.
 
      <br><dt><samp><span class="option">-dumpversion</span></samp><dd>Print version.
+
+     <br><dt><samp><span class="option">-dt</span></samp><dd>With <samp><span class="option">-run</span></samp>/<samp><span class="option">-E</span></samp>: auto-define 'test_...' macros
 
    </dl>
 
@@ -414,8 +460,7 @@ gcc's algorithm.
 
    </dl>
 
-   <p>Note: GCC options <samp><span class="option">-Ox</span></samp>, <samp><span class="option">-fx</span></samp> and <samp><span class="option">-mx</span></samp> are
-ignored. 
+   <p>Note: GCC options <samp><span class="option">-fx</span></samp> and <samp><span class="option">-mx</span></samp> are ignored. 
 <!-- man end -->
 
 <!-- man begin ENVIRONMENT -->

@@ -1,0 +1,1 @@
+OpenBSD openbsd-dev.home.lan 7.7 GENERIC.MP#667 amd64
