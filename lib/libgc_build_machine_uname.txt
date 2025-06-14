@@ -1,0 +1,1 @@
+FreeBSD nas.home.lan 14.3-RELEASE FreeBSD 14.3-RELEASE releng/14.3-n271432-8c9ce319fef7 GENERIC amd64
