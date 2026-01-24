@@ -125,6 +125,7 @@
     #define __FINITE_MATH_ONLY__ 1
     #define _FORTIFY_SOURCE 0
     //#define __has_builtin(x) 0
+    #define _Float16 short unsigned int /* fake type just for size & alignment (macOS Sequoia) */
 
 #elif defined __ANDROID__
     #define  BIONIC_IOCTL_NO_SIGNEDNESS_OVERLOAD
@@ -141,6 +142,12 @@
 #endif
     #define __INT32_TYPE__ int
 
+#if defined __aarch64__
+    /* GCC's __uint128_t appears in some Linux/OSX header files. Make it a
+       synonym for long double to get the size and alignment right. */
+    #define __uint128_t long double
+#endif
+
 #if !defined _WIN32
     /* glibc defines. We do not support __USER_NAME_PREFIX__ */
     #define __REDIRECT(name, proto, alias) name proto __asm__ (#alias)
@@ -152,6 +159,7 @@
     #define  __PRETTY_FUNCTION__ __FUNCTION__
     #define __has_builtin(x) 0
     #define __has_feature(x) 0
+    #define __has_attribute(x) 0
     /* C23 Keywords */
     #define _Nonnull
     #define _Nullable
@@ -183,7 +191,10 @@
 #if defined __x86_64__
 #if !defined _WIN32
     /* GCC compatible definition of va_list. */
-    /* This should be in sync with the declaration in our lib/libtcc1.c */
+
+    enum __va_arg_type {
+        __va_gen_reg, __va_float_reg, __va_stack
+    };
     typedef struct {
         unsigned gp_offset, fp_offset;
         union {
@@ -193,7 +204,43 @@
         char *reg_save_area;
     } __builtin_va_list[1];
 
-    void *__va_arg(__builtin_va_list ap, int arg_type, int size, int align);
+    static inline void *__va_arg(__builtin_va_list ap, int arg_type,
+                                 int size, int align)
+    {
+        size = (size + 7) & ~7;
+        align = (align + 7) & ~7;
+        switch ((enum __va_arg_type)arg_type) {
+        case __va_gen_reg:
+            if (ap->gp_offset + size <= 48) {
+                ap->gp_offset += size;
+                return ap->reg_save_area + ap->gp_offset - size;
+            }
+            goto use_overflow_area;
+        case __va_float_reg:
+            if (ap->fp_offset < 128 + 48) {
+                ap->fp_offset += 16;
+                if (size == 8)
+                    return ap->reg_save_area + ap->fp_offset - 16;
+                if (ap->fp_offset < 128 + 48) {
+                    double *p = (double *)(ap->reg_save_area + ap->fp_offset);
+                    p[-1] = p[0];
+                    ap->fp_offset += 16;
+                    return ap->reg_save_area + ap->fp_offset - 32;
+                }
+            }
+            goto use_overflow_area;
+        case __va_stack:
+        use_overflow_area:
+            ap->overflow_arg_area += size;
+            ap->overflow_arg_area =
+	      (char*)((long long)(ap->overflow_arg_area + align - 1) & -align);
+            return ap->overflow_arg_area - size;
+        default: /* should never happen */
+            char *a = (char *)0; *a = 0; // abort
+            return 0;
+        }
+    }
+
     #define __builtin_va_start(ap, last) \
        (*(ap) = *(__builtin_va_list)((char*)__builtin_frame_address(0) - 24))
     #define __builtin_va_arg(ap, t)   \
@@ -300,11 +347,8 @@
     __MAYBE_REDIR(void*, calloc, (__SIZE_TYPE__, __SIZE_TYPE__))
     __MAYBE_REDIR(void*, memalign, (__SIZE_TYPE__, __SIZE_TYPE__))
     __MAYBE_REDIR(void, free, (void*))
-#if defined __i386__ || defined __x86_64__
     __BOTH(void*, alloca, (__SIZE_TYPE__))
-#else
-    __BUILTIN(void*, alloca, (__SIZE_TYPE__))
-#endif
+    void *alloca(__SIZE_TYPE__);
     __BUILTIN(void, abort, (void))
     __BOUND(void, longjmp, ())
 #if !defined _WIN32
