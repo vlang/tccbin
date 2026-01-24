@@ -17,7 +17,7 @@ old_library='libgccpp.a'
 inherited_linker_flags=' '
 
 # Libraries that this one depends upon.
-dependency_libs=' -L/opt/homebrew/Cellar/libatomic_ops/7.8.2/lib /usr/local/lib/libgc.la -lpthread -latomic_ops'
+dependency_libs=' /usr/local/lib/libgc.la -lpthread'
 
 # Names of additional weak libraries provided by this library
 weak_library_names=''
