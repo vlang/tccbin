@@ -41,6 +41,7 @@ Callback64
 Callback8
 CancelDeviceWakeupRequest
 CancelIo
+CancelIoEx
 CancelWaitableTimer
 ClearCommBreak
 ClearCommError
