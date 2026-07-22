@@ -22,3 +22,14 @@ or in the releases of [MinGW64](https://sourceforge.net/projects/mingw-w64/).
 
 Most of the time, the ported headers should just work if you copy them inside the include/ folder,
 however small modifications are sometimes needed to make them work with V.
+
+## Patches on top of the cut commit
+- [`0001-tccpe-strip-quotes-and-default-.dll-extension-in-DEF.patch`](0001-tccpe-strip-quotes-and-default-.dll-extension-in-DEF.patch):
+  fixes `pe_load_def()` embedding a `.def` file's quoted/unsuffixed `LIBRARY`
+  name verbatim into the import table, which produced executables that fail
+  to start with `STATUS_DLL_NOT_FOUND` (e.g. when linking against OpenSSL's
+  official Win64 installer `.def` files, which use exactly this quoted,
+  extension-less form). Also submitted upstream to tinycc. Rebuilt with
+  `build.ps1` in this directory; only `tcc.exe`, `libtcc.dll`, and
+  `i386-win32-tcc.exe` changed, since those are the only artifacts
+  containing the affected code.
