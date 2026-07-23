@@ -1,0 +1,55 @@
+diff -ru a/include/time.h b/include/time.h
+--- a/include/time.h	2026-07-23 12:54:04.249797800 -0400
++++ b/include/time.h	2026-07-23 12:54:04.500758500 -0400
+@@ -217,6 +217,7 @@
+ time_t __cdecl mktime(struct tm *_Tm);
+ time_t __cdecl _mkgmtime(struct tm *_Tm);
+ time_t __cdecl time(time_t *_Time);
++errno_t __cdecl gmtime_s(struct tm *_Tm, const time_t *_Time);
+ 
+ #ifdef _USE_32BIT_TIME_T
+ #if 0
+@@ -227,6 +228,7 @@
+ __CRT_INLINE time_t __cdecl mktime(struct tm *_Tm) { return _mktime32(_Tm); }
+ __CRT_INLINE time_t __cdecl _mkgmtime(struct tm *_Tm) { return _mkgmtime32(_Tm); }
+ __CRT_INLINE time_t __cdecl time(time_t *_Time) { return _time32(_Time); }
++__CRT_INLINE errno_t __cdecl gmtime_s(struct tm *_Tm, const time_t *_Time) { return _gmtime32_s(_Tm, _Time); }
+ #endif
+ #else
+ __CRT_INLINE double __cdecl difftime(time_t _Time1,time_t _Time2) { return _difftime64(_Time1,_Time2); }
+@@ -236,6 +238,7 @@
+ __CRT_INLINE time_t __cdecl mktime(struct tm *_Tm) { return _mktime64(_Tm); }
+ __CRT_INLINE time_t __cdecl _mkgmtime(struct tm *_Tm) { return _mkgmtime64(_Tm); }
+ __CRT_INLINE time_t __cdecl time(time_t *_Time) { return _time64(_Time); }
++__CRT_INLINE errno_t __cdecl gmtime_s(struct tm *_Tm, const time_t *_Time) { return _gmtime64_s(_Tm, _Time); }
+ #endif
+ #endif
+ 
+diff -ru a/include/winapi/windef.h b/include/winapi/windef.h
+--- a/include/winapi/windef.h	2026-07-23 12:54:04.379810200 -0400
++++ b/include/winapi/windef.h	2026-07-23 12:54:04.560061900 -0400
+@@ -118,6 +118,9 @@
+   typedef unsigned int UINT;
+   typedef unsigned int *PUINT;
+ 
++  typedef struct CONDITION_VARIABLE CONDITION_VARIABLE;
++  struct CONDITION_VARIABLE { LPVOID Ptr; };
++
+ #ifndef NT_INCLUDED
+ #include <winnt.h>
+ #endif
+diff -ru a/include/winapi/winnt.h b/include/winapi/winnt.h
+--- a/include/winapi/winnt.h	2026-07-23 12:54:04.443682600 -0400
++++ b/include/winapi/winnt.h	2026-07-23 12:54:04.622557100 -0400
+@@ -1158,7 +1158,10 @@
+ #define MemoryFence _mm_mfence
+ #define StoreFence _mm_sfence
+ 
+-    VOID __faststorefence(VOID);
++    __CRT_INLINE VOID __faststorefence() {
++        __asm__ __volatile__ ("mfence");
++    }
++
+     VOID _m_prefetchw(volatile CONST VOID *Source);
+ 
+ //!__TINYC__: #include <intrin.h>

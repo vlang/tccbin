@@ -1,0 +1,48 @@
+diff --git a/thirdparty/libgc/gc.c b/thirdparty/libgc/gc.c
+index 27b3c1d..81194d1 100644
+--- a/thirdparty/libgc/gc.c
++++ b/thirdparty/libgc/gc.c
+@@ -3740,7 +3740,7 @@ extern ptr_t GC_data_start;
+ #endif
+ 
+ #if !defined(MSWIN32) && !defined(MSWINCE) || defined(__GNUC__) \
+-    || defined(NO_CRT)
++    || defined(__TINYC__) || defined(NO_CRT)
+ #  define NO_SEH_AVAILABLE
+ #endif
+ 
+@@ -3990,7 +3990,9 @@ extern ptr_t GC_data_start;
+ #endif /* !STRTOULL */
+ 
+ #ifndef GC_WORD_C
+-#  if defined(_WIN64) && !defined(__GNUC__)
++#  ifdef __TINYC__
++#    define GC_WORD_C(val) val
++#  elif defined(_WIN64) && !defined(__GNUC__)
+ #    define GC_WORD_C(val) val##ui64
+ #  elif defined(_LLP64) || defined(__LLP64__) || defined(_WIN64)
+ #    define GC_WORD_C(val) val##ULL
+@@ -4593,7 +4595,9 @@ EXTERN_C_END
+ 
+ #ifdef GC_BUILTIN_ATOMIC
+ 
+-
++#  ifdef __TINYC__
++#    include <stdatomic.h>
++#  endif
+ 
+ 
+ #  ifdef __cplusplus
+@@ -4632,7 +4636,11 @@ typedef unsigned char AO_TS_t;
+     (__atomic_test_and_set(p, __ATOMIC_ACQUIRE) ? AO_TS_SET : AO_TS_CLEAR)
+ #  define AO_HAVE_test_and_set_acquire
+ 
+-#  define AO_compiler_barrier() __atomic_signal_fence(__ATOMIC_SEQ_CST)
++#  ifdef __TINYC__
++#    define AO_compiler_barrier() (atomic_signal_fence)(__ATOMIC_SEQ_CST)
++#  else
++#    define AO_compiler_barrier() __atomic_signal_fence(__ATOMIC_SEQ_CST)
++#  endif
+ 
+ #  if defined(THREAD_SANITIZER) && !defined(AO_USE_ATOMIC_THREAD_FENCE)
+ /*

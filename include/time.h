@@ -218,6 +218,7 @@ time_t __cdecl mktime(struct tm *_Tm);
 time_t __cdecl _mkgmtime(struct tm *_Tm);
 time_t __cdecl time(time_t *_Time);
 errno_t __cdecl gmtime_s(struct tm *_Tm, const time_t *_Time);
+
 #ifdef _USE_32BIT_TIME_T
 #if 0
 __CRT_INLINE double __cdecl difftime(time_t _Time1,time_t _Time2) { return _difftime32(_Time1,_Time2); }

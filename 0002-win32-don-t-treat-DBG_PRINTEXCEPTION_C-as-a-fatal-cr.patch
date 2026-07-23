@@ -1,0 +1,62 @@
+From 6036c98c5c2baea96b21e98dfb510c5214f19c4b Mon Sep 17 00:00:00 2001
+From: Richard Wheeler <18647491+PythonWillRule@users.noreply.github.com>
+Date: Thu, 23 Jul 2026 12:06:08 -0400
+Subject: [PATCH 2/2] win32: don't treat DBG_PRINTEXCEPTION_C as a fatal crash
+ under -bt
+
+cpu_exception_handler(), installed via AddVectoredExceptionHandler()
+whenever backtrace support is active, fell into its default case -
+and therefore terminated the process via rt_exit() - for any
+exception code it didn't explicitly recognize.
+
+DBG_PRINTEXCEPTION_C (0x40010006) is raised internally by Windows as
+part of OutputDebugString()'s own protocol, so that an attached
+debugger can read the string before the process continues; it is
+expected to be silently passed through when no debugger is present.
+Any program compiled with -bt that calls OutputDebugString (directly,
+or via a library - e.g. Boehm GC's Windows logging path) currently
+gets killed by this false positive instead.
+
+Add the missing DBG_PRINTEXCEPTION_C/DBG_RIPEXCEPTION constants to
+winnt.h, and pass DBG_PRINTEXCEPTION_C through via
+EXCEPTION_CONTINUE_SEARCH instead of reporting and exiting. Genuine
+faults (access violation, stack overflow, divide-by-zero, etc.) are
+unaffected - only this one known-benign debugger-notification code is
+no longer misclassified as fatal.
+---
+ tccrun.c                     | 5 +++++
+ win32/include/winapi/winnt.h | 2 ++
+ 2 files changed, 7 insertions(+)
+
+diff --git a/tccrun.c b/tccrun.c
+index 4ff511df..2873d562 100644
+--- a/tccrun.c
++++ b/tccrun.c
+@@ -1409,6 +1409,11 @@ static long __stdcall cpu_exception_handler(EXCEPTION_POINTERS *ex_info)
+         f.ip = *(addr_t*)f.sp;
+         rt_error(&f, "breakpoint/single-step exception:");
+         return EXCEPTION_CONTINUE_SEARCH;
++    case DBG_PRINTEXCEPTION_C:
++        /* raised by OutputDebugString(); benign and expected to be
++           ignored when no debugger is attached - do not treat it as
++           a fatal crash. */
++        return EXCEPTION_CONTINUE_SEARCH;
+     default:
+         rt_error(&f, "caught exception %08x", code);
+         break;
+diff --git a/win32/include/winapi/winnt.h b/win32/include/winapi/winnt.h
+index baace123..1e9876a8 100644
+--- a/win32/include/winapi/winnt.h
++++ b/win32/include/winapi/winnt.h
+@@ -789,6 +789,8 @@ typedef DWORD LCID;
+ #define DBG_TERMINATE_THREAD ((DWORD)0x40010003L)
+ #define DBG_TERMINATE_PROCESS ((DWORD)0x40010004L)
+ #define DBG_CONTROL_C ((DWORD)0x40010005L)
++#define DBG_PRINTEXCEPTION_C ((DWORD)0x40010006L)
++#define DBG_RIPEXCEPTION ((DWORD)0x40010007L)
+ #define DBG_CONTROL_BREAK ((DWORD)0x40010008L)
+ #define DBG_COMMAND_EXCEPTION ((DWORD)0x40010009L)
+ #define STATUS_GUARD_PAGE_VIOLATION ((DWORD)0x80000001L)
+-- 
+2.53.0.windows.2
+

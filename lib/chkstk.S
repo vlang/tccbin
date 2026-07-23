@@ -1,13 +1,42 @@
 /* ---------------------------------------------- */
 /* chkstk86.s */
 
+#ifdef __leading_underscore
+# define _(s) _##s
+#else
+# define _(s) s
+#endif
+
 /* ---------------------------------------------- */
-#ifndef __x86_64__
-/* ---------------------------------------------- */
+#if defined(__aarch64__)
 
 .globl __chkstk
-
 __chkstk:
+    /* Windows ARM64 stack probing helper.
+       arm64-gen.c passes the requested frame size in x15, scaled in 16-byte
+       units. Probe one 4 KiB page at a time and leave SP unchanged; the caller
+       subtracts SP after the probe returns. */
+    mov     x16, sp
+    lsl     x17, x15, 4
+    cbz     x17, L_chkstk_done
+L_chkstk_loop:
+    subs    x0, x17, 4096
+    bls     L_chkstk_tail
+    sub     x16, x16, 4096
+    ldr     xzr, [x16]
+    sub     x17, x17, 4096
+    b       L_chkstk_loop
+L_chkstk_tail:
+    sub     x16, x16, x17
+    ldr     xzr, [x16]
+L_chkstk_done:
+    ret
+
+/* ---------------------------------------------- */
+#elif defined(__i386__)
+
+.globl _(__chkstk)
+_(__chkstk):
     xchg    (%esp),%ebp     /* store ebp, get ret.addr */
     push    %ebp            /* push ret.addr */
     lea     4(%esp),%ebp    /* setup frame ptr */
@@ -28,12 +57,10 @@ P0:
     jmp     *4(%eax)
 
 /* ---------------------------------------------- */
-#else
-/* ---------------------------------------------- */
+#else /* __x86_64__ */
 
-.globl __chkstk
-
-__chkstk:
+.globl _(__chkstk)
+_(__chkstk):
     xchg    (%rsp),%rbp     /* store ebp, get ret.addr */
     push    %rbp            /* push ret.addr */
     lea     8(%rsp),%rbp    /* setup frame ptr */
@@ -55,15 +82,5 @@ P0:
     jmp     *8(%rax)
 
 /* ---------------------------------------------- */
-/* setjmp/longjmp support */
-
-.globl tinyc_getbp
-tinyc_getbp:
-    mov %rbp,%rax
-    ret
-
-/* ---------------------------------------------- */
 #endif
 /* ---------------------------------------------- */
-
-
