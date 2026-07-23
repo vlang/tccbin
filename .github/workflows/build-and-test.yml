@@ -1,0 +1,107 @@
+name: build and test (macos-arm64)
+
+on:
+  push:
+    branches: [thirdparty-macos-arm64]
+  pull_request:
+    branches: [thirdparty-macos-arm64]
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      # thirdparty/tccbin_tests (the shared cross-platform conformance
+      # suite - see its README) and thirdparty/libgc/include (gc.h,
+      # needed to compile the shared tests even though this branch
+      # ships prebuilt libgc.a/libgc.dylib) both live in the main v
+      # repo, not here. vlib/v/compiler_errors_test.v is a sentinel
+      # file build.sh checks for, to confirm it's being run from a
+      # real v repo checkout.
+      #
+      # TODO: tccbin_tests isn't in vlang/v yet (open PR
+      # vlang/v#27924), so this points at the fork branch it's
+      # proposed on. Once/if that merges, switch back to
+      # `repository: vlang/v` at a real commit.
+      - name: checkout v (for thirdparty/libgc and thirdparty/tccbin_tests)
+        uses: actions/checkout@v4
+        with:
+          repository: quaesitor-scientiam/v
+          ref: d668b2ea77b633e0705b2cf5b8d660b247df2b48
+          sparse-checkout: |
+            thirdparty/libgc
+            thirdparty/tccbin_tests
+            vlib/v/compiler_errors_test.v
+          sparse-checkout-cone-mode: false
+          path: work
+
+      # this branch, checked out where build.sh expects to find itself
+      # (work/thirdparty/tcc), matching a normal local checkout layout.
+      - name: checkout this branch
+        uses: actions/checkout@v4
+        with:
+          path: work/thirdparty/tcc
+
+      - name: install build dependencies
+        run: brew install make
+
+      - name: configure git identity
+        # build.sh commits the rebuilt binaries inside $TCC_FOLDER as
+        # its last step; it needs an identity to do that even though
+        # we never push this commit anywhere.
+        run: |
+          git config --global user.name tccbin-ci
+          git config --global user.email tccbin-ci@users.noreply.github.com
+
+      - name: build tcc.exe (reuses this branch's already-built libgc.a/libgc.dylib)
+        working-directory: work
+        env:
+          TCC_FOLDER: thirdparty/tcc
+          CC: clang
+        run: bash thirdparty/tcc/build.sh
+
+      # TCC on this platform was configured with a *relative* runtime
+      # library path (`thirdparty/tcc/lib`, resolved against the
+      # process's cwd at invocation time, not against tcc.exe's own
+      # location - confirmed by running `tcc.exe -v -v` and by the
+      # fact that V's own builder (vlib/v/builder/cc.v) os.chdir()s to
+      # vroot before invoking bundled tcc for exactly this reason).
+      # So every tcc invocation below runs with cwd=work and refers to
+      # the compiler as the relative path `thirdparty/tcc/tcc.exe` -
+      # an absolute path from a different cwd silently fails to find
+      # libtcc1.a (tcc still exits 0, so this is easy to miss without
+      # checking the actual test output).
+      - name: run shared conformance tests (libgc.dylib, dynamic - blocking)
+        working-directory: work
+        run: |
+          thirdparty/tccbin_tests/run.sh thirdparty/tcc/tcc.exe macos -- \
+              -DGC_BUILTIN_ATOMIC=1 \
+              -I thirdparty/libgc/include \
+              "$PWD/thirdparty/tcc/lib/libgc.dylib" \
+              -Wl,-rpath,"$PWD/thirdparty/tcc/lib"
+
+      - name: run shared conformance tests (libgc.a, static - XFAIL)
+        working-directory: work
+        # TCC on macOS arm64 cannot yet link the Clang-built static
+        # libgc.a (see this branch's README.md) - only the dynamic
+        # libgc.dylib path above is supported today. This lane is a
+        # temporary, explicit XFAIL: it runs for visibility (so a
+        # regression that makes it fail *differently* is still
+        # noticed) but never blocks CI. Remove continue-on-error once
+        # static linking is supported and fold this back into a single
+        # blocking lane.
+        continue-on-error: true
+        run: |
+          thirdparty/tccbin_tests/run.sh thirdparty/tcc/tcc.exe macos -- \
+              -DGC_BUILTIN_ATOMIC=1 \
+              -I thirdparty/libgc/include \
+              "$PWD/thirdparty/tcc/lib/libgc.a"
+
+      - name: upload built binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: tccbin-macos-arm64-current
+          path: |
+            work/thirdparty/tcc/tcc.exe
+            work/thirdparty/tcc/lib/libgc.a
+            work/thirdparty/tcc/lib/libgc.dylib
