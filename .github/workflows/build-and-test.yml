@@ -2,7 +2,7 @@ name: build and test (windows-amd64)
 
 on:
   push:
-    branches: [bump-current-tinycc]
+    branches: [thirdparty-windows-amd64]
   pull_request:
     branches: [thirdparty-windows-amd64]
   workflow_dispatch: {}
