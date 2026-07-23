@@ -11,6 +11,15 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
+      # windows-latest runners default to core.autocrlf=true, which
+      # silently rewrites LF to CRLF on checkout/clone. The patches
+      # applied below (via git apply) are LF-only and match the repo's
+      # stored blobs exactly - CRLF-converted working-tree files would
+      # no longer match, and git apply would reject them as not applying.
+      - name: disable CRLF conversion
+        shell: pwsh
+        run: git config --global core.autocrlf false
+
       # thirdparty/libgc/gc.c (needed to rebuild libgc.a) lives in the main
       # v repo, not here - sparse-checkout just what build.ps1 needs.
       - name: checkout v (for thirdparty/libgc)
