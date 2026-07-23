@@ -20,15 +20,21 @@ jobs:
         shell: pwsh
         run: git config --global core.autocrlf false
 
-      # thirdparty/libgc/gc.c (needed to rebuild libgc.a) lives in the main
-      # v repo, not here - sparse-checkout just what build.ps1 needs.
-      - name: checkout v (for thirdparty/libgc)
+      # thirdparty/libgc/gc.c (needed to rebuild libgc.a) and
+      # thirdparty/tccbin_tests (the shared cross-platform conformance
+      # suite - see its README) both live in the main v repo, not here.
+      #
+      # TODO: tccbin_tests isn't in vlang/v yet (open PR), so this
+      # points at the fork branch it's proposed on. Once/if that
+      # merges, switch back to `repository: vlang/v` at a real commit.
+      - name: checkout v (for thirdparty/libgc and thirdparty/tccbin_tests)
         uses: actions/checkout@v4
         with:
-          repository: vlang/v
-          ref: ae88ee5b78ac14a670d348b12c4075fd2c2c6e26
+          repository: quaesitor-scientiam/v
+          ref: 39d05c718d829d8c8b3615306f80e697a04983ea
           sparse-checkout: |
             thirdparty/libgc
+            thirdparty/tccbin_tests
             vlib/v/compiler_errors_test.v
           sparse-checkout-cone-mode: false
           path: work
@@ -51,53 +57,14 @@ jobs:
         shell: pwsh
         run: work/thirdparty/tcc/build.ps1
 
-      - name: smoke test 1 - trivial program (GC init only)
+      - name: run shared conformance tests
         shell: pwsh
         run: |
-          $tcc = "work/thirdparty/tcc/tcc.exe"
-          & $tcc work/thirdparty/tcc/ci/smoke_hello.c `
+          work/thirdparty/tccbin_tests/run.ps1 -Tcc work/thirdparty/tcc/tcc.exe -Platform windows -- `
               -DGC_NOT_DLL -DGC_WIN32_THREADS -DGC_THREADS -DGC_BUILTIN_ATOMIC `
               -I work/thirdparty/libgc/include -bt25 -municode -ldbghelp -luser32 `
-              work/thirdparty/tcc/lib/libgc.a -o smoke_hello.exe
-          if ($LASTEXITCODE -ne 0) { throw "smoke_hello.c failed to compile" }
-          $out = & .\smoke_hello.exe
-          $code = $LASTEXITCODE
-          Write-Host $out
-          if ($code -ne 0) { throw "smoke_hello.exe crashed (exit $code) - this is the DBG_PRINTEXCEPTION_C regression patch 0002 fixes" }
-          if ($out -ne "hello") { throw "unexpected output: '$out'" }
-
-      - name: smoke test 2 - GC-heavy allocation (100k nodes)
-        shell: pwsh
-        run: |
-          $tcc = "work/thirdparty/tcc/tcc.exe"
-          & $tcc work/thirdparty/tcc/ci/smoke_gc.c `
-              -DGC_NOT_DLL -DGC_WIN32_THREADS -DGC_THREADS -DGC_BUILTIN_ATOMIC `
-              -I work/thirdparty/libgc/include -bt25 -municode -ldbghelp -luser32 `
-              work/thirdparty/tcc/lib/libgc.a -o smoke_gc.exe
-          if ($LASTEXITCODE -ne 0) { throw "smoke_gc.c failed to compile" }
-          $out = & .\smoke_gc.exe
-          $code = $LASTEXITCODE
-          Write-Host $out
-          if ($code -ne 0) { throw "smoke_gc.exe crashed (exit $code)" }
-          if ($out -ne "sum=4999950000") { throw "unexpected output: '$out'" }
-
-      - name: smoke test 3 - genuine crash is still caught
-        shell: pwsh
-        run: |
-          $tcc = "work/thirdparty/tcc/tcc.exe"
-          & $tcc work/thirdparty/tcc/ci/smoke_crash.c -bt25 -o smoke_crash.exe
-          if ($LASTEXITCODE -ne 0) { throw "smoke_crash.c failed to compile" }
-          $out = & .\smoke_crash.exe 2>&1
-          $code = $LASTEXITCODE
-          Write-Host $out
-          if ($code -eq 0) { throw "smoke_crash.exe should have crashed but exited 0 - patch 0002 may have over-suppressed real faults" }
-          if ($out -notmatch "invalid memory access") { throw "expected 'invalid memory access' in output, got: '$out'" }
-          # smoke_crash.exe's nonzero exit is the expected, correct outcome here
-          # (that's the whole point of this test) - but it's still sitting in
-          # $LASTEXITCODE, and GH Actions' pwsh runner checks that after the
-          # script block ends, which would otherwise mark this passing step as
-          # failed. Reset it now that validation above has confirmed success.
-          $LASTEXITCODE = 0
+              work/thirdparty/tcc/lib/libgc.a
+          if ($LASTEXITCODE -ne 0) { throw "conformance tests failed" }
 
       - name: upload built binaries
         uses: actions/upload-artifact@v4
