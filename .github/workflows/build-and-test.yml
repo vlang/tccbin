@@ -1,0 +1,95 @@
+name: build and test (windows-amd64)
+
+on:
+  push:
+    branches: [bump-current-tinycc]
+  pull_request:
+    branches: [thirdparty-windows-amd64]
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      # thirdparty/libgc/gc.c (needed to rebuild libgc.a) lives in the main
+      # v repo, not here - sparse-checkout just what build.ps1 needs.
+      - name: checkout v (for thirdparty/libgc)
+        uses: actions/checkout@v4
+        with:
+          repository: vlang/v
+          ref: ae88ee5b78ac14a670d348b12c4075fd2c2c6e26
+          sparse-checkout: |
+            thirdparty/libgc
+            vlib/v/compiler_errors_test.v
+          sparse-checkout-cone-mode: false
+          path: work
+
+      # this branch, checked out where build.ps1 expects to find itself
+      # (work/thirdparty/tcc), matching a normal local checkout layout.
+      - name: checkout this branch
+        uses: actions/checkout@v4
+        with:
+          path: work/thirdparty/tcc
+
+      - name: set up MinGW-w64 gcc
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          install: mingw-w64-ucrt-x86_64-gcc
+          path-type: inherit
+
+      - name: build tcc.exe / libtcc.dll / i386-win32-tcc.exe / libgc.a
+        shell: pwsh
+        run: work/thirdparty/tcc/build.ps1
+
+      - name: smoke test 1 - trivial program (GC init only)
+        shell: pwsh
+        run: |
+          $tcc = "work/thirdparty/tcc/tcc.exe"
+          & $tcc work/thirdparty/tcc/ci/smoke_hello.c `
+              -DGC_NOT_DLL -DGC_WIN32_THREADS -DGC_THREADS -DGC_BUILTIN_ATOMIC `
+              -I work/thirdparty/libgc/include -bt25 -municode -ldbghelp -luser32 `
+              work/thirdparty/tcc/lib/libgc.a -o smoke_hello.exe
+          if ($LASTEXITCODE -ne 0) { throw "smoke_hello.c failed to compile" }
+          $out = & .\smoke_hello.exe
+          $code = $LASTEXITCODE
+          Write-Host $out
+          if ($code -ne 0) { throw "smoke_hello.exe crashed (exit $code) - this is the DBG_PRINTEXCEPTION_C regression patch 0002 fixes" }
+          if ($out -ne "hello") { throw "unexpected output: '$out'" }
+
+      - name: smoke test 2 - GC-heavy allocation (100k nodes)
+        shell: pwsh
+        run: |
+          $tcc = "work/thirdparty/tcc/tcc.exe"
+          & $tcc work/thirdparty/tcc/ci/smoke_gc.c `
+              -DGC_NOT_DLL -DGC_WIN32_THREADS -DGC_THREADS -DGC_BUILTIN_ATOMIC `
+              -I work/thirdparty/libgc/include -bt25 -municode -ldbghelp -luser32 `
+              work/thirdparty/tcc/lib/libgc.a -o smoke_gc.exe
+          if ($LASTEXITCODE -ne 0) { throw "smoke_gc.c failed to compile" }
+          $out = & .\smoke_gc.exe
+          $code = $LASTEXITCODE
+          Write-Host $out
+          if ($code -ne 0) { throw "smoke_gc.exe crashed (exit $code)" }
+          if ($out -ne "sum=4999950000") { throw "unexpected output: '$out'" }
+
+      - name: smoke test 3 - genuine crash is still caught
+        shell: pwsh
+        run: |
+          $tcc = "work/thirdparty/tcc/tcc.exe"
+          & $tcc work/thirdparty/tcc/ci/smoke_crash.c -bt25 -o smoke_crash.exe
+          if ($LASTEXITCODE -ne 0) { throw "smoke_crash.c failed to compile" }
+          $out = & .\smoke_crash.exe 2>&1
+          $code = $LASTEXITCODE
+          Write-Host $out
+          if ($code -eq 0) { throw "smoke_crash.exe should have crashed but exited 0 - patch 0002 may have over-suppressed real faults" }
+          if ($out -notmatch "invalid memory access") { throw "expected 'invalid memory access' in output, got: '$out'" }
+
+      - name: upload built binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: tccbin-windows-amd64-current
+          path: |
+            work/thirdparty/tcc/tcc.exe
+            work/thirdparty/tcc/libtcc.dll
+            work/thirdparty/tcc/i386-win32-tcc.exe
+            work/thirdparty/tcc/lib/libgc.a
