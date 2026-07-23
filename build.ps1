@@ -36,14 +36,17 @@ try {
     git clone git://repo.or.cz/tinycc.git tinycc
     Set-Location tinycc
     git checkout $TccBaseCommit
-    git am $TccPatch1
-    git am $TccPatch2
+    if ($LASTEXITCODE -ne 0) { throw "git checkout $TccBaseCommit failed" }
+    git apply $TccPatch1
+    if ($LASTEXITCODE -ne 0) { throw "$TccPatch1 failed to apply" }
+    git apply $TccPatch2
+    if ($LASTEXITCODE -ne 0) { throw "$TccPatch2 failed to apply" }
 
     Set-Location win32
-    & cmd /c "build-tcc.bat -clean"
-    & cmd /c build-tcc.bat
+    & .\build-tcc.bat -clean
+    & .\build-tcc.bat
     if ($LASTEXITCODE -ne 0) { throw "build-tcc.bat (x86_64) failed" }
-    & cmd /c "build-tcc.bat -x i386"
+    & .\build-tcc.bat -x i386
     if ($LASTEXITCODE -ne 0) { throw "build-tcc.bat -x i386 failed" }
 
     Copy-Item tcc.exe                (Join-Path $OutDir "tcc.exe") -Force
@@ -83,6 +86,7 @@ try {
     Set-Location $GcWork
     git init -q
     git apply $GcPatch
+    if ($LASTEXITCODE -ne 0) { throw "$GcPatch failed to apply" }
 
     $tcc = Join-Path $OutDir "tcc.exe"
     & $tcc thirdparty\libgc\gc.c -DGC_NOT_DLL -DGC_WIN32_THREADS -DGC_THREADS -DGC_BUILTIN_ATOMIC `
@@ -101,4 +105,3 @@ $TccBaseCommit                         > (Join-Path $OutDir "lib\libgc_build_tcc
 (Get-FileHash (Join-Path $OutDir "tcc.exe") -Algorithm SHA256).Hash > (Join-Path $OutDir "lib\libgc_build_tcc_exe_sha256.txt")
 
 Write-Host "Done. Updated tcc.exe, libtcc.dll, i386-win32-tcc.exe, include/, lib/ in $OutDir"
-Write-Host "NOTE: re-apply the 3 vlang header patches (gmtime_s / CONDITION_VARIABLE / __faststorefence) by hand - see comment above."
