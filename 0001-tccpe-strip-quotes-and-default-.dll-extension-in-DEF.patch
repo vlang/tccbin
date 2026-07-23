@@ -1,0 +1,59 @@
+From c10de82cde1a27305ea2b99742c8306b8e233d70 Mon Sep 17 00:00:00 2001
+From: Richard Wheeler <18647491+PythonWillRule@users.noreply.github.com>
+Date: Wed, 22 Jul 2026 17:40:38 -0400
+Subject: [PATCH 1/2] tccpe: strip quotes and default .dll extension in DEF
+ LIBRARY statements
+
+pe_load_def() copied the LIBRARY directive's value (via get_token())
+verbatim into dllname, with no handling for a quoted string and no
+fallback to append .dll when the name has no extension.
+
+Real-world .def files commonly quote the LIBRARY name and omit the
+extension (this is exactly what MSVC's own DEF-file parser accepts,
+and what OpenSSL's official Windows installer ships, e.g.
+LIBRARY "libcrypto-4-x64"). Since '"' is not a legal filename
+character, the resulting import table entry can never match any
+real DLL, and the linked executable fails to start with
+STATUS_DLL_NOT_FOUND.
+
+Strip a matched pair of surrounding quotes, then default a missing
+extension to .dll, mirroring MSVC's DEF LIBRARY statement semantics.
+---
+ tccpe.c | 14 ++++++++++++--
+ 1 file changed, 12 insertions(+), 2 deletions(-)
+
+diff --git a/tccpe.c b/tccpe.c
+index c076d084..c15dada9 100644
+--- a/tccpe.c
++++ b/tccpe.c
+@@ -1777,7 +1777,7 @@ static char *get_token(char **s, char *f)
+ 
+ static int pe_load_def(TCCState *s1, int fd)
+ {
+-    int state = 0, ret = -1, dllindex = 0, ord;
++    int state = 0, ret = -1, dllindex = 0, ord, len;
+     char dllname[80], *buf, *line, *p, *x, next;
+ 
+     buf = tcc_load_text(fd);
+@@ -1792,7 +1792,17 @@ static int pe_load_def(TCCState *s1, int fd)
+         case 0:
+             if (0 != stricmp(p, "LIBRARY") || next == '\n')
+                 goto quit;
+-            pstrcpy(dllname, sizeof dllname, get_token(&line, &next));
++            x = get_token(&line, &next);
++            len = strlen(x);
++            if (len >= 2 && '"' == x[0] && '"' == x[len - 1]) {
++                x[len - 1] = 0;
++                ++x;
++            }
++            pstrcpy(dllname, sizeof dllname, x);
++            /* DEF LIBRARY statements may give a bare module name with no
++               extension; MSVC's own DEF parser assumes .dll in that case. */
++            if (0 == *tcc_fileextension(dllname))
++                pstrcat(dllname, sizeof dllname, ".dll");
+             ++state;
+             break;
+         case 1:
+-- 
+2.53.0.windows.2
+
