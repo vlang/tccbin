@@ -92,6 +92,12 @@ jobs:
           Write-Host $out
           if ($code -eq 0) { throw "smoke_crash.exe should have crashed but exited 0 - patch 0002 may have over-suppressed real faults" }
           if ($out -notmatch "invalid memory access") { throw "expected 'invalid memory access' in output, got: '$out'" }
+          # smoke_crash.exe's nonzero exit is the expected, correct outcome here
+          # (that's the whole point of this test) - but it's still sitting in
+          # $LASTEXITCODE, and GH Actions' pwsh runner checks that after the
+          # script block ends, which would otherwise mark this passing step as
+          # failed. Reset it now that validation above has confirmed success.
+          $LASTEXITCODE = 0
 
       - name: upload built binaries
         uses: actions/upload-artifact@v4
