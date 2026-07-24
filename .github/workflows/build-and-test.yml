@@ -7,9 +7,14 @@ on:
     branches: [thirdparty-macos-arm64]
   workflow_dispatch: {}
 
+concurrency:
+  group: build-and-test-macos-arm64-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-15
+    timeout-minutes: 30
     steps:
       # thirdparty/tccbin_tests (the shared cross-platform conformance
       # suite - see its README) and thirdparty/libgc/include (gc.h,
@@ -17,14 +22,16 @@ jobs:
       # ships prebuilt libgc.a/libgc.dylib) both live in the main v
       # repo, not here. vlib/v/compiler_errors_test.v is a sentinel
       # file build.sh checks for, to confirm it's being run from a
-      # real v repo checkout.
+      # real v repo checkout. Only thirdparty/libgc/include is needed:
+      # this branch reuses its own prebuilt libgc.a/libgc.dylib rather
+      # than compiling thirdparty/libgc/gc.c from source.
       - name: checkout v (for thirdparty/libgc and thirdparty/tccbin_tests)
         uses: actions/checkout@v4
         with:
           repository: vlang/v
           ref: c82d3f08271e9324d6fb8de3c251e9c0e1a9154b
           sparse-checkout: |
-            thirdparty/libgc
+            thirdparty/libgc/include
             thirdparty/tccbin_tests
             vlib/v/compiler_errors_test.v
           sparse-checkout-cone-mode: false
@@ -76,14 +83,24 @@ jobs:
       # an absolute path from a different cwd silently fails to find
       # libtcc1.a (tcc still exits 0, so this is easy to miss without
       # checking the actual test output).
+      #
+      # The extra -D/-l flags below (GC_THREADS, MPROTECT_VDB, -ldl,
+      # -lpthread) mirror what V's own builder actually adds for this
+      # exact platform (vlib/builtin/builtin_d_gcboehm.c.v) - without
+      # them this suite would validate a different, thread/mprotect-
+      # unaware build configuration than what real `v -gc boehm`
+      # programs get here.
       - name: run shared conformance tests (libgc.dylib, dynamic - blocking)
         working-directory: work
         run: |
           thirdparty/tccbin_tests/run.sh thirdparty/tcc/tcc.exe macos -- \
               -DGC_BUILTIN_ATOMIC=1 \
+              -DGC_THREADS=1 \
+              -DMPROTECT_VDB=1 \
               -I thirdparty/libgc/include \
               "$PWD/thirdparty/tcc/lib/libgc.dylib" \
-              -Wl,-rpath,"$PWD/thirdparty/tcc/lib"
+              -Wl,-rpath,"$PWD/thirdparty/tcc/lib" \
+              -ldl -lpthread
 
       # The GC-linked lane above always passes libgc.dylib/rpath to
       # every shared test, including crash.c - which doesn't touch the
@@ -93,6 +110,14 @@ jobs:
       # link line whatsoever. Check that directly, since a regression
       # there could go unnoticed while every existing lane stays green.
       - name: verify no-GC fallback path (plain tcc, no libgc linked)
+        # Run even if the lane above failed: this checks a genuinely
+        # independent code path (no libgc at all), so a failure there
+        # shouldn't hide whether *this* path still works, and vice
+        # versa. !cancelled() (rather than always()) still skips on a
+        # cancelled run, but the job's overall conclusion stays
+        # "failure" if an earlier non-continue-on-error step failed,
+        # regardless of what runs after it.
+        if: ${{ !cancelled() }}
         working-directory: work
         run: |
           thirdparty/tcc/tcc.exe thirdparty/tccbin_tests/shared/crash.c -o /tmp/crash_nogc.exe
@@ -103,7 +128,7 @@ jobs:
           echo "no-GC compile+crash check passed"
 
       - name: run shared conformance tests (libgc.a, static - XFAIL)
-        working-directory: work
+        id: static_xfail
         # TCC on macOS arm64 cannot yet link the Clang-built static
         # libgc.a (see this branch's README.md) - only the dynamic
         # libgc.dylib path above is supported today. This lane is a
@@ -111,13 +136,27 @@ jobs:
         # regression that makes it fail *differently* is still
         # noticed) but never blocks CI. Remove continue-on-error once
         # static linking is supported and fold this back into a single
-        # blocking lane.
+        # blocking lane. The follow-up step below watches this step's
+        # raw outcome (continue-on-error only affects *conclusion*,
+        # not *outcome*) so an unexpected full pass - static linking
+        # actually getting fixed - fails loudly instead of quietly
+        # sitting there as an ordinary-looking green step forever.
+        if: ${{ !cancelled() }}
         continue-on-error: true
         run: |
           thirdparty/tccbin_tests/run.sh thirdparty/tcc/tcc.exe macos -- \
               -DGC_BUILTIN_ATOMIC=1 \
+              -DGC_THREADS=1 \
+              -DMPROTECT_VDB=1 \
               -I thirdparty/libgc/include \
-              "$PWD/thirdparty/tcc/lib/libgc.a"
+              "$PWD/thirdparty/tcc/lib/libgc.a" \
+              -ldl -lpthread
+
+      - name: fail loudly if the static libgc.a XFAIL lane unexpectedly passed
+        if: ${{ !cancelled() && steps.static_xfail.outcome == 'success' }}
+        run: |
+          echo "::error::Static libgc.a linking now succeeds on macOS arm64 - remove continue-on-error from the 'static - XFAIL' step above and fold it back into a single blocking lane, this workaround is no longer needed."
+          exit 1
 
       # actions/upload-artifact doesn't preserve executable bits on raw
       # files (tcc.exe would come back chmod 644 after download), and
@@ -131,10 +170,15 @@ jobs:
       # above) - a raw multi-path upload-artifact list would instead
       # flatten that prefix away.
       - name: package built tcc for upload
+        # Run even after an earlier failure, so a maintainer debugging
+        # a red run still gets a downloadable build to reproduce
+        # against instead of just a log transcript.
+        if: ${{ !cancelled() }}
         working-directory: work
         run: tar --exclude=.git -czf tccbin-macos-arm64-current.tar.gz thirdparty/tcc
 
       - name: upload built binaries
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
           name: tccbin-macos-arm64-current
