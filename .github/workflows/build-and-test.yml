@@ -129,6 +129,7 @@ jobs:
 
       - name: run shared conformance tests (libgc.a, static - XFAIL)
         id: static_xfail
+        working-directory: work
         # TCC on macOS arm64 cannot yet link the Clang-built static
         # libgc.a (see this branch's README.md) - only the dynamic
         # libgc.dylib path above is supported today. This lane is a
