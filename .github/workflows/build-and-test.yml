@@ -1,0 +1,234 @@
+name: build and test (macos-arm64)
+
+on:
+  push:
+    branches: [thirdparty-macos-arm64]
+  pull_request:
+    branches: [thirdparty-macos-arm64]
+  workflow_dispatch: {}
+
+concurrency:
+  group: build-and-test-macos-arm64-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      # thirdparty/tccbin_tests (the shared cross-platform conformance
+      # suite - see its README) and thirdparty/libgc/include (gc.h,
+      # needed to compile the shared tests even though this branch
+      # ships prebuilt libgc.a/libgc.dylib) both live in the main v
+      # repo, not here. vlib/v/compiler_errors_test.v is a sentinel
+      # file build.sh checks for, to confirm it's being run from a
+      # real v repo checkout. Only thirdparty/libgc/include is needed:
+      # this branch reuses its own prebuilt libgc.a/libgc.dylib rather
+      # than compiling thirdparty/libgc/gc.c from source.
+      - name: checkout v (for thirdparty/libgc and thirdparty/tccbin_tests)
+        uses: actions/checkout@v4
+        with:
+          repository: vlang/v
+          ref: c82d3f08271e9324d6fb8de3c251e9c0e1a9154b
+          sparse-checkout: |
+            thirdparty/libgc/include
+            thirdparty/tccbin_tests
+            vlib/v/compiler_errors_test.v
+          sparse-checkout-cone-mode: false
+          path: work
+
+      # this branch, checked out where build.sh expects to find itself
+      # (work/thirdparty/tcc), matching a normal local checkout layout.
+      - name: checkout this branch
+        uses: actions/checkout@v4
+        with:
+          path: work/thirdparty/tcc
+
+      # This branch DISTRIBUTES the checked-in tcc.exe/libgc.a/libgc.dylib
+      # directly - that's what V's own builder and anyone else using this
+      # branch actually downloads and runs. The "build tcc.exe" step below
+      # REBUILDS tcc.exe from source (a different check: can we still
+      # produce a working compiler from source), which overwrites the
+      # checked-in binary before anything else touches it - so a corrupted
+      # or broken committed tcc.exe/libtcc1.a could still pass CI as long
+      # as the *rebuild* happens to work. Test the actual checked-in
+      # binary here first, before build.sh overwrites it.
+      - name: verify the checked-in tcc.exe (as distributed, before rebuild)
+        working-directory: work
+        run: |
+          thirdparty/tccbin_tests/run.sh thirdparty/tcc/tcc.exe macos -- \
+              -DGC_BUILTIN_ATOMIC=1 \
+              -DGC_THREADS=1 \
+              -DMPROTECT_VDB=1 \
+              -I thirdparty/libgc/include \
+              "$PWD/thirdparty/tcc/lib/libgc.dylib" \
+              -Wl,-rpath,"$PWD/thirdparty/tcc/lib" \
+              -ldl -lpthread
+
+      # Pin the rebuild to the tinycc revision this branch already
+      # records as having produced its committed tcc.exe, instead of
+      # floating on build.sh's own unpinned "mob" default - otherwise
+      # this is a reproducibility check in name only, since a run
+      # today and a run tomorrow could rebuild against two different
+      # upstream commits.
+      - name: resolve pinned TCC revision
+        working-directory: work
+        run: echo "TCC_COMMIT=$(cat thirdparty/tcc/build_source_hash.txt)" >> "$GITHUB_ENV"
+
+      - name: install build dependencies
+        run: brew install make
+
+      - name: configure git identity
+        # build.sh commits the rebuilt binaries inside $TCC_FOLDER as
+        # its last step; it needs an identity to do that even though
+        # we never push this commit anywhere.
+        run: |
+          git config --global user.name tccbin-ci
+          git config --global user.email tccbin-ci@users.noreply.github.com
+
+      - name: build tcc.exe (reuses this branch's already-built libgc.a/libgc.dylib)
+        working-directory: work
+        env:
+          TCC_FOLDER: thirdparty/tcc
+          CC: clang
+        run: bash thirdparty/tcc/build.sh
+
+      # TCC on this platform was configured with a *relative* runtime
+      # library path (`thirdparty/tcc/lib`, resolved against the
+      # process's cwd at invocation time, not against tcc.exe's own
+      # location - confirmed by running `tcc.exe -v -v` and by the
+      # fact that V's own builder (vlib/v/builder/cc.v) os.chdir()s to
+      # vroot before invoking bundled tcc for exactly this reason).
+      # So every tcc invocation below runs with cwd=work and refers to
+      # the compiler as the relative path `thirdparty/tcc/tcc.exe` -
+      # an absolute path from a different cwd silently fails to find
+      # libtcc1.a (tcc still exits 0, so this is easy to miss without
+      # checking the actual test output).
+      #
+      # The extra -D/-l flags below (GC_THREADS, MPROTECT_VDB, -ldl,
+      # -lpthread) mirror what V's own builder actually adds for this
+      # exact platform (vlib/builtin/builtin_d_gcboehm.c.v) - without
+      # them this suite would validate a different, thread/mprotect-
+      # unaware build configuration than what real `v -gc boehm`
+      # programs get here.
+      - name: run shared conformance tests (libgc.dylib, dynamic - blocking)
+        working-directory: work
+        run: |
+          thirdparty/tccbin_tests/run.sh thirdparty/tcc/tcc.exe macos -- \
+              -DGC_BUILTIN_ATOMIC=1 \
+              -DGC_THREADS=1 \
+              -DMPROTECT_VDB=1 \
+              -I thirdparty/libgc/include \
+              "$PWD/thirdparty/tcc/lib/libgc.dylib" \
+              -Wl,-rpath,"$PWD/thirdparty/tcc/lib" \
+              -ldl -lpthread
+
+      # The GC-linked lane above always passes libgc.dylib/rpath to
+      # every shared test, including crash.c - which doesn't touch the
+      # GC at all. That never exercises this branch's other documented
+      # supported path (README.md: "limited to programs compiled with
+      # `-gc none`"): a plain tcc invocation with no GC library on the
+      # link line whatsoever. Check that directly, since a regression
+      # there could go unnoticed while every existing lane stays green.
+      - name: verify no-GC fallback path (plain tcc, no libgc linked)
+        # Run even if the lane above failed: this checks a genuinely
+        # independent code path (no libgc at all), so a failure there
+        # shouldn't hide whether *this* path still works, and vice
+        # versa. !cancelled() (rather than always()) still skips on a
+        # cancelled run, but the job's overall conclusion stays
+        # "failure" if an earlier non-continue-on-error step failed,
+        # regardless of what runs after it.
+        if: ${{ !cancelled() }}
+        working-directory: work
+        run: |
+          thirdparty/tcc/tcc.exe thirdparty/tccbin_tests/shared/crash.c -o /tmp/crash_nogc.exe
+          # tcc can exit 0 without leaving a runnable binary (see the
+          # relative-libtcc1.a-lookup comment above) - `if /tmp/crash_nogc.exe`
+          # alone can't tell "ran and exited nonzero as expected" apart from
+          # "doesn't exist/isn't executable", since bash reports both as a
+          # nonzero if-condition and this script would silently print success
+          # either way. Check the binary actually exists first.
+          if [ ! -x /tmp/crash_nogc.exe ]; then
+            echo "expected tcc to produce a runnable /tmp/crash_nogc.exe, but it's missing or not executable - tcc likely exited 0 without actually producing a working binary" >&2
+            exit 1
+          fi
+          set +e
+          /tmp/crash_nogc.exe
+          code=$?
+          set -e
+          if [ "$code" -eq 0 ]; then
+            echo "expected a nonzero exit from an unguarded null-pointer dereference, got 0" >&2
+            exit 1
+          fi
+          echo "no-GC compile+crash check passed (exit=$code)"
+
+      - name: run shared conformance tests (libgc.a, static - XFAIL)
+        working-directory: work
+        # TCC on macOS arm64 cannot yet link the Clang-built static
+        # libgc.a (see this branch's README.md) - only the dynamic
+        # libgc.dylib path above is supported today. This lane is a
+        # temporary, explicit XFAIL - but a blanket continue-on-error
+        # would accept ANY failure here, including run.sh going missing,
+        # a bad checkout, or a wholly different compile/link error (this
+        # actually happened once already in this workflow's own history:
+        # a missing working-directory made this step fail with "No such
+        # file or directory" for two full CI runs, and continue-on-error
+        # silently absorbed it as if it were the known XFAIL). So instead
+        # of continue-on-error, this captures the output and asserts it
+        # matches the *specific* known failure signature before accepting
+        # it - an unexpected full pass (static linking got fixed) or any
+        # other failure shape both fail the job for real.
+        if: ${{ !cancelled() }}
+        run: |
+          set +e
+          output=$(thirdparty/tccbin_tests/run.sh thirdparty/tcc/tcc.exe macos -- \
+              -DGC_BUILTIN_ATOMIC=1 \
+              -DGC_THREADS=1 \
+              -DMPROTECT_VDB=1 \
+              -I thirdparty/libgc/include \
+              "$PWD/thirdparty/tcc/lib/libgc.a" \
+              -ldl -lpthread 2>&1)
+          code=$?
+          set -e
+          echo "$output"
+
+          if [ "$code" -eq 0 ]; then
+            echo "::error::Static libgc.a linking now succeeds on macOS arm64 - this lane's special-casing should be removed and folded back into a single blocking lane, this workaround is no longer needed."
+            exit 1
+          fi
+
+          case "$output" in
+            *"PASS crash"*"FAIL gc_alloc (compile error)"*"FAIL hello (compile error)"*)
+              echo "known XFAIL: static libgc.a still can't link gc_alloc/hello, as expected - not blocking CI"
+              ;;
+            *)
+              echo "::error::Static libgc.a lane failed, but NOT with the known/expected signature (PASS crash, FAIL gc_alloc/hello with compile error) - this looks like a different, unexpected problem and should not be silently treated as the known XFAIL."
+              exit 1
+              ;;
+          esac
+
+      # actions/upload-artifact doesn't preserve executable bits on raw
+      # files (tcc.exe would come back chmod 644 after download), and
+      # hand-listing individual paths already missed lib/libtcc1.a -
+      # which tcc.exe needs at link time just as much as libgc. Archive
+      # the whole rebuilt thirdparty/tcc output instead: tar preserves
+      # modes, and keeping the thirdparty/tcc/ prefix inside the
+      # archive means extracting it anywhere reproduces the exact
+      # relative layout tcc.exe's own baked-in library path expects
+      # (see the comment on the "run shared conformance tests" step
+      # above) - a raw multi-path upload-artifact list would instead
+      # flatten that prefix away.
+      - name: package built tcc for upload
+        # Run even after an earlier failure, so a maintainer debugging
+        # a red run still gets a downloadable build to reproduce
+        # against instead of just a log transcript.
+        if: ${{ !cancelled() }}
+        working-directory: work
+        run: tar --exclude=.git -czf tccbin-macos-arm64-current.tar.gz thirdparty/tcc
+
+      - name: upload built binaries
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: tccbin-macos-arm64-current
+          path: work/tccbin-macos-arm64-current.tar.gz
