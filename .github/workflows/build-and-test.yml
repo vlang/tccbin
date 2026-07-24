@@ -44,6 +44,27 @@ jobs:
         with:
           path: work/thirdparty/tcc
 
+      # This branch DISTRIBUTES the checked-in tcc.exe/libgc.a/libgc.dylib
+      # directly - that's what V's own builder and anyone else using this
+      # branch actually downloads and runs. The "build tcc.exe" step below
+      # REBUILDS tcc.exe from source (a different check: can we still
+      # produce a working compiler from source), which overwrites the
+      # checked-in binary before anything else touches it - so a corrupted
+      # or broken committed tcc.exe/libtcc1.a could still pass CI as long
+      # as the *rebuild* happens to work. Test the actual checked-in
+      # binary here first, before build.sh overwrites it.
+      - name: verify the checked-in tcc.exe (as distributed, before rebuild)
+        working-directory: work
+        run: |
+          thirdparty/tccbin_tests/run.sh thirdparty/tcc/tcc.exe macos -- \
+              -DGC_BUILTIN_ATOMIC=1 \
+              -DGC_THREADS=1 \
+              -DMPROTECT_VDB=1 \
+              -I thirdparty/libgc/include \
+              "$PWD/thirdparty/tcc/lib/libgc.dylib" \
+              -Wl,-rpath,"$PWD/thirdparty/tcc/lib" \
+              -ldl -lpthread
+
       # Pin the rebuild to the tinycc revision this branch already
       # records as having produced its committed tcc.exe, instead of
       # floating on build.sh's own unpinned "mob" default - otherwise
@@ -121,43 +142,70 @@ jobs:
         working-directory: work
         run: |
           thirdparty/tcc/tcc.exe thirdparty/tccbin_tests/shared/crash.c -o /tmp/crash_nogc.exe
-          if /tmp/crash_nogc.exe; then
+          # tcc can exit 0 without leaving a runnable binary (see the
+          # relative-libtcc1.a-lookup comment above) - `if /tmp/crash_nogc.exe`
+          # alone can't tell "ran and exited nonzero as expected" apart from
+          # "doesn't exist/isn't executable", since bash reports both as a
+          # nonzero if-condition and this script would silently print success
+          # either way. Check the binary actually exists first.
+          if [ ! -x /tmp/crash_nogc.exe ]; then
+            echo "expected tcc to produce a runnable /tmp/crash_nogc.exe, but it's missing or not executable - tcc likely exited 0 without actually producing a working binary" >&2
+            exit 1
+          fi
+          set +e
+          /tmp/crash_nogc.exe
+          code=$?
+          set -e
+          if [ "$code" -eq 0 ]; then
             echo "expected a nonzero exit from an unguarded null-pointer dereference, got 0" >&2
             exit 1
           fi
-          echo "no-GC compile+crash check passed"
+          echo "no-GC compile+crash check passed (exit=$code)"
 
       - name: run shared conformance tests (libgc.a, static - XFAIL)
-        id: static_xfail
         working-directory: work
         # TCC on macOS arm64 cannot yet link the Clang-built static
         # libgc.a (see this branch's README.md) - only the dynamic
         # libgc.dylib path above is supported today. This lane is a
-        # temporary, explicit XFAIL: it runs for visibility (so a
-        # regression that makes it fail *differently* is still
-        # noticed) but never blocks CI. Remove continue-on-error once
-        # static linking is supported and fold this back into a single
-        # blocking lane. The follow-up step below watches this step's
-        # raw outcome (continue-on-error only affects *conclusion*,
-        # not *outcome*) so an unexpected full pass - static linking
-        # actually getting fixed - fails loudly instead of quietly
-        # sitting there as an ordinary-looking green step forever.
+        # temporary, explicit XFAIL - but a blanket continue-on-error
+        # would accept ANY failure here, including run.sh going missing,
+        # a bad checkout, or a wholly different compile/link error (this
+        # actually happened once already in this workflow's own history:
+        # a missing working-directory made this step fail with "No such
+        # file or directory" for two full CI runs, and continue-on-error
+        # silently absorbed it as if it were the known XFAIL). So instead
+        # of continue-on-error, this captures the output and asserts it
+        # matches the *specific* known failure signature before accepting
+        # it - an unexpected full pass (static linking got fixed) or any
+        # other failure shape both fail the job for real.
         if: ${{ !cancelled() }}
-        continue-on-error: true
         run: |
-          thirdparty/tccbin_tests/run.sh thirdparty/tcc/tcc.exe macos -- \
+          set +e
+          output=$(thirdparty/tccbin_tests/run.sh thirdparty/tcc/tcc.exe macos -- \
               -DGC_BUILTIN_ATOMIC=1 \
               -DGC_THREADS=1 \
               -DMPROTECT_VDB=1 \
               -I thirdparty/libgc/include \
               "$PWD/thirdparty/tcc/lib/libgc.a" \
-              -ldl -lpthread
+              -ldl -lpthread 2>&1)
+          code=$?
+          set -e
+          echo "$output"
 
-      - name: fail loudly if the static libgc.a XFAIL lane unexpectedly passed
-        if: ${{ !cancelled() && steps.static_xfail.outcome == 'success' }}
-        run: |
-          echo "::error::Static libgc.a linking now succeeds on macOS arm64 - remove continue-on-error from the 'static - XFAIL' step above and fold it back into a single blocking lane, this workaround is no longer needed."
-          exit 1
+          if [ "$code" -eq 0 ]; then
+            echo "::error::Static libgc.a linking now succeeds on macOS arm64 - this lane's special-casing should be removed and folded back into a single blocking lane, this workaround is no longer needed."
+            exit 1
+          fi
+
+          case "$output" in
+            *"PASS crash"*"FAIL gc_alloc (compile error)"*"FAIL hello (compile error)"*)
+              echo "known XFAIL: static libgc.a still can't link gc_alloc/hello, as expected - not blocking CI"
+              ;;
+            *)
+              echo "::error::Static libgc.a lane failed, but NOT with the known/expected signature (PASS crash, FAIL gc_alloc/hello with compile error) - this looks like a different, unexpected problem and should not be silently treated as the known XFAIL."
+              exit 1
+              ;;
+          esac
 
       # actions/upload-artifact doesn't preserve executable bits on raw
       # files (tcc.exe would come back chmod 644 after download), and
