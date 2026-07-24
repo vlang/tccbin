@@ -18,16 +18,11 @@ jobs:
       # repo, not here. vlib/v/compiler_errors_test.v is a sentinel
       # file build.sh checks for, to confirm it's being run from a
       # real v repo checkout.
-      #
-      # TODO: tccbin_tests isn't in vlang/v yet (open PR
-      # vlang/v#27924), so this points at the fork branch it's
-      # proposed on. Once/if that merges, switch back to
-      # `repository: vlang/v` at a real commit.
       - name: checkout v (for thirdparty/libgc and thirdparty/tccbin_tests)
         uses: actions/checkout@v4
         with:
-          repository: quaesitor-scientiam/v
-          ref: d668b2ea77b633e0705b2cf5b8d660b247df2b48
+          repository: vlang/v
+          ref: c82d3f08271e9324d6fb8de3c251e9c0e1a9154b
           sparse-checkout: |
             thirdparty/libgc
             thirdparty/tccbin_tests
