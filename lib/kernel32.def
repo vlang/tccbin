@@ -90,6 +90,7 @@ CreateRemoteThread
 CreateSemaphoreA
 CreateSemaphoreW
 CreateSocketHandle
+CreateSymbolicLinkA
 CreateSymbolicLinkW
 CreateTapePartition
 CreateThread

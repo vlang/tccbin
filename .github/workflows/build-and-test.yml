@@ -57,6 +57,45 @@ jobs:
         shell: pwsh
         run: work/thirdparty/tcc/build.ps1
 
+      - name: validate WinAPI declarations with x64 and i386 TCC
+        shell: pwsh
+        run: |
+          $probe = "work/thirdparty/tcc/tests/winapi_create_symbolic_link.c"
+          $x64Ansi = "$env:RUNNER_TEMP/winapi_create_symbolic_link_x64_ansi.exe"
+          $x64Unicode = "$env:RUNNER_TEMP/winapi_create_symbolic_link_x64_unicode.exe"
+          $i386Ansi = "$env:RUNNER_TEMP/winapi_create_symbolic_link_i386_ansi.exe"
+          $i386Unicode = "$env:RUNNER_TEMP/winapi_create_symbolic_link_i386_unicode.exe"
+
+          & work/thirdparty/tcc/tcc.exe `
+              -Werror=implicit-function-declaration `
+              -o $x64Ansi $probe
+          if ($LASTEXITCODE -ne 0) {
+              throw "x64 ANSI WinAPI conformance probe failed"
+          }
+
+          & work/thirdparty/tcc/tcc.exe `
+              -Werror=implicit-function-declaration `
+              -DUNICODE -D_UNICODE `
+              -o $x64Unicode $probe
+          if ($LASTEXITCODE -ne 0) {
+              throw "x64 Unicode WinAPI conformance probe failed"
+          }
+
+          & work/thirdparty/tcc/i386-win32-tcc.exe `
+              -Werror=implicit-function-declaration `
+              -o $i386Ansi $probe
+          if ($LASTEXITCODE -ne 0) {
+              throw "i386 ANSI WinAPI conformance probe failed"
+          }
+
+          & work/thirdparty/tcc/i386-win32-tcc.exe `
+              -Werror=implicit-function-declaration `
+              -DUNICODE -D_UNICODE `
+              -o $i386Unicode $probe
+          if ($LASTEXITCODE -ne 0) {
+              throw "i386 Unicode WinAPI conformance probe failed"
+          }
+
       - name: run shared conformance tests
         shell: pwsh
         run: |

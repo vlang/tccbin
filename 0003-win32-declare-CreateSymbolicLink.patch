@@ -1,0 +1,56 @@
+win32: declare and export CreateSymbolicLink APIs
+
+CreateSymbolicLinkA/W and their flags are part of the Windows API from
+_WIN32_WINNT 0x0600 onward. Add the missing declarations to winbase.h so
+strict implicit-function-declaration diagnostics retain the correct Windows
+calling convention, including on i386. Add the standard UNICODE/ANSI alias
+beside CreateHardLink, and add the missing ANSI entry to kernel32.def so both
+declared variants can be linked.
+
+diff --git a/win32/include/winapi/winbase.h b/win32/include/winapi/winbase.h
+--- a/win32/include/winapi/winbase.h
++++ b/win32/include/winapi/winbase.h
+@@ -2252,7 +2252,8 @@
+ #define MoveFileEx MoveFileExW
+ #define MoveFileWithProgress MoveFileWithProgressW
+ #define ReplaceFile ReplaceFileW
+ #define CreateHardLink CreateHardLinkW
++#define CreateSymbolicLink CreateSymbolicLinkW
+ #define CreateNamedPipe CreateNamedPipeW
+ #define GetNamedPipeHandleState GetNamedPipeHandleStateW
+ #define CallNamedPipe CallNamedPipeW
+@@ -2306,7 +2307,8 @@
+ #define MoveFileEx MoveFileExA
+ #define MoveFileWithProgress MoveFileWithProgressA
+ #define ReplaceFile ReplaceFileA
+ #define CreateHardLink CreateHardLinkA
++#define CreateSymbolicLink CreateSymbolicLinkA
+ #define CreateNamedPipe CreateNamedPipeA
+ #define GetNamedPipeHandleState GetNamedPipeHandleStateA
+ #define CallNamedPipe CallNamedPipeA
+@@ -2384,6 +2386,12 @@
+   WINBASEAPI WINBOOL WINAPI ReplaceFileW(LPCWSTR lpReplacedFileName,LPCWSTR lpReplacementFileName,LPCWSTR lpBackupFileName,DWORD dwReplaceFlags,LPVOID lpExclude,LPVOID lpReserved);
+   WINBASEAPI WINBOOL WINAPI CreateHardLinkA(LPCSTR lpFileName,LPCSTR lpExistingFileName,LPSECURITY_ATTRIBUTES lpSecurityAttributes);
+   WINBASEAPI WINBOOL WINAPI CreateHardLinkW(LPCWSTR lpFileName,LPCWSTR lpExistingFileName,LPSECURITY_ATTRIBUTES lpSecurityAttributes);
+-
++#if _WIN32_WINNT >= 0x0600
++#define SYMBOLIC_LINK_FLAG_DIRECTORY 0x1
++#define SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE 0x2
++  WINBASEAPI BOOLEAN WINAPI CreateSymbolicLinkA(LPCSTR lpSymlinkFileName,LPCSTR lpTargetFileName,DWORD dwFlags);
++  WINBASEAPI BOOLEAN WINAPI CreateSymbolicLinkW(LPCWSTR lpSymlinkFileName,LPCWSTR lpTargetFileName,DWORD dwFlags);
++#endif
++
+   typedef enum _STREAM_INFO_LEVELS {
+     FindStreamInfoStandard,FindStreamInfoMaxInfoLevel
+
+diff --git a/win32/lib/kernel32.def b/win32/lib/kernel32.def
+--- a/win32/lib/kernel32.def
++++ b/win32/lib/kernel32.def
+@@ -87,5 +87,7 @@ CreateRemoteThread
+ CreateSemaphoreA
+ CreateSemaphoreW
+ CreateSocketHandle
++CreateSymbolicLinkA
++CreateSymbolicLinkW
+ CreateTapePartition
+ CreateThread

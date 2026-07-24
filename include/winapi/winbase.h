@@ -2253,6 +2253,7 @@ extern "C" {
 #define MoveFileWithProgress MoveFileWithProgressW
 #define ReplaceFile ReplaceFileW
 #define CreateHardLink CreateHardLinkW
+#define CreateSymbolicLink CreateSymbolicLinkW
 #define CreateNamedPipe CreateNamedPipeW
 #define GetNamedPipeHandleState GetNamedPipeHandleStateW
 #define CallNamedPipe CallNamedPipeW
@@ -2307,6 +2308,7 @@ extern "C" {
 #define MoveFileWithProgress MoveFileWithProgressA
 #define ReplaceFile ReplaceFileA
 #define CreateHardLink CreateHardLinkA
+#define CreateSymbolicLink CreateSymbolicLinkA
 #define CreateNamedPipe CreateNamedPipeA
 #define GetNamedPipeHandleState GetNamedPipeHandleStateA
 #define CallNamedPipe CallNamedPipeA
@@ -2384,6 +2386,12 @@ extern "C" {
   WINBASEAPI WINBOOL WINAPI ReplaceFileW(LPCWSTR lpReplacedFileName,LPCWSTR lpReplacementFileName,LPCWSTR lpBackupFileName,DWORD dwReplaceFlags,LPVOID lpExclude,LPVOID lpReserved);
   WINBASEAPI WINBOOL WINAPI CreateHardLinkA(LPCSTR lpFileName,LPCSTR lpExistingFileName,LPSECURITY_ATTRIBUTES lpSecurityAttributes);
   WINBASEAPI WINBOOL WINAPI CreateHardLinkW(LPCWSTR lpFileName,LPCWSTR lpExistingFileName,LPSECURITY_ATTRIBUTES lpSecurityAttributes);
+#if _WIN32_WINNT >= 0x0600
+#define SYMBOLIC_LINK_FLAG_DIRECTORY 0x1
+#define SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE 0x2
+  WINBASEAPI BOOLEAN WINAPI CreateSymbolicLinkA(LPCSTR lpSymlinkFileName,LPCSTR lpTargetFileName,DWORD dwFlags);
+  WINBASEAPI BOOLEAN WINAPI CreateSymbolicLinkW(LPCWSTR lpSymlinkFileName,LPCWSTR lpTargetFileName,DWORD dwFlags);
+#endif
 
   typedef enum _STREAM_INFO_LEVELS {
     FindStreamInfoStandard,FindStreamInfoMaxInfoLevel
