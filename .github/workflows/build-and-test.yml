@@ -23,15 +23,11 @@ jobs:
       # thirdparty/libgc/gc.c (needed to rebuild libgc.a) and
       # thirdparty/tccbin_tests (the shared cross-platform conformance
       # suite - see its README) both live in the main v repo, not here.
-      #
-      # TODO: tccbin_tests isn't in vlang/v yet (open PR), so this
-      # points at the fork branch it's proposed on. Once/if that
-      # merges, switch back to `repository: vlang/v` at a real commit.
       - name: checkout v (for thirdparty/libgc and thirdparty/tccbin_tests)
         uses: actions/checkout@v4
         with:
-          repository: quaesitor-scientiam/v
-          ref: 39d05c718d829d8c8b3615306f80e697a04983ea
+          repository: vlang/v
+          ref: c82d3f08271e9324d6fb8de3c251e9c0e1a9154b
           sparse-checkout: |
             thirdparty/libgc
             thirdparty/tccbin_tests
