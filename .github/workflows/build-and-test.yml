@@ -1,0 +1,63 @@
+name: build and test (linux-amd64)
+
+on:
+  push:
+    branches: [thirdparty-linux-amd64]
+  pull_request:
+    branches: [thirdparty-linux-amd64]
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # thirdparty/libgc/include (headers) and thirdparty/tccbin_tests (the
+      # shared cross-platform conformance suite - see its README) both live
+      # in the main v repo, not here.
+      #
+      # TODO: tccbin_tests isn't in vlang/v yet (open PR), so this points at
+      # the fork branch it's proposed on. Once/if that merges, switch back
+      # to `repository: vlang/v` at a real commit.
+      - name: checkout v (for thirdparty/libgc and thirdparty/tccbin_tests)
+        uses: actions/checkout@v4
+        with:
+          repository: quaesitor-scientiam/v
+          ref: d668b2ea77b633e0705b2cf5b8d660b247df2b48
+          sparse-checkout: |
+            thirdparty/libgc
+            thirdparty/tccbin_tests
+          sparse-checkout-cone-mode: false
+          path: work
+
+      # this branch's already-committed tcc.exe/lib/include, checked out at
+      # work/thirdparty/tcc - this exact relative layout matters: the
+      # bundled tcc.exe has a baked-in default of looking for its own
+      # crt1.o/crti.o/crtn.o/libtcc1.a under "thirdparty/tcc/..." relative
+      # to the process's working directory (not derived from argv0, and
+      # not fully honored via -B), matching how V's own build invokes it
+      # from the repo root. Running it from any other layout breaks those
+      # lookups with confusing "library not found"/"undefined symbol"
+      # errors that have nothing to do with the actual test being run -
+      # reproduced and root-caused locally before writing this workflow.
+      - name: checkout this branch
+        uses: actions/checkout@v4
+        with:
+          path: work/thirdparty/tcc
+
+      - name: run shared conformance tests
+        working-directory: work
+        run: |
+          chmod +x thirdparty/tcc/tcc.exe thirdparty/tccbin_tests/run.sh
+          # tcc may print "libgc.a: error: 'GC_noop1_ptr' defined twice" -
+          # this is benign here: thirdparty/libgc/include/gc.h provides a
+          # weak fallback definition (for vlang/v#27179, so the header is
+          # usable from plain C without V's codegen), and tcc's ELF linker
+          # reports the collision with libgc.a's strong definition as a
+          # diagnostic but still correctly keeps the strong one and links
+          # successfully - confirmed locally (binary runs fine despite the
+          # message). Not something this workflow needs to work around.
+          ./thirdparty/tccbin_tests/run.sh ./thirdparty/tcc/tcc.exe linux -- \
+              -DGC_BUILTIN_ATOMIC=1 \
+              -I ./thirdparty/libgc/include \
+              ./thirdparty/tcc/lib/libgc.a \
+              -ldl -lpthread
