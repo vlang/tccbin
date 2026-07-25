@@ -159,12 +159,40 @@ jobs:
             exit 1
           fi
 
+          # The pinned run.sh only ever prints "(compile error)" with no
+          # detail, so the summary-line match above can't tell "the known
+          # etext/end bug" apart from a DIFFERENT static-link regression
+          # that happens to fail the same two tests - e.g. a PR that
+          # replaces libgc.a with a valid-but-incomplete archive lacking
+          # the GC objects entirely: crash.c still compiles (it never
+          # references GC symbols) while gc_alloc/hello both report
+          # "compile error", matching this same summary shape for an
+          # unrelated reason (Codex pullrequestreview-4780219278 on
+          # vlang/tccbin#75). Compile hello.c directly to capture the
+          # real tcc stderr and assert it's specifically the known
+          # etext/end unresolved-symbol error.
+          direct_err=$(thirdparty/tcc/tcc.exe vsrc/thirdparty/tccbin_tests/shared/hello.c \
+              -DGC_BUILTIN_ATOMIC=1 -DBUS_PAGE_FAULT=T_PAGEFLT -DALL_INTERIOR_POINTERS=1 \
+              -I vsrc/thirdparty/libgc/include \
+              thirdparty/tcc/lib/libgc.a \
+              -lpthread \
+              -o /tmp/hello_xfail_probe 2>&1)
+
           case "$output" in
             *"PASS crash"*"FAIL gc_alloc (compile error)"*"FAIL hello (compile error)"*)
-              echo "known XFAIL: etext/end still unresolved on FreeBSD tcc, as expected - not blocking CI"
+              case "$direct_err" in
+                *"undefined symbol 'etext'"*|*"undefined symbol 'end'"*)
+                  echo "known XFAIL: etext/end still unresolved on FreeBSD tcc, as expected - not blocking CI"
+                  ;;
+                *)
+                  echo "libgc.a lane failed with the known summary shape, but the direct hello.c compile error does NOT mention an unresolved etext/end symbol - this looks like a different, unexpected regression:" >&2
+                  echo "$direct_err" >&2
+                  exit 1
+                  ;;
+              esac
               ;;
             *)
-              echo "libgc.a lane failed, but NOT with the known/expected signature (PASS crash, FAIL gc_alloc/hello with compile error) - this looks like a different, unexpected problem and should not be silently treated as the known XFAIL." >&2
+              echo "libgc.a lane failed, but NOT with the known/expected summary (PASS crash, FAIL gc_alloc/hello with compile error) - this looks like a different, unexpected problem and should not be silently treated as the known XFAIL." >&2
               exit 1
               ;;
           esac
