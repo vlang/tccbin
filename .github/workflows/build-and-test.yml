@@ -14,6 +14,25 @@ jobs:
       # cross-platform-actions/action boots a real OpenBSD VM inside this
       # Linux runner - the same action vlang/v's own update_tccbin.yml
       # uses to rebuild this branch's binaries.
+      # For a pull_request event, clone the PR's own head repo+ref
+      # (so a PR that updates tcc.exe/libgc.a is actually tested)
+      # instead of the unrelated target branch's current tip - a
+      # hardcoded `git clone --branch thirdparty-openbsd-amd64
+      # .../vlang/tccbin.git` would silently test only the
+      # already-merged target branch regardless of what the PR
+      # proposes. push/workflow_dispatch have no PR context, so they
+      # fall back to whatever ref actually triggered the run.
+      - name: resolve what to clone
+        id: clone_target
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "url=${{ github.event.pull_request.head.repo.clone_url }}" >> "$GITHUB_OUTPUT"
+            echo "ref=${{ github.event.pull_request.head.ref }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "url=https://github.com/vlang/tccbin.git" >> "$GITHUB_OUTPUT"
+            echo "ref=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Start openbsd-amd64 VM
         uses: cross-platform-actions/action@v1.3.0
         with:
@@ -22,6 +41,10 @@ jobs:
           memory: 4G
           shell: sh
           sync_files: runner-to-vm
+          environment_variables: TCCBIN_CLONE_URL TCCBIN_CLONE_REF
+        env:
+          TCCBIN_CLONE_URL: ${{ steps.clone_target.outputs.url }}
+          TCCBIN_CLONE_REF: ${{ steps.clone_target.outputs.ref }}
 
       - name: run shared conformance tests
         shell: cpa.sh {0}
@@ -41,8 +64,8 @@ jobs:
           # not libgc or gc.
           sudo pkg_add boehm-gc
 
-          git clone --branch thirdparty-openbsd-amd64 --depth=1 \
-            https://github.com/vlang/tccbin.git thirdparty/tcc
+          git clone --branch "$TCCBIN_CLONE_REF" --depth=1 \
+            "$TCCBIN_CLONE_URL" thirdparty/tcc
 
           # thirdparty/libgc/include (gc.h) and thirdparty/tccbin_tests
           # (the shared cross-platform conformance suite) both live in
