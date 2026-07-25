@@ -90,16 +90,76 @@ jobs:
           thirdparty/tcc/tcc.exe --version
           thirdparty/tcc/tcc.exe -v -v
 
+          # The official script's own "## needed for Big Sur" symlink
+          # (thirdparty/tcc/lib/libc.dylib -> /System/DriverKit/usr/lib/
+          # libSystem.dylib) no longer resolves on current macOS -
+          # confirmed via otool ("No such file or directory") on this
+          # macos-15-intel runner. /usr/lib/libSystem.B.dylib is the one
+          # system library Apple has kept as a real on-disk compatibility
+          # shim (unlike individual frameworks, which only exist inside
+          # dyld's shared cache) - repoint at that instead.
+          ls -la /usr/lib/libSystem.B.dylib || ls -la /usr/lib/ | head -20
+          rm -f thirdparty/tcc/lib/libc.dylib
+          ln -s /usr/lib/libSystem.B.dylib thirdparty/tcc/lib/libc.dylib
+          ls -la thirdparty/tcc/lib/libc.dylib
+
+      # There is no official thirdparty-macos-amd64_bdwgc.sh in vlang/v
+      # (unlike every other actively-maintained platform) - adapted
+      # directly from thirdparty-macos-arm64_bdwgc.sh, which is
+      # otherwise architecture-generic (produces whatever architecture
+      # the host clang natively targets - amd64 here, arm64 there).
+      # Needed because the branch's old bundled libgc.a is from a much
+      # older tcc/toolchain and the freshly-rebuilt tcc.exe can't even
+      # parse it ("unrecognized file type") - the same class of
+      # old-lib-vs-new-compiler mismatch as windows-amd64's original
+      # tinyc_getbp issue earlier this session, just without an
+      # existing community fix to reuse here.
+      - name: rebuild libgc.a from current bdwgc source
+        working-directory: work
+        env:
+          CC: clang
+          TCC_FOLDER: thirdparty/tcc
+          LIBGC_COMMIT: master
+        run: |
+          set -eu
+          rm -rf bdwgc/
+          git clone --quiet https://github.com/ivmai/bdwgc
+          cd bdwgc/
+          git checkout --quiet "$LIBGC_COMMIT"
+          LIBGC_COMMIT_FULL_HASH="$(git rev-parse HEAD)"
+          git clone --quiet https://github.com/bdwgc/libatomic_ops
+          ./autogen.sh
+          CC="$CC" CFLAGS="-Os -mtune=generic -fPIC" LDFLAGS="-Os -fPIC" ./configure \
+              --disable-dependency-tracking \
+              --disable-docs \
+              --enable-static=yes \
+              --enable-shared=yes \
+              --enable-single-obj-compilation \
+              --enable-gc-debug \
+              --enable-thread-local-alloc \
+              --enable-large-config \
+              --enable-cplusplus \
+              --with-libatomic-ops=check \
+              --enable-sigrt-signals
+          make
+          cd .libs/
+          for dname in *.dylib; do
+            install_name_tool -id "@rpath/${dname}" "$dname"
+            otool -D "$dname"
+          done
+          cd ../..
+          date                          > "$TCC_FOLDER/lib/libgc_build_on_date.txt"
+          echo "$LIBGC_COMMIT_FULL_HASH" > "$TCC_FOLDER/lib/libgc_build_source_hash.txt"
+          uname -a                      > "$TCC_FOLDER/lib/libgc_build_machine_uname.txt"
+          rsync -a bdwgc/.libs/ "$TCC_FOLDER/lib/"
+          ls -la "$TCC_FOLDER/lib/"
+
       - name: run shared conformance tests
         working-directory: work
         run: |
           chmod +x thirdparty/tccbin_tests/run.sh
 
-          echo "=== libc.dylib after rebuild ==="
-          ls -la thirdparty/tcc/lib/libc.dylib
-          file thirdparty/tcc/lib/libc.dylib || true
-
-          echo "=== TEMPORARY diagnostic: real compile error ==="
+          # TEMPORARY diagnostic: real compile error.
           ./thirdparty/tcc/tcc.exe thirdparty/tccbin_tests/shared/crash.c \
               -DGC_BUILTIN_ATOMIC=1 -DMPROTECT_VDB=1 \
               -I ./thirdparty/libgc/include \
