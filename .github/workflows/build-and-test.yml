@@ -176,7 +176,7 @@ jobs:
               -I vsrc/thirdparty/libgc/include \
               thirdparty/tcc/lib/libgc.a \
               -lpthread \
-              -o /tmp/hello_xfail_probe 2>&1)
+              -o /tmp/hello_xfail_probe 2>&1) || true
 
           case "$output" in
             *"PASS crash"*"FAIL gc_alloc (compile error)"*"FAIL hello (compile error)"*)
