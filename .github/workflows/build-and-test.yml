@@ -1,0 +1,108 @@
+name: build and test (openbsd-amd64)
+
+on:
+  push:
+    branches: [thirdparty-openbsd-amd64]
+  pull_request:
+    branches: [thirdparty-openbsd-amd64]
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # For a pull_request event, clone the PR's own head repo+commit (so a
+    # PR that updates tcc.exe/libgc.a is actually tested) instead of the
+    # unrelated target branch's current tip - a hardcoded
+    # `git clone --branch thirdparty-openbsd-amd64 .../vlang/tccbin.git`
+    # would silently test only the already-merged target branch
+    # regardless of what the PR proposes. push/workflow_dispatch have no
+    # PR context, so they fall back to the event's own repository/commit
+    # (not a branch *name*, which is mutable: another push landing while
+    # this run is queued/starting would otherwise make TCCBIN_CLONE_SHA's
+    # predecessor, a ref name, silently resolve to a different commit
+    # than the one that triggered this run - Codex pullrequestreview-
+    # 4780049532 on vlang/tccbin#76). Set at job level (matching
+    # update_tccbin.yml's own working BSD job env, which only ever
+    # references github.*/secrets.*, never steps.* - step-level env on
+    # the "Start VM" step was tried first and empirically did NOT get
+    # forwarded into the VM by environment_variables, unlike this
+    # job-level placement).
+    env:
+      TCCBIN_CLONE_URL: ${{ github.event.pull_request.head.repo.clone_url || github.event.repository.clone_url }}
+      TCCBIN_CLONE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      # cross-platform-actions/action boots a real OpenBSD VM inside this
+      # Linux runner - the same action vlang/v's own update_tccbin.yml
+      # uses to rebuild this branch's binaries. Pinned to the v1.3.0
+      # tag's commit (resolved via the GitHub API) rather than the
+      # mutable tag itself, so a retag upstream can't silently swap in
+      # different third-party code here without a review-visible diff
+      # (Codex pullrequestreview-4780049532 on vlang/tccbin#76).
+      - name: Start openbsd-amd64 VM
+        uses: cross-platform-actions/action@4347c661239bf5dcd0cd77708061488d907343d6 # v1.3.0
+        with:
+          operating_system: openbsd
+          version: '7.8'
+          memory: 4G
+          shell: sh
+          sync_files: runner-to-vm
+          environment_variables: TCCBIN_CLONE_URL TCCBIN_CLONE_SHA
+
+      - name: run shared conformance tests
+        shell: cpa.sh {0}
+        run: |
+          set -eu
+          sudo pkg_add bash git
+
+          # This branch (unlike linux-amd64/macos-arm64/freebsd-amd64)
+          # ships no libgc.a/.dylib at all - confirmed by inspecting its
+          # tree, and matching V's own builder
+          # (vlib/builtin/builtin_d_gcboehm.c.v's openbsd+tinyc branch),
+          # which only ever references /usr/local/lib/libgc.a, never a
+          # bundled path, for this exact platform+compiler combination.
+          # GC-dependent tests need a system-installed libgc instead.
+          # OpenBSD's port for this is devel/boehm-gc (confirmed via
+          # cvsweb.openbsd.org/ports/devel/) - package name is boehm-gc,
+          # not libgc or gc.
+          sudo pkg_add boehm-gc
+
+          # Fetch the exact commit that triggered this run, not a branch
+          # name - `git clone --branch <name>` would resolve whatever
+          # that name points to *at clone time*, which can race a push
+          # that lands after this run started (Codex pullrequestreview-
+          # 4780049532 on vlang/tccbin#76).
+          mkdir -p thirdparty/tcc && cd thirdparty/tcc
+          git init -q
+          git remote add origin "$TCCBIN_CLONE_URL"
+          git fetch --depth=1 origin "$TCCBIN_CLONE_SHA"
+          git checkout -q FETCH_HEAD
+          cd ../..
+
+          # thirdparty/libgc/include (gc.h) and thirdparty/tccbin_tests
+          # (the shared cross-platform conformance suite) both live in
+          # the main v repo, not here. A plain `git clone --depth=1`
+          # only ever contains the CURRENT tip commit's objects - once
+          # vlang/v advances past this pinned SHA, that historical
+          # commit object won't exist in a fresh shallow clone and this
+          # checkout would fail (the same class of bug Codex flagged as
+          # P1 on the sibling freebsd-amd64 workflow, pullrequestreview-
+          # 4780048339 on vlang/tccbin#75 line 60). Fetch that exact SHA
+          # directly instead of cloning HEAD and hoping it's still there.
+          mkdir -p vsrc && cd vsrc
+          git init -q
+          git remote add origin https://github.com/vlang/v.git
+          git sparse-checkout init --no-cone
+          git sparse-checkout set thirdparty/libgc thirdparty/tccbin_tests
+          git fetch --filter=blob:none --depth=1 origin c82d3f08271e9324d6fb8de3c251e9c0e1a9154b
+          git checkout -q FETCH_HEAD
+          cd ..
+
+          chmod +x thirdparty/tcc/tcc.exe
+
+          # The bundled tcc.exe resolves its own crt/libtcc1.a via a path
+          # relative to the process's working directory (confirmed on
+          # linux-amd64/macos-arm64/freebsd-amd64's CI).
+          bash vsrc/thirdparty/tccbin_tests/run.sh "$PWD/thirdparty/tcc/tcc.exe" openbsd -- \
+              -DGC_BUILTIN_ATOMIC=1 \
+              -I "$PWD/vsrc/thirdparty/libgc/include" \
+              -L/usr/local/lib -I/usr/local/include -lgc -lpthread
