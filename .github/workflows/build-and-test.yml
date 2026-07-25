@@ -10,6 +10,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      TCCBIN_CLONE_URL: ${{ steps.clone_target.outputs.url }}
+      TCCBIN_CLONE_REF: ${{ steps.clone_target.outputs.ref }}
     steps:
       # cross-platform-actions/action boots a real OpenBSD VM inside this
       # Linux runner - the same action vlang/v's own update_tccbin.yml
@@ -42,9 +45,6 @@ jobs:
           shell: sh
           sync_files: runner-to-vm
           environment_variables: TCCBIN_CLONE_URL TCCBIN_CLONE_REF
-        env:
-          TCCBIN_CLONE_URL: ${{ steps.clone_target.outputs.url }}
-          TCCBIN_CLONE_REF: ${{ steps.clone_target.outputs.ref }}
 
       - name: run shared conformance tests
         shell: cpa.sh {0}
