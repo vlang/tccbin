@@ -17,6 +17,25 @@ jobs:
       # directly inside the VM (rather than actions/checkout on the
       # runner + sync_files) mirrors that proven-working pattern instead
       # of relying on an unverified file-permission-preserving sync.
+      # For a pull_request event, clone the PR's own head repo+ref
+      # (so a PR that updates tcc.exe/libgc.a is actually tested)
+      # instead of the unrelated target branch's current tip - a
+      # hardcoded `git clone --branch thirdparty-freebsd-amd64
+      # .../vlang/tccbin.git` would silently test only the
+      # already-merged target branch regardless of what the PR
+      # proposes. push/workflow_dispatch have no PR context, so they
+      # fall back to whatever ref actually triggered the run.
+      - name: resolve what to clone
+        id: clone_target
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "url=${{ github.event.pull_request.head.repo.clone_url }}" >> "$GITHUB_OUTPUT"
+            echo "ref=${{ github.event.pull_request.head.ref }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "url=https://github.com/vlang/tccbin.git" >> "$GITHUB_OUTPUT"
+            echo "ref=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Start freebsd-amd64 VM
         uses: cross-platform-actions/action@v1.3.0
         with:
@@ -25,6 +44,10 @@ jobs:
           memory: 4G
           shell: sh
           sync_files: runner-to-vm
+          environment_variables: TCCBIN_CLONE_URL TCCBIN_CLONE_REF
+        env:
+          TCCBIN_CLONE_URL: ${{ steps.clone_target.outputs.url }}
+          TCCBIN_CLONE_REF: ${{ steps.clone_target.outputs.ref }}
 
       - name: fetch shared conformance suite and this branch's binaries
         shell: cpa.sh {0}
@@ -32,8 +55,8 @@ jobs:
           set -eu
           sudo pkg install -y bash git
 
-          git clone --branch thirdparty-freebsd-amd64 --depth=1 \
-            https://github.com/vlang/tccbin.git thirdparty/tcc
+          git clone --branch "$TCCBIN_CLONE_REF" --depth=1 \
+            "$TCCBIN_CLONE_URL" thirdparty/tcc
 
           # thirdparty/libgc/include (gc.h) and thirdparty/tccbin_tests
           # (the shared cross-platform conformance suite) both live in
@@ -66,11 +89,25 @@ jobs:
           set -eu
           thirdparty/tcc/tcc.exe vsrc/thirdparty/tccbin_tests/shared/crash.c \
               -o /tmp/crash_nogc
-          if /tmp/crash_nogc; then
-            echo "expected a nonzero exit from an unguarded null-pointer dereference, got 0" >&2
+
+          set +e
+          /tmp/crash_nogc
+          code=$?
+          set -e
+
+          # Any nonzero exit isn't enough: an exec-format error, a
+          # missing dynamic loader, or an unrelated miscompilation that
+          # just exit(1)s would also satisfy that and silently mask a
+          # real regression, since the GC-backed suite below is
+          # non-blocking. crash.c's null-pointer dereference is
+          # expected to be killed by SIGSEGV specifically, which a
+          # POSIX shell reports as exit code 128+11=139 - verify that
+          # exact signal-terminated signature, not just "nonzero".
+          if [ "$code" -ne 139 ]; then
+            echo "expected exit 139 (killed by SIGSEGV) from an unguarded null-pointer dereference, got $code" >&2
             exit 1
           fi
-          echo "no-GC compile+crash check passed"
+          echo "no-GC compile+crash check passed (killed by SIGSEGV as expected)"
 
       - name: run shared conformance tests (libgc.a - XFAIL until the etext/end tcc fix ships)
         shell: cpa.sh {0}
