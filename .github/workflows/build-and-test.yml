@@ -112,7 +112,7 @@ jobs:
                set_global_sym(s1, "__global_pointer$", data_section, 0x800);
           PATCHEOF
 
-          git clone --quiet https://repo.or.cz/tinycc.git tinycc-src
+          git clone --quiet git://repo.or.cz/tinycc.git tinycc-src
           git -C tinycc-src apply --verbose "$PWD/etext_fix.patch"
 
       - name: Start freebsd-amd64 VM
