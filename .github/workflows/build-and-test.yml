@@ -86,6 +86,15 @@ jobs:
           # build_*.txt files with accurate content right after anyway.
           touch thirdparty/tcc/lib/build_bootstrap_marker.txt
 
+          # repo.or.cz's HTTPS endpoint is unreliable from CI (confirmed
+          # independently, including from a non-CI network) - git:// is
+          # the one that actually works (same workaround already
+          # verified for thirdparty-freebsd-amd64's CI). Patch the
+          # LOCAL copy of the official script for this run only - the
+          # canonical script in vlang/v is untouched.
+          sed -i '' 's#https://repo\.or\.cz#git://repo.or.cz#' \
+              thirdparty/build_scripts/thirdparty-macos-amd64_tcc.sh
+
           bash thirdparty/build_scripts/thirdparty-macos-amd64_tcc.sh
           thirdparty/tcc/tcc.exe --version
           thirdparty/tcc/tcc.exe -v -v
