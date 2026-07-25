@@ -63,7 +63,7 @@ jobs:
           # that name points to *at clone time*, which can race a push
           # that lands after this run started (Codex pullrequestreview-
           # 4780048339 on vlang/tccbin#75).
-          mkdir thirdparty/tcc && cd thirdparty/tcc
+          mkdir -p thirdparty/tcc && cd thirdparty/tcc
           git init -q
           git remote add origin "$TCCBIN_CLONE_URL"
           git fetch --depth=1 origin "$TCCBIN_CLONE_SHA"
@@ -79,7 +79,7 @@ jobs:
           # would fail (Codex P1, pullrequestreview-4780048339 on
           # vlang/tccbin#75, line 60). Fetch that exact SHA directly
           # instead of cloning HEAD and hoping it's still there.
-          mkdir vsrc && cd vsrc
+          mkdir -p vsrc && cd vsrc
           git init -q
           git remote add origin https://github.com/vlang/v.git
           git sparse-checkout init --no-cone
