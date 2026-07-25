@@ -10,21 +10,26 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    # For a pull_request event, clone the PR's own head repo+ref (so a
-    # PR that updates tcc.exe/libgc.a is actually tested) instead of
-    # the unrelated target branch's current tip - a hardcoded
+    # For a pull_request event, clone the PR's own head repo+commit (so a
+    # PR that updates tcc.exe/libgc.a is actually tested) instead of the
+    # unrelated target branch's current tip - a hardcoded
     # `git clone --branch thirdparty-freebsd-amd64 .../vlang/tccbin.git`
     # would silently test only the already-merged target branch
-    # regardless of what the PR proposes. push/workflow_dispatch have
-    # no PR context, so they fall back to whatever ref triggered the
-    # run. Set at job level (matching update_tccbin.yml's own working
-    # BSD job env, which only ever references github.*/secrets.*, never
-    # steps.* - step-level env on the "Start VM" step was tried first
-    # and empirically did NOT get forwarded into the VM by
-    # environment_variables, unlike this job-level placement).
+    # regardless of what the PR proposes. push/workflow_dispatch have no
+    # PR context, so they fall back to the event's own repository/commit
+    # (not a branch *name*, which is mutable: another push landing while
+    # this run is queued/starting would otherwise make the resolved
+    # value, a ref name, silently resolve to a different commit than the
+    # one that triggered this run - Codex pullrequestreview-4780048339 on
+    # vlang/tccbin#75). Set at job level (matching update_tccbin.yml's
+    # own working BSD job env, which only ever references
+    # github.*/secrets.*, never steps.* - step-level env on the "Start
+    # VM" step was tried first and empirically did NOT get forwarded
+    # into the VM by environment_variables, unlike this job-level
+    # placement).
     env:
-      TCCBIN_CLONE_URL: ${{ github.event.pull_request.head.repo.clone_url || 'https://github.com/vlang/tccbin.git' }}
-      TCCBIN_CLONE_REF: ${{ github.event.pull_request.head.ref || github.ref_name }}
+      TCCBIN_CLONE_URL: ${{ github.event.pull_request.head.repo.clone_url || github.event.repository.clone_url }}
+      TCCBIN_CLONE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       # cross-platform-actions/action boots a real FreeBSD VM inside this
       # Linux runner - the same action vlang/v's own update_tccbin.yml
@@ -32,15 +37,20 @@ jobs:
       # directly inside the VM (rather than actions/checkout on the
       # runner + sync_files) mirrors that proven-working pattern instead
       # of relying on an unverified file-permission-preserving sync.
+      # Pinned to the v1.3.0 tag's commit (resolved via the GitHub API)
+      # rather than the mutable tag itself, so a retag upstream can't
+      # silently swap in different third-party code here without a
+      # review-visible diff (Codex pullrequestreview-4780048339 on
+      # vlang/tccbin#75).
       - name: Start freebsd-amd64 VM
-        uses: cross-platform-actions/action@v1.3.0
+        uses: cross-platform-actions/action@4347c661239bf5dcd0cd77708061488d907343d6 # v1.3.0
         with:
           operating_system: freebsd
           version: '15.1'
           memory: 4G
           shell: sh
           sync_files: runner-to-vm
-          environment_variables: TCCBIN_CLONE_URL TCCBIN_CLONE_REF
+          environment_variables: TCCBIN_CLONE_URL TCCBIN_CLONE_SHA
 
       - name: fetch shared conformance suite and this branch's binaries
         shell: cpa.sh {0}
@@ -48,16 +58,35 @@ jobs:
           set -eu
           sudo pkg install -y bash git
 
-          git clone --branch "$TCCBIN_CLONE_REF" --depth=1 \
-            "$TCCBIN_CLONE_URL" thirdparty/tcc
+          # Fetch the exact commit that triggered this run, not a branch
+          # name - `git clone --branch <name>` would resolve whatever
+          # that name points to *at clone time*, which can race a push
+          # that lands after this run started (Codex pullrequestreview-
+          # 4780048339 on vlang/tccbin#75).
+          mkdir thirdparty/tcc && cd thirdparty/tcc
+          git init -q
+          git remote add origin "$TCCBIN_CLONE_URL"
+          git fetch --depth=1 origin "$TCCBIN_CLONE_SHA"
+          git checkout -q FETCH_HEAD
+          cd ../..
 
           # thirdparty/libgc/include (gc.h) and thirdparty/tccbin_tests
           # (the shared cross-platform conformance suite) both live in
-          # the main v repo, not here.
-          git clone --filter=blob:none --no-checkout --depth=1 \
-            https://github.com/vlang/v.git vsrc
-          git -C vsrc sparse-checkout set --no-cone thirdparty/libgc thirdparty/tccbin_tests
-          git -C vsrc checkout c82d3f08271e9324d6fb8de3c251e9c0e1a9154b
+          # the main v repo, not here. A plain `git clone --depth=1`
+          # only ever contains the CURRENT tip commit's objects - once
+          # vlang/v advances past this pinned SHA, that historical commit
+          # object won't exist in a fresh shallow clone and this checkout
+          # would fail (Codex P1, pullrequestreview-4780048339 on
+          # vlang/tccbin#75, line 60). Fetch that exact SHA directly
+          # instead of cloning HEAD and hoping it's still there.
+          mkdir vsrc && cd vsrc
+          git init -q
+          git remote add origin https://github.com/vlang/v.git
+          git sparse-checkout init --no-cone
+          git sparse-checkout set thirdparty/libgc thirdparty/tccbin_tests
+          git fetch --filter=blob:none --depth=1 origin c82d3f08271e9324d6fb8de3c251e9c0e1a9154b
+          git checkout -q FETCH_HEAD
+          cd ..
 
           chmod +x thirdparty/tcc/tcc.exe
 
@@ -102,13 +131,40 @@ jobs:
           fi
           echo "no-GC compile+crash check passed (killed by SIGSEGV as expected)"
 
+      # continue-on-error alone would also swallow an unrelated failure
+      # (a corrupted libgc.a, a bad checkout, run.sh going missing) as if
+      # it were the known etext/end failure, and the blocking crash-only
+      # step above never references libgc.a at all - so a real
+      # regression in the archive itself could pass CI unnoticed (Codex
+      # pullrequestreview-4780048339 on vlang/tccbin#75, line 107).
+      # Assert the exact known failure signature instead, mirroring
+      # macos-arm64's own libgc.a XFAIL lane: any other failure shape
+      # (or an unexpected full pass, meaning the etext/end fix landed)
+      # fails the job for real.
       - name: run shared conformance tests (libgc.a - XFAIL until the etext/end tcc fix ships)
         shell: cpa.sh {0}
-        continue-on-error: true
         run: |
-          set -eu
-          bash vsrc/thirdparty/tccbin_tests/run.sh "$PWD/thirdparty/tcc/tcc.exe" freebsd -- \
+          set +e
+          output=$(bash vsrc/thirdparty/tccbin_tests/run.sh "$PWD/thirdparty/tcc/tcc.exe" freebsd -- \
               -DGC_BUILTIN_ATOMIC=1 -DBUS_PAGE_FAULT=T_PAGEFLT -DALL_INTERIOR_POINTERS=1 \
               -I "$PWD/vsrc/thirdparty/libgc/include" \
               "$PWD/thirdparty/tcc/lib/libgc.a" \
-              -lpthread
+              -lpthread 2>&1)
+          code=$?
+          set -e
+          echo "$output"
+
+          if [ "$code" -eq 0 ]; then
+            echo "expected the known etext/end unresolved-symbol failure, but this lane fully passed - the upstream tcc fix must have landed; remove this XFAIL special-casing and fold it back into a single blocking lane." >&2
+            exit 1
+          fi
+
+          case "$output" in
+            *"PASS crash"*"FAIL gc_alloc (compile error)"*"FAIL hello (compile error)"*)
+              echo "known XFAIL: etext/end still unresolved on FreeBSD tcc, as expected - not blocking CI"
+              ;;
+            *)
+              echo "libgc.a lane failed, but NOT with the known/expected signature (PASS crash, FAIL gc_alloc/hello with compile error) - this looks like a different, unexpected problem and should not be silently treated as the known XFAIL." >&2
+              exit 1
+              ;;
+          esac
