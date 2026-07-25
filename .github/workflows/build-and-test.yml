@@ -42,6 +42,16 @@ jobs:
         run: |
           chmod +x thirdparty/tcc/tcc.exe thirdparty/tccbin_tests/run.sh
 
+          echo "=== tcc.exe --version / build provenance ==="
+          ./thirdparty/tcc/tcc.exe --version
+          ls -la thirdparty/tcc/lib/libc.dylib
+          otool -L thirdparty/tcc/lib/libc.dylib || true
+
+          echo "=== -v -v search path trace (bundled libc.dylib, explicit -B) ==="
+          ./thirdparty/tcc/tcc.exe -v -v -B "$PWD/thirdparty/tcc/lib" \
+              thirdparty/tccbin_tests/shared/crash.c \
+              -o /tmp/crash_diag2 2>&1 | tail -60 || true
+
           # TEMPORARY diagnostic: isolate which flag actually triggers
           # "library 'c' not found" by matching thirdparty-macos-arm64's
           # exact, already-verified-working flags first (no -ldl/-lpthread/
