@@ -68,6 +68,15 @@ jobs:
           code=$?
           set -e
           echo "$output"
+
+          # First real run showed even crash.c (no GC involved) fails -
+          # capture the direct compiler error to pin down the exact known
+          # signature (expected: the broken lib/libc.dylib symlink from
+          # this branch's stale Big-Sur-era workaround) before hardening
+          # this into a real signature-matched XFAIL.
+          direct_err=$(thirdparty/tcc/tcc.exe thirdparty/tccbin_tests/shared/crash.c \
+              -o /tmp/crash_checkedin_probe 2>&1) || true
+          echo "direct crash.c compile error on checked-in tcc.exe: $direct_err"
           echo "::warning::checked-in tcc.exe/libgc.a (as distributed) result: exit=$code - see this step's comment for why this isn't blocking yet"
 
       - name: install build dependencies
