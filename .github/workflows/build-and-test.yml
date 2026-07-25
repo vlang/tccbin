@@ -171,13 +171,19 @@ jobs:
         run: |
           chmod +x thirdparty/tccbin_tests/run.sh
 
-          # TEMPORARY diagnostic: real compile error.
-          ./thirdparty/tcc/tcc.exe thirdparty/tccbin_tests/shared/crash.c \
-              -DGC_BUILTIN_ATOMIC=1 -DMPROTECT_VDB=1 \
-              -I ./thirdparty/libgc/include \
-              ./thirdparty/tcc/lib/libgc.a \
-              -ldl -lpthread \
-              -o /tmp/crash_diag3 || true
+          # TEMPORARY diagnostic: the pinned run.sh (c82d3f0...) predates
+          # the stderr-capture fix (vlang/v#27935, not yet merged), so its
+          # "compile error" failure lines carry no error text. Run the two
+          # actually-failing GC tests directly to see the real tcc error.
+          for t in gc_alloc hello; do
+            echo "=== diag: $t ==="
+            ./thirdparty/tcc/tcc.exe thirdparty/tccbin_tests/shared/$t.c \
+                -DGC_BUILTIN_ATOMIC=1 -DMPROTECT_VDB=1 \
+                -I ./thirdparty/libgc/include \
+                ./thirdparty/tcc/lib/libgc.a \
+                -ldl -lpthread \
+                -o /tmp/${t}_diag || true
+          done
 
           ./thirdparty/tccbin_tests/run.sh ./thirdparty/tcc/tcc.exe macos -- \
               -DGC_BUILTIN_ATOMIC=1 -DMPROTECT_VDB=1 \
