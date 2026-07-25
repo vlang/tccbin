@@ -42,12 +42,23 @@ jobs:
         run: |
           chmod +x thirdparty/tcc/tcc.exe thirdparty/tccbin_tests/run.sh
 
+          # Modern macOS has no on-disk /usr/lib/libc.dylib (or any
+          # other system .dylib) - they're synthesized by dyld's shared
+          # cache, invisible to a normal filesystem search. tcc's
+          # `-lc`/-ldl need a real path with the SDK's .tbd stub files
+          # to resolve against instead.
+          SDK_LIB="$(xcrun --show-sdk-path)/usr/lib"
+          echo "SDK_LIB=$SDK_LIB"
+          ls "$SDK_LIB" | head -5
+
           # TEMPORARY diagnostic: show the real compile error.
           ./thirdparty/tcc/tcc.exe thirdparty/tccbin_tests/shared/crash.c \
+              -L"$SDK_LIB" \
               -o /tmp/crash_diag || true
 
           ./thirdparty/tccbin_tests/run.sh ./thirdparty/tcc/tcc.exe macos -- \
               -DGC_BUILTIN_ATOMIC=1 -DMPROTECT_VDB=1 \
               -I ./thirdparty/libgc/include \
+              -L"$SDK_LIB" \
               ./thirdparty/tcc/lib/libgc.a \
               -ldl -lpthread
