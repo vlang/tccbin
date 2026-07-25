@@ -166,6 +166,20 @@ jobs:
           rsync -a bdwgc/.libs/ "$TCC_FOLDER/lib/"
           ls -la "$TCC_FOLDER/lib/"
 
+          # TEMPORARY diagnostic: V's own builder
+          # (vlib/builtin/builtin_d_gcboehm.c.v) links this exact platform's
+          # libgc.a *statically* today (only macos-arm64 needs the
+          # libgc.dylib+rpath workaround, per its own comment: "tcc on macOS
+          # arm64 can leave the bundled GC archive symbols unresolved") - so
+          # static linking is not fundamentally broken on amd64. tcc's
+          # "unresolved reference to '_GC_init'" therefore points at
+          # something specific to *this* rebuild, not a platform limitation.
+          # Check whether the freshly-built archive actually contains the
+          # symbol tcc is looking for, and in what form.
+          file "$TCC_FOLDER/lib/libgc.a"
+          ar t "$TCC_FOLDER/lib/libgc.a"
+          nm -g "$TCC_FOLDER/lib/libgc.a" 2>&1 | grep -i "GC_init\b" || echo "GC_init: NOT FOUND in nm -g output"
+
       - name: run shared conformance tests
         working-directory: work
         run: |
