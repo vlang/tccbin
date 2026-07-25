@@ -92,6 +92,65 @@ jobs:
               throw "i386 Unicode WinAPI conformance probe failed"
           }
 
+      - name: validate WSAConnectBy WinAPI declarations with x64 and i386 TCC
+        shell: pwsh
+        run: |
+          $probe = "work/thirdparty/tcc/tests/winapi_wsa_connect_by_name.c"
+          $x64Ansi = "$env:RUNNER_TEMP/winapi_wsa_connect_by_name_x64_ansi.exe"
+          $x64Unicode = "$env:RUNNER_TEMP/winapi_wsa_connect_by_name_x64_unicode.exe"
+          $i386Ansi = "$env:RUNNER_TEMP/winapi_wsa_connect_by_name_i386_ansi.exe"
+          $i386Unicode = "$env:RUNNER_TEMP/winapi_wsa_connect_by_name_i386_unicode.exe"
+
+          & work/thirdparty/tcc/tcc.exe `
+              -Wall -Werror `
+              -Werror=implicit-function-declaration `
+              -o $x64Ansi $probe -lws2_32
+          if ($LASTEXITCODE -ne 0) {
+              throw "x64 ANSI WSAConnectBy WinAPI conformance probe failed"
+          }
+          & $x64Ansi
+          if ($LASTEXITCODE -ne 0) {
+              throw "x64 ANSI WSAConnectBy WinAPI conformance probe execution failed"
+          }
+
+          & work/thirdparty/tcc/tcc.exe `
+              -Wall -Werror `
+              -Werror=implicit-function-declaration `
+              -DUNICODE -D_UNICODE `
+              -o $x64Unicode $probe -lws2_32
+          if ($LASTEXITCODE -ne 0) {
+              throw "x64 Unicode WSAConnectBy WinAPI conformance probe failed"
+          }
+          & $x64Unicode
+          if ($LASTEXITCODE -ne 0) {
+              throw "x64 Unicode WSAConnectBy WinAPI conformance probe execution failed"
+          }
+
+          & work/thirdparty/tcc/i386-win32-tcc.exe `
+              -Wall -Werror `
+              -Werror=implicit-function-declaration `
+              -o $i386Ansi $probe -lws2_32
+          if ($LASTEXITCODE -ne 0) {
+              throw "i386 ANSI WSAConnectBy WinAPI conformance probe failed"
+          }
+          & $i386Ansi
+          if ($LASTEXITCODE -ne 0) {
+              throw "i386 ANSI WSAConnectBy WinAPI conformance probe execution failed"
+          }
+
+          & work/thirdparty/tcc/i386-win32-tcc.exe `
+              -Wall -Werror `
+              -Werror=implicit-function-declaration `
+              -DUNICODE -D_UNICODE `
+              -o $i386Unicode $probe -lws2_32
+          if ($LASTEXITCODE -ne 0) {
+              throw "i386 Unicode WSAConnectBy WinAPI conformance probe failed"
+          }
+          & $i386Unicode
+          if ($LASTEXITCODE -ne 0) {
+              throw "i386 Unicode WSAConnectBy WinAPI conformance probe execution failed"
+          }
+
       - name: run shared conformance tests
         shell: pwsh
         run: |

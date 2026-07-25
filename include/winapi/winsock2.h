@@ -1265,6 +1265,9 @@ extern "C" {
 
 #ifdef UNICODE
 #define WSADuplicateSocket WSADuplicateSocketW
+#if (_WIN32_WINNT >= 0x0600)
+#define WSAConnectByName WSAConnectByNameW
+#endif
 #define WSAEnumProtocols WSAEnumProtocolsW
 #define WSAAddressToString WSAAddressToStringW
 #define WSASocket WSASocketW
@@ -1278,6 +1281,9 @@ extern "C" {
 #define WSASetService WSASetServiceW
 #else
 #define WSADuplicateSocket WSADuplicateSocketA
+#if (_WIN32_WINNT >= 0x0600)
+#define WSAConnectByName WSAConnectByNameA
+#endif
 #define WSAEnumProtocols WSAEnumProtocolsA
 #define WSASocket WSASocketA
 #define WSAAddressToString WSAAddressToStringA
@@ -1340,6 +1346,11 @@ extern "C" {
   WINSOCK_API_LINKAGE SOCKET WSAAPI WSAAccept(SOCKET s,struct sockaddr *addr,LPINT addrlen,LPCONDITIONPROC lpfnCondition,DWORD_PTR dwCallbackData);
   WINSOCK_API_LINKAGE WINBOOL WSAAPI WSACloseEvent(WSAEVENT hEvent);
   WINSOCK_API_LINKAGE int WSAAPI WSAConnect(SOCKET s,const struct sockaddr *name,int namelen,LPWSABUF lpCallerData,LPWSABUF lpCalleeData,LPQOS lpSQOS,LPQOS lpGQOS);
+#if (_WIN32_WINNT >= 0x0600)
+  WINSOCK_API_LINKAGE WINBOOL WSAAPI WSAConnectByList(SOCKET s,LPSOCKET_ADDRESS_LIST SocketAddress,LPDWORD LocalAddressLength,LPSOCKADDR LocalAddress,LPDWORD RemoteAddressLength,LPSOCKADDR RemoteAddress,const struct timeval *timeout,LPWSAOVERLAPPED Reserved);
+  WINSOCK_API_LINKAGE WINBOOL WSAAPI WSAConnectByNameA(SOCKET s,LPCSTR nodename,LPCSTR servicename,LPDWORD LocalAddressLength,LPSOCKADDR LocalAddress,LPDWORD RemoteAddressLength,LPSOCKADDR RemoteAddress,const struct timeval *timeout,LPWSAOVERLAPPED Reserved);
+  WINSOCK_API_LINKAGE WINBOOL WSAAPI WSAConnectByNameW(SOCKET s,LPWSTR nodename,LPWSTR servicename,LPDWORD LocalAddressLength,LPSOCKADDR LocalAddress,LPDWORD RemoteAddressLength,LPSOCKADDR RemoteAddress,const struct timeval *timeout,LPWSAOVERLAPPED Reserved);
+#endif
   WINSOCK_API_LINKAGE WSAEVENT WSAAPI WSACreateEvent(void);
   WINSOCK_API_LINKAGE int WSAAPI WSADuplicateSocketA(SOCKET s,DWORD dwProcessId,LPWSAPROTOCOL_INFOA lpProtocolInfo);
   WINSOCK_API_LINKAGE int WSAAPI WSADuplicateSocketW(SOCKET s,DWORD dwProcessId,LPWSAPROTOCOL_INFOW lpProtocolInfo);
