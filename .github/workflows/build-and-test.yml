@@ -131,7 +131,7 @@ jobs:
           sudo pkg install -y bash git gmake
 
           cd tinycc-src
-          ./configure --prefix=/tmp/tcc-patched
+          CC=cc ./configure --prefix=/tmp/tcc-patched --cc=cc
           gmake -j"$(sysctl -n hw.ncpu)"
           ./tcc --version
           cd ..
