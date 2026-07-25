@@ -36,10 +36,10 @@ jobs:
           # which only ever references /usr/local/lib/libgc.a, never a
           # bundled path, for this exact platform+compiler combination.
           # GC-dependent tests need a system-installed libgc instead.
-          # TEMPORARY diagnostic: list available libgc-ish packages if
-          # the install guess below is wrong, so the next iteration
-          # doesn't have to guess blind a second time.
-          sudo pkg_add libgc || pkg_info -Q gc 2>&1 || true
+          # OpenBSD's port for this is devel/boehm-gc (confirmed via
+          # cvsweb.openbsd.org/ports/devel/) - package name is boehm-gc,
+          # not libgc or gc.
+          sudo pkg_add boehm-gc
 
           git clone --branch thirdparty-openbsd-amd64 --depth=1 \
             https://github.com/vlang/tccbin.git thirdparty/tcc
