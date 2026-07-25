@@ -1,0 +1,57 @@
+name: build and test (freebsd-amd64)
+
+on:
+  push:
+    branches: [thirdparty-freebsd-amd64]
+  pull_request:
+    branches: [thirdparty-freebsd-amd64]
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # cross-platform-actions/action boots a real FreeBSD VM inside this
+      # Linux runner - the same action vlang/v's own update_tccbin.yml
+      # uses to rebuild this branch's binaries. Cloning both repos
+      # directly inside the VM (rather than actions/checkout on the
+      # runner + sync_files) mirrors that proven-working pattern instead
+      # of relying on an unverified file-permission-preserving sync.
+      - name: Start freebsd-amd64 VM
+        uses: cross-platform-actions/action@v1.3.0
+        with:
+          operating_system: freebsd
+          version: '15.1'
+          memory: 4G
+          shell: sh
+          sync_files: runner-to-vm
+
+      - name: run shared conformance tests
+        shell: cpa.sh {0}
+        run: |
+          set -eu
+          sudo pkg install -y bash git
+
+          git clone --branch thirdparty-freebsd-amd64 --depth=1 \
+            https://github.com/vlang/tccbin.git thirdparty/tcc
+
+          # thirdparty/libgc/include (gc.h) and thirdparty/tccbin_tests
+          # (the shared cross-platform conformance suite) both live in
+          # the main v repo, not here.
+          git clone --filter=blob:none --no-checkout --depth=1 \
+            https://github.com/vlang/v.git vsrc
+          git -C vsrc sparse-checkout set --no-cone thirdparty/libgc thirdparty/tccbin_tests
+          git -C vsrc checkout c82d3f08271e9324d6fb8de3c251e9c0e1a9154b
+
+          chmod +x thirdparty/tcc/tcc.exe
+
+          # The bundled tcc.exe resolves its own crt/libtcc1.a via a path
+          # relative to the process's working directory (confirmed on
+          # linux-amd64/macos-arm64's CI) - thirdparty/tcc/tcc.exe is
+          # already correctly placed relative to $PWD here since we just
+          # cloned it there directly.
+          bash vsrc/thirdparty/tccbin_tests/run.sh "$PWD/thirdparty/tcc/tcc.exe" freebsd -- \
+              -DGC_BUILTIN_ATOMIC=1 -DBUS_PAGE_FAULT=T_PAGEFLT -DALL_INTERIOR_POINTERS=1 \
+              -I "$PWD/vsrc/thirdparty/libgc/include" \
+              "$PWD/thirdparty/tcc/lib/libgc.a" \
+              -lpthread
