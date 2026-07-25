@@ -94,6 +94,19 @@ jobs:
         working-directory: work
         run: |
           chmod +x thirdparty/tccbin_tests/run.sh
+
+          echo "=== libc.dylib after rebuild ==="
+          ls -la thirdparty/tcc/lib/libc.dylib
+          file thirdparty/tcc/lib/libc.dylib || true
+
+          echo "=== TEMPORARY diagnostic: real compile error ==="
+          ./thirdparty/tcc/tcc.exe thirdparty/tccbin_tests/shared/crash.c \
+              -DGC_BUILTIN_ATOMIC=1 -DMPROTECT_VDB=1 \
+              -I ./thirdparty/libgc/include \
+              ./thirdparty/tcc/lib/libgc.a \
+              -ldl -lpthread \
+              -o /tmp/crash_diag3 || true
+
           ./thirdparty/tccbin_tests/run.sh ./thirdparty/tcc/tcc.exe macos -- \
               -DGC_BUILTIN_ATOMIC=1 -DMPROTECT_VDB=1 \
               -I ./thirdparty/libgc/include \
