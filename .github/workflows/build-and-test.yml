@@ -45,6 +45,16 @@ jobs:
 
           chmod +x thirdparty/tcc/tcc.exe
 
+          # TEMPORARY diagnostic: run.sh swallows compile stderr, so on
+          # first failure here we can't see *why* linking failed. Show
+          # it directly before running the real suite.
+          thirdparty/tcc/tcc.exe vsrc/thirdparty/tccbin_tests/shared/hello.c \
+              -DGC_BUILTIN_ATOMIC=1 -DBUS_PAGE_FAULT=T_PAGEFLT -DALL_INTERIOR_POINTERS=1 \
+              -I "$PWD/vsrc/thirdparty/libgc/include" \
+              "$PWD/thirdparty/tcc/lib/libgc.a" \
+              -lpthread \
+              -o /tmp/hello_diag || true
+
           # The bundled tcc.exe resolves its own crt/libtcc1.a via a path
           # relative to the process's working directory (confirmed on
           # linux-amd64/macos-arm64's CI) - thirdparty/tcc/tcc.exe is
