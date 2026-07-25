@@ -133,7 +133,8 @@ jobs:
           cd tinycc-src
           CC=cc ./configure --prefix=/tmp/tcc-patched --cc=cc
           gmake -j"$(sysctl -n hw.ncpu)"
-          ./tcc --version
+          gmake install
+          /tmp/tcc-patched/bin/tcc --version
           cd ..
 
           git clone --branch thirdparty-freebsd-amd64 --depth=1 \
@@ -144,7 +145,7 @@ jobs:
           git -C vsrc checkout c82d3f08271e9324d6fb8de3c251e9c0e1a9154b
 
           echo "=== testing PATCHED tcc against bundled libgc.a ==="
-          tinycc-src/tcc vsrc/thirdparty/tccbin_tests/shared/hello.c \
+          /tmp/tcc-patched/bin/tcc vsrc/thirdparty/tccbin_tests/shared/hello.c \
               -DGC_BUILTIN_ATOMIC=1 -DBUS_PAGE_FAULT=T_PAGEFLT -DALL_INTERIOR_POINTERS=1 \
               -I "$PWD/vsrc/thirdparty/libgc/include" \
               -I "$PWD/thirdparty/tcc/include" \
