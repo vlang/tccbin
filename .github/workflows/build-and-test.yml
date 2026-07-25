@@ -76,21 +76,15 @@ jobs:
   verify-etext-fix:
     runs-on: ubuntu-latest
     steps:
-      - name: Start freebsd-amd64 VM
-        uses: cross-platform-actions/action@v1.3.0
-        with:
-          operating_system: freebsd
-          version: '15.1'
-          memory: 4G
-          shell: sh
-          sync_files: runner-to-vm
-
-      - name: build patched tcc and test against bundled libgc.a
-        shell: cpa.sh {0}
+      # repo.or.cz (tinycc's canonical host - no GitHub mirror exists)
+      # resets connections from inside the FreeBSD VM every time
+      # (reproduced twice) - cloning + patching here on the runner instead
+      # avoids that network path entirely; sync_files: runner-to-vm below
+      # carries the already-patched source into the VM via rsync (which
+      # preserves permissions) before each cpa.sh step runs.
+      - name: clone and patch tinycc on the runner
         run: |
           set -eu
-          sudo pkg install -y bash git gmake
-
           cat > etext_fix.patch <<'PATCHEOF'
           diff --git a/tccelf.c b/tccelf.c
           index 7e9758af..f9ae676c 100644
@@ -119,7 +113,22 @@ jobs:
           PATCHEOF
 
           git clone --quiet https://repo.or.cz/tinycc.git tinycc-src
-          git -C tinycc-src apply --verbose ../etext_fix.patch
+          git -C tinycc-src apply --verbose etext_fix.patch
+
+      - name: Start freebsd-amd64 VM
+        uses: cross-platform-actions/action@v1.3.0
+        with:
+          operating_system: freebsd
+          version: '15.1'
+          memory: 4G
+          shell: sh
+          sync_files: runner-to-vm
+
+      - name: build patched tcc and test against bundled libgc.a
+        shell: cpa.sh {0}
+        run: |
+          set -eu
+          sudo pkg install -y bash git gmake
 
           cd tinycc-src
           ./configure --prefix=/tmp/tcc-patched
