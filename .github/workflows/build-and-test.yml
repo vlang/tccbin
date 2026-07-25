@@ -10,6 +10,21 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # For a pull_request event, clone the PR's own head repo+ref (so a
+    # PR that updates tcc.exe/libgc.a is actually tested) instead of
+    # the unrelated target branch's current tip - a hardcoded
+    # `git clone --branch thirdparty-freebsd-amd64 .../vlang/tccbin.git`
+    # would silently test only the already-merged target branch
+    # regardless of what the PR proposes. push/workflow_dispatch have
+    # no PR context, so they fall back to whatever ref triggered the
+    # run. Set at job level (matching update_tccbin.yml's own working
+    # BSD job env, which only ever references github.*/secrets.*, never
+    # steps.* - step-level env on the "Start VM" step was tried first
+    # and empirically did NOT get forwarded into the VM by
+    # environment_variables, unlike this job-level placement).
+    env:
+      TCCBIN_CLONE_URL: ${{ github.event.pull_request.head.repo.clone_url || 'https://github.com/vlang/tccbin.git' }}
+      TCCBIN_CLONE_REF: ${{ github.event.pull_request.head.ref || github.ref_name }}
     steps:
       # cross-platform-actions/action boots a real FreeBSD VM inside this
       # Linux runner - the same action vlang/v's own update_tccbin.yml
@@ -17,18 +32,6 @@ jobs:
       # directly inside the VM (rather than actions/checkout on the
       # runner + sync_files) mirrors that proven-working pattern instead
       # of relying on an unverified file-permission-preserving sync.
-      #
-      # For a pull_request event, clone the PR's own head repo+ref (so
-      # a PR that updates tcc.exe/libgc.a is actually tested) instead
-      # of the unrelated target branch's current tip - a hardcoded
-      # `git clone --branch thirdparty-freebsd-amd64 .../vlang/tccbin.git`
-      # would silently test only the already-merged target branch
-      # regardless of what the PR proposes. push/workflow_dispatch have
-      # no PR context, so they fall back to whatever ref triggered the
-      # run. Computed inline here (not a separate step + job-level env)
-      # because job-level env can't reference the steps context at all -
-      # that's a schema violation that fails the whole workflow file,
-      # not just this expression.
       - name: Start freebsd-amd64 VM
         uses: cross-platform-actions/action@v1.3.0
         with:
@@ -38,9 +41,6 @@ jobs:
           shell: sh
           sync_files: runner-to-vm
           environment_variables: TCCBIN_CLONE_URL TCCBIN_CLONE_REF
-        env:
-          TCCBIN_CLONE_URL: ${{ github.event.pull_request.head.repo.clone_url || 'https://github.com/vlang/tccbin.git' }}
-          TCCBIN_CLONE_REF: ${{ github.event.pull_request.head.ref || github.ref_name }}
 
       - name: fetch shared conformance suite and this branch's binaries
         shell: cpa.sh {0}
