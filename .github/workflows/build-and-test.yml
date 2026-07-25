@@ -41,7 +41,10 @@ jobs:
           path: work/thirdparty/tcc
 
       - name: install build dependencies
-        run: brew install make
+        # automake/libtool are needed by bdwgc's autogen.sh (aclocal,
+        # libtoolize) for the libgc rebuild step below - not required
+        # by the tcc build itself.
+        run: brew install make automake libtool
 
       - name: configure git identity
         # the build script commits the rebuilt binaries inside
