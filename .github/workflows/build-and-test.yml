@@ -73,6 +73,19 @@ jobs:
           CC: clang
         run: |
           set -eu
+          # The official script's own carry-forward step
+          # (`rsync -a thirdparty/tcc.original/lib/build*  $TCC_FOLDER/lib/`)
+          # expects prior lib/build_*.txt provenance files to exist -
+          # true for every other platform, since they've already been
+          # through this pipeline at least once. This branch never has
+          # (confirmed: no build_source_hash.txt/build_version.txt at
+          # all before this), so the glob matches nothing and rsync
+          # errors "No such file or directory" on its first-ever run
+          # through the modern pipeline. Seed one placeholder so the
+          # glob has something to match; the script overwrites the real
+          # build_*.txt files with accurate content right after anyway.
+          touch thirdparty/tcc/lib/build_bootstrap_marker.txt
+
           bash thirdparty/build_scripts/thirdparty-macos-amd64_tcc.sh
           thirdparty/tcc/tcc.exe --version
           thirdparty/tcc/tcc.exe -v -v
