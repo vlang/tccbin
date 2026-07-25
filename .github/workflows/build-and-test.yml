@@ -113,7 +113,7 @@ jobs:
           PATCHEOF
 
           git clone --quiet https://repo.or.cz/tinycc.git tinycc-src
-          git -C tinycc-src apply --verbose etext_fix.patch
+          git -C tinycc-src apply --verbose "$PWD/etext_fix.patch"
 
       - name: Start freebsd-amd64 VM
         uses: cross-platform-actions/action@v1.3.0
