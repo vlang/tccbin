@@ -1,0 +1,71 @@
+name: build and test (openbsd-amd64)
+
+on:
+  push:
+    branches: [thirdparty-openbsd-amd64]
+  pull_request:
+    branches: [thirdparty-openbsd-amd64]
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # cross-platform-actions/action boots a real OpenBSD VM inside this
+      # Linux runner - the same action vlang/v's own update_tccbin.yml
+      # uses to rebuild this branch's binaries.
+      - name: Start openbsd-amd64 VM
+        uses: cross-platform-actions/action@v1.3.0
+        with:
+          operating_system: openbsd
+          version: '7.8'
+          memory: 4G
+          shell: sh
+          sync_files: runner-to-vm
+
+      - name: run shared conformance tests
+        shell: cpa.sh {0}
+        run: |
+          set -eu
+          sudo pkg_add bash git
+
+          # This branch (unlike linux-amd64/macos-arm64/freebsd-amd64)
+          # ships no libgc.a/.dylib at all - confirmed by inspecting its
+          # tree, and matching V's own builder
+          # (vlib/builtin/builtin_d_gcboehm.c.v's openbsd+tinyc branch),
+          # which only ever references /usr/local/lib/libgc.a, never a
+          # bundled path, for this exact platform+compiler combination.
+          # GC-dependent tests need a system-installed libgc instead.
+          # TEMPORARY diagnostic: list available libgc-ish packages if
+          # the install guess below is wrong, so the next iteration
+          # doesn't have to guess blind a second time.
+          sudo pkg_add libgc || pkg_info -Q gc 2>&1 || true
+
+          git clone --branch thirdparty-openbsd-amd64 --depth=1 \
+            https://github.com/vlang/tccbin.git thirdparty/tcc
+
+          # thirdparty/libgc/include (gc.h) and thirdparty/tccbin_tests
+          # (the shared cross-platform conformance suite) both live in
+          # the main v repo, not here.
+          git clone --filter=blob:none --no-checkout --depth=1 \
+            https://github.com/vlang/v.git vsrc
+          git -C vsrc sparse-checkout set --no-cone thirdparty/libgc thirdparty/tccbin_tests
+          git -C vsrc checkout c82d3f08271e9324d6fb8de3c251e9c0e1a9154b
+
+          chmod +x thirdparty/tcc/tcc.exe
+
+          # TEMPORARY diagnostic: run.sh swallows compile stderr, so on
+          # first failure here we can't see *why* linking failed.
+          thirdparty/tcc/tcc.exe vsrc/thirdparty/tccbin_tests/shared/hello.c \
+              -DGC_BUILTIN_ATOMIC=1 \
+              -I "$PWD/vsrc/thirdparty/libgc/include" \
+              -L/usr/local/lib -I/usr/local/include -lgc -lpthread \
+              -o /tmp/hello_diag || true
+
+          # The bundled tcc.exe resolves its own crt/libtcc1.a via a path
+          # relative to the process's working directory (confirmed on
+          # linux-amd64/macos-arm64/freebsd-amd64's CI).
+          bash vsrc/thirdparty/tccbin_tests/run.sh "$PWD/thirdparty/tcc/tcc.exe" openbsd -- \
+              -DGC_BUILTIN_ATOMIC=1 \
+              -I "$PWD/vsrc/thirdparty/libgc/include" \
+              -L/usr/local/lib -I/usr/local/include -lgc -lpthread
