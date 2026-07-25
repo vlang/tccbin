@@ -65,3 +65,81 @@ jobs:
               -I "$PWD/vsrc/thirdparty/libgc/include" \
               "$PWD/thirdparty/tcc/lib/libgc.a" \
               -lpthread
+
+  # TEMPORARY: verifies a candidate tinycc fix for the 'undefined symbol
+  # etext/end' failure above, before submitting it upstream. Builds a
+  # patched tcc from vanilla tinycc source (there's no GitHub mirror to
+  # push a real branch to - tinycc's canonical repo is repo.or.cz, using
+  # email patch submission, not PRs) and tests it against this branch's
+  # already-committed libgc.a. Remove this job once the fix is confirmed
+  # and submitted - it's not part of the branch's real CI.
+  verify-etext-fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Start freebsd-amd64 VM
+        uses: cross-platform-actions/action@v1.3.0
+        with:
+          operating_system: freebsd
+          version: '15.1'
+          memory: 4G
+          shell: sh
+          sync_files: runner-to-vm
+
+      - name: build patched tcc and test against bundled libgc.a
+        shell: cpa.sh {0}
+        run: |
+          set -eu
+          sudo pkg install -y bash git gmake
+
+          cat > etext_fix.patch <<'PATCHEOF'
+          diff --git a/tccelf.c b/tccelf.c
+          index 7e9758af..f9ae676c 100644
+          --- a/tccelf.c
+          +++ b/tccelf.c
+          @@ -1890,6 +1890,19 @@ static void tcc_add_linker_symbols(TCCState *s1)
+           #if TARGETOS_OpenBSD
+               set_global_sym(s1, "__executable_start", NULL, ELF_START_ADDR);
+           #endif
+          +#if TARGETOS_BSD
+          +    /* Traditional BSD systems provide the plain (non-underscore) names
+          +       as the primary linker-provided segment-boundary symbols, unlike
+          +       glibc/Linux where they're only weak aliases of _etext/_edata/_end
+          +       supplied by the C library's own crt objects - so code that
+          +       references the plain names directly (e.g. BDWGC's FreeBSD
+          +       data-segment-scanning code looks up `etext`/`end` to find its
+          +       conservative-GC root region) links fine under a BSD system's
+          +       native linker but fails here with "undefined symbol" errors. */
+          +    set_global_sym(s1, "etext", text_section, -1);
+          +    set_global_sym(s1, "edata", data_section, -1);
+          +    set_global_sym(s1, "end", bss_section, -1);
+          +#endif
+           #ifdef TCC_TARGET_RISCV64
+               /* XXX should be .sdata+0x800, not .data+0x800 */
+               set_global_sym(s1, "__global_pointer$", data_section, 0x800);
+          PATCHEOF
+
+          git clone --quiet https://repo.or.cz/tinycc.git tinycc-src
+          git -C tinycc-src apply --verbose ../etext_fix.patch
+
+          cd tinycc-src
+          ./configure --prefix=/tmp/tcc-patched
+          gmake -j"$(sysctl -n hw.ncpu)"
+          ./tcc --version
+          cd ..
+
+          git clone --branch thirdparty-freebsd-amd64 --depth=1 \
+            https://github.com/vlang/tccbin.git thirdparty/tcc
+          git clone --filter=blob:none --no-checkout --depth=1 \
+            https://github.com/vlang/v.git vsrc
+          git -C vsrc sparse-checkout set --no-cone thirdparty/libgc thirdparty/tccbin_tests
+          git -C vsrc checkout c82d3f08271e9324d6fb8de3c251e9c0e1a9154b
+
+          echo "=== testing PATCHED tcc against bundled libgc.a ==="
+          tinycc-src/tcc vsrc/thirdparty/tccbin_tests/shared/hello.c \
+              -DGC_BUILTIN_ATOMIC=1 -DBUS_PAGE_FAULT=T_PAGEFLT -DALL_INTERIOR_POINTERS=1 \
+              -I "$PWD/vsrc/thirdparty/libgc/include" \
+              -I "$PWD/thirdparty/tcc/include" \
+              "$PWD/thirdparty/tcc/lib/libgc.a" \
+              -lpthread \
+              -o /tmp/hello_patched
+          /tmp/hello_patched
