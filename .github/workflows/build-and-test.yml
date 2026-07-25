@@ -1,0 +1,48 @@
+name: build and test (macos-amd64)
+
+on:
+  push:
+    branches: [thirdparty-macos-amd64]
+  pull_request:
+    branches: [thirdparty-macos-amd64]
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: macos-13
+    steps:
+      # thirdparty/tccbin_tests (the shared cross-platform conformance
+      # suite - see its README) and thirdparty/libgc/include (gc.h,
+      # needed to compile the shared tests) both live in the main v
+      # repo, not here.
+      - name: checkout v (for thirdparty/libgc and thirdparty/tccbin_tests)
+        uses: actions/checkout@v4
+        with:
+          repository: vlang/v
+          ref: c82d3f08271e9324d6fb8de3c251e9c0e1a9154b
+          sparse-checkout: |
+            thirdparty/libgc
+            thirdparty/tccbin_tests
+          sparse-checkout-cone-mode: false
+          path: work
+
+      # this branch's already-committed tcc.exe/lib/include, checked out at
+      # work/thirdparty/tcc - matches the relative layout the bundled
+      # tcc.exe expects (see thirdparty-macos-arm64 and
+      # thirdparty-linux-amd64's workflows for the reasoning: the bundled
+      # tcc.exe resolves its own crt/libtcc1.a via a path relative to the
+      # process's working directory, not via -B or argv0).
+      - name: checkout this branch
+        uses: actions/checkout@v4
+        with:
+          path: work/thirdparty/tcc
+
+      - name: run shared conformance tests
+        working-directory: work
+        run: |
+          chmod +x thirdparty/tcc/tcc.exe thirdparty/tccbin_tests/run.sh
+          ./thirdparty/tccbin_tests/run.sh ./thirdparty/tcc/tcc.exe macos -- \
+              -DGC_BUILTIN_ATOMIC=1 -DMPROTECT_VDB=1 \
+              -I ./thirdparty/libgc/include \
+              ./thirdparty/tcc/lib/libgc.a \
+              -ldl -lpthread
