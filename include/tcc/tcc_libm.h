@@ -527,13 +527,31 @@ __CRT_INLINE long double __cdecl log2l(long double x) {
 
 
 __CRT_INLINE double __cdecl exp2(double x) {
-  return exp(x * 0.693147180559945309);
+  union {double f; uint64_t i;} u = {.f = x};
+  uint64_t magnitude = u.i & 0x7fffffffffffffffull;
+  int exponent;
+  double fraction;
+
+  if (magnitude > 0x7ff0000000000000ull)
+    return x + x;
+  if (magnitude == 0x7ff0000000000000ull)
+    return u.i >> 63 ? 0.0 : x;
+  if (x >= 1024.0)
+    return scalbn(1.0, 1024);
+  if (x < -1075.0)
+    return scalbn(1.0, -1075);
+
+  exponent = (int)x;
+  if ((double)exponent > x)
+    --exponent;
+  fraction = x - (double)exponent;
+  return scalbn(exp(fraction * 0.693147180559945309), exponent);
 }
 __CRT_INLINE float __cdecl exp2f(float x) {
   return exp(x * 0.693147180559945309);
 }
 __CRT_INLINE long double __cdecl exp2l(long double x) {
-  return exp(x * 0.693147180559945309);
+  return exp2(x);
 }
 
 

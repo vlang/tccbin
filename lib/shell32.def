@@ -1,0 +1,13 @@
+LIBRARY shell32.dll
+
+EXPORTS
+CommandLineToArgvW
+DragAcceptFiles
+DragFinish
+DragQueryFileA
+DragQueryFileW
+DragQueryPoint
+FindExecutableA
+FindExecutableW
+ShellExecuteA
+ShellExecuteW

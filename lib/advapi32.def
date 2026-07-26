@@ -6,6 +6,7 @@ RegOpenKeyExW
 RegCloseKey
 RegCreateKeyExW
 RegDeleteKeyExW
+RegDeleteKeyW
 RegQueryValueExW
 RegSetValueExW
 RegDeleteValueW

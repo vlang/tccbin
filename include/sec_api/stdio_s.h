@@ -17,6 +17,8 @@ extern "C" {
 #ifndef _STDIO_S_DEFINED
 #define _STDIO_S_DEFINED
   _CRTIMP errno_t __cdecl clearerr_s(FILE *_File);
+  _CRTIMP errno_t __cdecl fopen_s(FILE **_File,const char *_Filename,const char *_Mode);
+  _CRTIMP errno_t __cdecl freopen_s(FILE **_File,const char *_Filename,const char *_Mode,FILE *_OldFile);
   int __cdecl fprintf_s(FILE *_File,const char *_Format,...);
   size_t __cdecl fread_s(void *_DstBuf,size_t _DstSize,size_t _ElementSize,size_t _Count,FILE *_File);
   _CRTIMP int __cdecl _fscanf_s_l(FILE *_File,const char *_Format,_locale_t _Locale,...);

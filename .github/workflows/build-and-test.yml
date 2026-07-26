@@ -53,6 +53,111 @@ jobs:
         shell: pwsh
         run: work/thirdparty/tcc/build.ps1
 
+      - name: validate exp2 range with x64 and i386 TCC
+        shell: pwsh
+        run: |
+          $test = "work/thirdparty/tcc/tests/math_exp2_range.c"
+          $cases = @(
+              @{ Name = "x64"; Compiler = "work/thirdparty/tcc/tcc.exe" },
+              @{ Name = "i386"; Compiler = "work/thirdparty/tcc/i386-win32-tcc.exe" }
+          )
+          $failures = @()
+
+          foreach ($case in $cases) {
+              $token = [guid]::NewGuid().ToString("N")
+              $executable = Join-Path $env:RUNNER_TEMP "math_exp2_range_$token.exe"
+              try {
+                  Write-Host "=== exp2 $($case.Name) compile: $($case.Compiler) ==="
+                  $compileExit = 1
+                  $compileException = $null
+                  try {
+                      & $case.Compiler -Wall -Werror -o $executable $test
+                      $compileExit = $LASTEXITCODE
+                  } catch {
+                      $compileException = $_.Exception.Message
+                  }
+
+                  if ($compileExit -ne 0) {
+                      $failure = "$($case.Name) compile/link exit=$compileExit"
+                      if ($compileException) {
+                          $failure += " exception=$compileException"
+                      }
+                      $failures += $failure
+                      Write-Host "::error title=exp2 $($case.Name) compile::$failure"
+                  } else {
+                      Write-Host "=== exp2 $($case.Name) runtime ==="
+                      $runtimeExit = 1
+                      $runtimeException = $null
+                      try {
+                          & $executable
+                          $runtimeExit = $LASTEXITCODE
+                      } catch {
+                          $runtimeException = $_.Exception.Message
+                      }
+
+                      if ($runtimeExit -ne 0) {
+                          $failure = "$($case.Name) runtime exit=$runtimeExit"
+                          if ($runtimeException) {
+                              $failure += " exception=$runtimeException"
+                          }
+                          $failures += $failure
+                          Write-Host "::error title=exp2 $($case.Name) runtime::$failure"
+                      } else {
+                          Write-Host "=== exp2 $($case.Name) PASS ==="
+                      }
+                  }
+              } finally {
+                  Remove-Item -LiteralPath $executable -Force -ErrorAction SilentlyContinue
+              }
+          }
+
+          if ($failures.Count -ne 0) {
+              Write-Host "=== exp2 range summary: FAIL ==="
+              foreach ($failure in $failures) {
+                  Write-Host "  $failure"
+              }
+              throw "exp2 range validation failed in $($failures.Count) architecture phase(s)"
+          }
+          Write-Host "=== exp2 range summary: PASS ==="
+
+      - name: validate secure CRT fopen_s/freopen_s with x64 and i386 TCC
+        shell: pwsh
+        run: |
+          $probe = "work/thirdparty/tcc/tests/crt_secure_freopen.c"
+          $cases = @(
+              @{ Id = "x64"; Name = "x64"; Compiler = "work/thirdparty/tcc/tcc.exe" },
+              @{ Id = "i386"; Name = "i386"; Compiler = "work/thirdparty/tcc/i386-win32-tcc.exe" }
+          )
+
+          foreach ($case in $cases) {
+              $token = [guid]::NewGuid().ToString("N")
+              $executable = Join-Path $env:RUNNER_TEMP "crt_secure_freopen_$($case.Id)_$token.exe"
+              $dataPath = Join-Path $env:RUNNER_TEMP "crt_secure_freopen_$($case.Id)_$token.tmp"
+              try {
+                  $compilerArgs = @(
+                      "-Wall",
+                      "-Werror",
+                      "-Werror=implicit-function-declaration",
+                      "-o",
+                      $executable,
+                      $probe
+                  )
+                  & $case.Compiler @compilerArgs
+                  if ($LASTEXITCODE -ne 0) {
+                      throw "$($case.Name) secure CRT fopen_s/freopen_s probe failed to compile or link"
+                  }
+
+                  & $executable $dataPath
+                  if ($LASTEXITCODE -ne 0) {
+                      throw "$($case.Name) secure CRT fopen_s/freopen_s probe failed at runtime"
+                  }
+              } finally {
+                  foreach ($path in @($executable, $dataPath)) {
+                      Remove-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue
+                  }
+              }
+          }
+
       - name: validate WinAPI declarations with x64 and i386 TCC
         shell: pwsh
         run: |
@@ -149,6 +254,135 @@ jobs:
           & $i386Unicode
           if ($LASTEXITCODE -ne 0) {
               throw "i386 Unicode WSAConnectBy WinAPI conformance probe execution failed"
+          }
+
+      - name: validate InetNtop/InetPton WinAPI declarations with x64 and i386 TCC
+        shell: pwsh
+        run: |
+          $probe = "work/thirdparty/tcc/tests/winapi_inet_ntop_pton.c"
+          $x64Ansi = "$env:RUNNER_TEMP/winapi_inet_ntop_pton_x64_ansi.exe"
+          $x64Unicode = "$env:RUNNER_TEMP/winapi_inet_ntop_pton_x64_unicode.exe"
+          $i386Ansi = "$env:RUNNER_TEMP/winapi_inet_ntop_pton_i386_ansi.exe"
+          $i386Unicode = "$env:RUNNER_TEMP/winapi_inet_ntop_pton_i386_unicode.exe"
+
+          & work/thirdparty/tcc/tcc.exe `
+              -Wall -Werror `
+              -Werror=implicit-function-declaration `
+              -o $x64Ansi $probe -lws2_32
+          if ($LASTEXITCODE -ne 0) {
+              throw "x64 ANSI InetNtop/InetPton WinAPI conformance probe failed"
+          }
+          & $x64Ansi
+          if ($LASTEXITCODE -ne 0) {
+              throw "x64 ANSI InetNtop/InetPton WinAPI conformance probe execution failed"
+          }
+
+          & work/thirdparty/tcc/tcc.exe `
+              -Wall -Werror `
+              -Werror=implicit-function-declaration `
+              -DUNICODE -D_UNICODE `
+              -o $x64Unicode $probe -lws2_32
+          if ($LASTEXITCODE -ne 0) {
+              throw "x64 Unicode InetNtop/InetPton WinAPI conformance probe failed"
+          }
+          & $x64Unicode
+          if ($LASTEXITCODE -ne 0) {
+              throw "x64 Unicode InetNtop/InetPton WinAPI conformance probe execution failed"
+          }
+
+          & work/thirdparty/tcc/i386-win32-tcc.exe `
+              -Wall -Werror `
+              -Werror=implicit-function-declaration `
+              -o $i386Ansi $probe -lws2_32
+          if ($LASTEXITCODE -ne 0) {
+              throw "i386 ANSI InetNtop/InetPton WinAPI conformance probe failed"
+          }
+          & $i386Ansi
+          if ($LASTEXITCODE -ne 0) {
+              throw "i386 ANSI InetNtop/InetPton WinAPI conformance probe execution failed"
+          }
+
+          & work/thirdparty/tcc/i386-win32-tcc.exe `
+              -Wall -Werror `
+              -Werror=implicit-function-declaration `
+              -DUNICODE -D_UNICODE `
+              -o $i386Unicode $probe -lws2_32
+          if ($LASTEXITCODE -ne 0) {
+              throw "i386 Unicode InetNtop/InetPton WinAPI conformance probe failed"
+          }
+          & $i386Unicode
+          if ($LASTEXITCODE -ne 0) {
+              throw "i386 Unicode InetNtop/InetPton WinAPI conformance probe execution failed"
+          }
+
+      - name: validate shell drag/drop WinAPI declarations and imports with x64 and i386 TCC
+        shell: pwsh
+        run: |
+          $probe = "work/thirdparty/tcc/tests/winapi_shell_drag_drop.c"
+          if (-not (Test-Path "work/thirdparty/tcc/lib/shell32.def")) {
+              throw "bundled shell32.def is missing"
+          }
+
+          $cases = @(
+              @{ Id = "x64_ansi"; Name = "x64 ANSI"; Compiler = "work/thirdparty/tcc/tcc.exe"; Defines = @() },
+              @{ Id = "x64_unicode"; Name = "x64 Unicode"; Compiler = "work/thirdparty/tcc/tcc.exe"; Defines = @("-DUNICODE", "-D_UNICODE") },
+              @{ Id = "i386_ansi"; Name = "i386 ANSI"; Compiler = "work/thirdparty/tcc/i386-win32-tcc.exe"; Defines = @() },
+              @{ Id = "i386_unicode"; Name = "i386 Unicode"; Compiler = "work/thirdparty/tcc/i386-win32-tcc.exe"; Defines = @("-DUNICODE", "-D_UNICODE") }
+          )
+          $linkModes = @(
+              @{ Id = "pragma"; Name = "pragma"; Defines = @(); Libraries = @() },
+              @{ Id = "explicit"; Name = "explicit -lshell32"; Defines = @("-DTCCBIN_NO_SHELL32_PRAGMA"); Libraries = @("-lshell32") }
+          )
+
+          foreach ($case in $cases) {
+              foreach ($linkMode in $linkModes) {
+                  $output = "$env:RUNNER_TEMP/winapi_shell_drag_drop_$($case.Id)_$($linkMode.Id).exe"
+                  $compilerArgs = @("-Wall", "-Werror", "-Werror=implicit-function-declaration")
+                  $compilerArgs += $case.Defines
+                  $compilerArgs += $linkMode.Defines
+                  $compilerArgs += @("-o", $output, $probe)
+                  $compilerArgs += $linkMode.Libraries
+
+                  & $case.Compiler @compilerArgs
+                  if ($LASTEXITCODE -ne 0) {
+                      throw "$($case.Name) shell drag/drop probe with $($linkMode.Name) failed"
+                  }
+                  & $output
+                  if ($LASTEXITCODE -ne 0) {
+                      throw "$($case.Name) shell drag/drop probe with $($linkMode.Name) execution failed"
+                  }
+              }
+          }
+
+      - name: validate RegDeleteKeyW import with x64 and i386 TCC
+        shell: pwsh
+        run: |
+          $probe = "work/thirdparty/tcc/tests/winapi_reg_delete_key.c"
+          $x64 = "$env:RUNNER_TEMP/winapi_reg_delete_key_x64.exe"
+          $i386 = "$env:RUNNER_TEMP/winapi_reg_delete_key_i386.exe"
+
+          & work/thirdparty/tcc/tcc.exe `
+              -Wall -Werror `
+              -Werror=implicit-function-declaration `
+              -o $x64 $probe -ladvapi32
+          if ($LASTEXITCODE -ne 0) {
+              throw "x64 RegDeleteKeyW conformance probe failed"
+          }
+          & $x64
+          if ($LASTEXITCODE -ne 0) {
+              throw "x64 RegDeleteKeyW conformance probe execution failed"
+          }
+
+          & work/thirdparty/tcc/i386-win32-tcc.exe `
+              -Wall -Werror `
+              -Werror=implicit-function-declaration `
+              -o $i386 $probe -ladvapi32
+          if ($LASTEXITCODE -ne 0) {
+              throw "i386 RegDeleteKeyW conformance probe failed"
+          }
+          & $i386
+          if ($LASTEXITCODE -ne 0) {
+              throw "i386 RegDeleteKeyW conformance probe execution failed"
           }
 
       - name: run shared conformance tests
