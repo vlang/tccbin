@@ -110,46 +110,62 @@ jobs:
           direct_code_checkedin=$?
           set -e
 
+          # `other_checkedin=$(... | grep -v ...)` as a standalone
+          # assignment (not a function called from an if-condition) is
+          # NOT safe under `set -e`: in the expected-good case (no OTHER
+          # error present), the final `grep -v` legitimately finds
+          # nothing to filter and exits 1 (grep's normal "no match"
+          # status, not an error) - and since GitHub's bash runs with
+          # pipefail, that nonzero pipeline status kills the assignment
+          # statement itself, aborting the whole step SILENTLY, with no
+          # echo, right in the case that should reach "known XFAIL"
+          # (Codex pullrequestreview-4782839244 on vlang/tccbin#74,
+          # reproduced directly: `bash -c 'set -e; x=$(printf ... |
+          # grep -v ...); echo after'` never prints "after"). Wrapping
+          # this in a function invoked as an if-condition is safe
+          # instead: bash suspends errexit for the entire dynamic extent
+          # of evaluating an if/while/until condition, including
+          # anything a called function does internally - exactly how
+          # is_known_gc_init/is_known_etext_end already work elsewhere
+          # in this same file.
+          is_known_checkedin_error() {
+            # $1 = captured stderr text, $2 = the probe's own exit code.
+            # A regression could make tcc print the expected "library
+            # 'c' not found" diagnostic and then crash/abort rather than
+            # exiting cleanly - the earlier `|| true` discarded the exit
+            # code entirely (same class of gap Codex flagged in
+            # pullrequestreview-4781865117 on vlang/tccbin#75 for the
+            # libgc.a XFAIL probes). Reject a signal-terminated exit
+            # (128+signal) even if the expected text is present.
+            if [ "$2" -gt 128 ]; then
+              return 1
+            fi
+            case "$1" in
+              *"library 'c' not found"*) ;;
+              *) return 1 ;;
+            esac
+            # A future checked-in tcc.exe could still emit the expected
+            # "library 'c' not found" line while ALSO reporting a wholly
+            # different, unrelated error (a malformed object, a wrong-
+            # architecture failure) - a bare substring-present check
+            # would accept that too, since it never looks at what else
+            # came back (Codex pullrequestreview-4782525602 on vlang/
+            # tccbin#74, same class of gap already fixed for the
+            # libgc.a XFAIL probes). Reject unless EVERY tcc error line
+            # is specifically the known libc diagnostic.
+            other_checkedin=$(printf '%s\n' "$1" | grep -E '^tcc: error:' | grep -v -F "library 'c' not found")
+            [ -z "$other_checkedin" ]
+          }
+
           case "$output" in
             *"0 passed, 3 failed"*)
-              # A regression could make tcc print the expected "library
-              # 'c' not found" diagnostic and then crash/abort rather
-              # than exiting cleanly - the earlier `|| true` discarded
-              # the exit code entirely (same class of gap Codex flagged
-              # in pullrequestreview-4781865117 on vlang/tccbin#75 for
-              # the libgc.a XFAIL probes). Reject a signal-terminated
-              # exit (128+signal) even if the expected text is present.
-              if [ "$direct_code_checkedin" -gt 128 ]; then
-                echo "::error::The checked-in tcc.exe/libgc.a failed with the known aggregate count, but the direct crash.c probe exited abnormally (exit=$direct_code_checkedin, signal-terminated) rather than tcc's normal compile-error status - this looks like a different, unexpected regression:"
-                echo "$direct_err_checkedin"
+              if is_known_checkedin_error "$direct_err_checkedin" "$direct_code_checkedin"; then
+                echo "known XFAIL: the checked-in tcc.exe/libgc.a fail all 3 shared tests (stale binary, broken libc.dylib symlink - library 'c' not found), as expected - not blocking CI"
+              else
+                echo "::error::The checked-in tcc.exe/libgc.a failed with the known aggregate count, but the direct crash.c compile error does NOT match the known broken-libc.dylib-symlink signature exactly (missing, abnormally terminated, or accompanied by another error) - this looks like a different, unexpected regression:"
+                echo "exit=$direct_code_checkedin: $direct_err_checkedin"
                 exit 1
               fi
-              case "$direct_err_checkedin" in
-                *"library 'c' not found"*)
-                  # A future checked-in tcc.exe could still emit the
-                  # expected "library 'c' not found" line while ALSO
-                  # reporting a wholly different, unrelated error (a
-                  # malformed object, a wrong-architecture failure) -
-                  # a bare substring-present check would accept that
-                  # too, since it never looks at what else came back
-                  # (Codex pullrequestreview-4782525602 on vlang/
-                  # tccbin#74, same class of gap already fixed for the
-                  # libgc.a XFAIL probes). Reject unless EVERY tcc
-                  # error line is specifically the known libc diagnostic.
-                  other_checkedin=$(printf '%s\n' "$direct_err_checkedin" | grep -E '^tcc: error:' | grep -v -F "library 'c' not found")
-                  if [ -n "$other_checkedin" ]; then
-                    echo "::error::The checked-in tcc.exe/libgc.a failed with the known aggregate count and the known libc diagnostic is present, but at least one OTHER tcc error line was also reported - this looks like a different, unexpected regression riding alongside the known one:"
-                    echo "$other_checkedin"
-                    exit 1
-                  fi
-                  echo "known XFAIL: the checked-in tcc.exe/libgc.a fail all 3 shared tests (stale binary, broken libc.dylib symlink - library 'c' not found), as expected - not blocking CI"
-                  ;;
-                *)
-                  echo "::error::The checked-in tcc.exe/libgc.a failed with the known aggregate count, but the direct crash.c compile error does NOT mention the known broken-libc.dylib-symlink signature - this looks like a different, unexpected regression:"
-                  echo "$direct_err_checkedin"
-                  exit 1
-                  ;;
-              esac
               ;;
             *)
               echo "::error::The checked-in tcc.exe/libgc.a failed, but NOT with the known/expected summary (0 passed, 3 failed) - this looks like a different, unexpected regression in the binaries this PR proposes to commit:"
