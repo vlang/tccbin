@@ -10,26 +10,39 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    # For a pull_request event, clone the PR's own head repo+commit (so a
-    # PR that updates tcc.exe/libgc.a is actually tested) instead of the
-    # unrelated target branch's current tip - a hardcoded
-    # `git clone --branch thirdparty-freebsd-amd64 .../vlang/tccbin.git`
-    # would silently test only the already-merged target branch
-    # regardless of what the PR proposes. push/workflow_dispatch have no
-    # PR context, so they fall back to the event's own repository/commit
-    # (not a branch *name*, which is mutable: another push landing while
-    # this run is queued/starting would otherwise make the resolved
-    # value, a ref name, silently resolve to a different commit than the
-    # one that triggered this run - Codex pullrequestreview-4780048339 on
-    # vlang/tccbin#75). Set at job level (matching update_tccbin.yml's
-    # own working BSD job env, which only ever references
-    # github.*/secrets.*, never steps.* - step-level env on the "Start
-    # VM" step was tried first and empirically did NOT get forwarded
-    # into the VM by environment_variables, unlike this job-level
-    # placement).
+    # `github.sha` and `github.event.repository.clone_url` are used
+    # uniformly across all 3 trigger event types, and correctly cover
+    # each:
+    # - pull_request: `github.sha` is GitHub's own synthesized MERGE
+    #   commit (what the target branch would actually look like if
+    #   this PR were merged right now), not the PR branch's own head -
+    #   testing only the head tree in isolation could pass a PR whose
+    #   OWN commit works fine, while the actual merge result (combined
+    #   with whatever the target branch has since gained) is broken
+    #   (Codex pullrequestreview-4781865117 on vlang/tccbin#75). That
+    #   merge commit exists ONLY as an object in the base repo
+    #   (vlang/tccbin, exposed via `refs/pull/<n>/merge`) - never in a
+    #   contributor's fork - so this must clone from
+    #   `github.event.repository.clone_url` (the base repo), not the
+    #   fork's URL, regardless of where the PR originated.
+    # - push/workflow_dispatch: `github.sha`/`github.event.repository`
+    #   are simply the pushed/dispatched commit and the repo it lives
+    #   in - already exactly what should be tested.
+    # In every case, `github.sha` is fixed for this run's entire
+    # lifetime once the triggering event fires (a later push creates a
+    # brand new run with its own new `github.sha`, it doesn't mutate
+    # this one) - so this is exactly as race-safe against a
+    # mid-queue push as the earlier head.sha-based approach was (Codex
+    # pullrequestreview-4780048339 on vlang/tccbin#75), while also
+    # testing the actual merge result instead of the head tree alone.
+    # Set at job level (matching update_tccbin.yml's own working BSD
+    # job env, which only ever references github.*/secrets.*, never
+    # steps.* - step-level env on the "Start VM" step was tried first
+    # and empirically did NOT get forwarded into the VM by
+    # environment_variables, unlike this job-level placement).
     env:
-      TCCBIN_CLONE_URL: ${{ github.event.pull_request.head.repo.clone_url || github.event.repository.clone_url }}
-      TCCBIN_CLONE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      TCCBIN_CLONE_URL: ${{ github.event.repository.clone_url }}
+      TCCBIN_CLONE_SHA: ${{ github.sha }}
     steps:
       # cross-platform-actions/action boots a real FreeBSD VM inside this
       # Linux runner - the same action vlang/v's own update_tccbin.yml
