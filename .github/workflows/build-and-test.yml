@@ -126,6 +126,22 @@ jobs:
               fi
               case "$direct_err_checkedin" in
                 *"library 'c' not found"*)
+                  # A future checked-in tcc.exe could still emit the
+                  # expected "library 'c' not found" line while ALSO
+                  # reporting a wholly different, unrelated error (a
+                  # malformed object, a wrong-architecture failure) -
+                  # a bare substring-present check would accept that
+                  # too, since it never looks at what else came back
+                  # (Codex pullrequestreview-4782525602 on vlang/
+                  # tccbin#74, same class of gap already fixed for the
+                  # libgc.a XFAIL probes). Reject unless EVERY tcc
+                  # error line is specifically the known libc diagnostic.
+                  other_checkedin=$(printf '%s\n' "$direct_err_checkedin" | grep -E '^tcc: error:' | grep -v -F "library 'c' not found")
+                  if [ -n "$other_checkedin" ]; then
+                    echo "::error::The checked-in tcc.exe/libgc.a failed with the known aggregate count and the known libc diagnostic is present, but at least one OTHER tcc error line was also reported - this looks like a different, unexpected regression riding alongside the known one:"
+                    echo "$other_checkedin"
+                    exit 1
+                  fi
                   echo "known XFAIL: the checked-in tcc.exe/libgc.a fail all 3 shared tests (stale binary, broken libc.dylib symlink - library 'c' not found), as expected - not blocking CI"
                   ;;
                 *)
@@ -457,6 +473,7 @@ jobs:
       # parsing got fixed) still fails the job for real instead of being
       # silently absorbed.
       - name: run shared conformance tests (libgc.a, static - XFAIL)
+        id: static_xfail_test
         working-directory: work
         if: ${{ !cancelled() }}
         run: |
@@ -592,13 +609,26 @@ jobs:
       # to reproduce against (mirroring macos-arm64's own rationale for
       # `!cancelled()` here) - but make the claim match what THIS run
       # actually verified, using the two prior steps' real outcomes.
+      # The static-link claim below (that libgc.a can't be linked by
+      # this tcc.exe) was, until now, ALSO printed unconditionally - if
+      # the static XFAIL step above failed with an unexpected signature,
+      # or unexpectedly passed, this artifact would still assert the
+      # known archive-parsing diagnosis as if this run had confirmed it
+      # (Codex pullrequestreview-4782525602 on vlang/tccbin#74, same
+      # class of gap as the dylib/no-GC claims fixed just below it).
       - name: package rebuilt tcc for upload
         if: ${{ !cancelled() }}
         working-directory: work
         env:
           DYLIB_TEST_OUTCOME: ${{ steps.dylib_test.outcome }}
           NOGC_TEST_OUTCOME: ${{ steps.nogc_test.outcome }}
+          STATIC_XFAIL_TEST_OUTCOME: ${{ steps.static_xfail_test.outcome }}
         run: |
+          if [ "$STATIC_XFAIL_TEST_OUTCOME" = "success" ]; then
+            static_claim="lib/libgc.a (static archive) CANNOT be linked by this tcc.exe - confirmed via a real CI run: tcc reports \"unresolved reference to '_GC_init'\" etc. even though the symbol is present and well-formed in the archive (a tcc Mach-O archive-parsing limitation, the same one already documented on macos-arm64)."
+          else
+            static_claim="THIS BUILD'S OWN CI VALIDATION OF THE STATIC libgc.a LINK FAILURE DID NOT CONFIRM THE EXPECTED SIGNATURE (static XFAIL test outcome: $STATIC_XFAIL_TEST_OUTCOME) - do not assume lib/libgc.a's link status from this specific artifact without checking the workflow run's log."
+          fi
           if [ "$DYLIB_TEST_OUTCOME" = "success" ] && [ "$NOGC_TEST_OUTCOME" = "success" ]; then
             dylib_claim="Use lib/libgc.dylib with -Wl,-rpath,<path-to-lib> instead; that link path is verified working in this build's own CI run."
           else
@@ -608,11 +638,7 @@ jobs:
           This is a CI-verification build, not a drop-in replacement for the
           committed tccbin-macos-amd64 distribution.
 
-          lib/libgc.a (static archive) CANNOT be linked by this tcc.exe -
-          confirmed via a real CI run: tcc reports "unresolved reference to
-          '_GC_init'" etc. even though the symbol is present and well-formed
-          in the archive (a tcc Mach-O archive-parsing limitation, the same
-          one already documented on macos-arm64). $dylib_claim
+          $static_claim $dylib_claim
 
           V's existing builtin_d_gcboehm.c.v for macOS amd64+tinyc still
           selects the static libgc.a - do not switch it to the dylib until a
