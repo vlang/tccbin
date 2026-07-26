@@ -201,18 +201,22 @@ jobs:
           # regression isolated to the OTHER test (gc_alloc.c) hide
           # behind this same summary shape and pass unnoticed (Codex
           # pullrequestreview-4780815399 on vlang/tccbin#75).
+          set +e
           direct_err_hello=$(thirdparty/tcc/tcc.exe vsrc/thirdparty/tccbin_tests/shared/hello.c \
               -DGC_BUILTIN_ATOMIC=1 -DBUS_PAGE_FAULT=T_PAGEFLT -DALL_INTERIOR_POINTERS=1 \
               -I vsrc/thirdparty/libgc/include \
               thirdparty/tcc/lib/libgc.a \
               -lpthread \
-              -o /tmp/hello_xfail_probe 2>&1) || true
+              -o /tmp/hello_xfail_probe 2>&1)
+          direct_code_hello=$?
           direct_err_gc_alloc=$(thirdparty/tcc/tcc.exe vsrc/thirdparty/tccbin_tests/shared/gc_alloc.c \
               -DGC_BUILTIN_ATOMIC=1 -DBUS_PAGE_FAULT=T_PAGEFLT -DALL_INTERIOR_POINTERS=1 \
               -I vsrc/thirdparty/libgc/include \
               thirdparty/tcc/lib/libgc.a \
               -lpthread \
-              -o /tmp/gc_alloc_xfail_probe 2>&1) || true
+              -o /tmp/gc_alloc_xfail_probe 2>&1)
+          direct_code_gc_alloc=$?
+          set -e
 
           # Unlike macos-amd64's whole-archive-unparseable bug, this
           # FreeBSD bug is narrow: tcc's linker only ever fails to define
@@ -224,6 +228,20 @@ jobs:
           # additional regression rode along with the known bug (Codex
           # pullrequestreview-4780907186 on vlang/tccbin#75).
           is_known_etext_end() {
+            # $1 = captured stderr text, $2 = the probe's own exit code.
+            # A regression could make tcc print the expected etext/end
+            # diagnostic and then crash/abort rather than exiting
+            # cleanly with its normal compile-error status - the earlier
+            # `|| true` discarded that exit code entirely, so a shell
+            # "Segmentation fault" or similar abnormal termination
+            # alongside the expected text would still pass (Codex
+            # pullrequestreview-4781865117 on vlang/tccbin#75). A POSIX
+            # shell reports a signal-terminated process as exit code
+            # 128+signal; reject those instead of treating any nonzero
+            # exit as "the expected compile-error status".
+            if [ "$2" -gt 128 ]; then
+              return 1
+            fi
             case "$1" in
               *"undefined symbol 'etext'"*|*"undefined symbol 'end'"*) ;;
               *) return 1 ;;
@@ -244,12 +262,12 @@ jobs:
 
           case "$output" in
             *"PASS crash"*"FAIL gc_alloc (compile error)"*"FAIL hello (compile error)"*)
-              if is_known_etext_end "$direct_err_hello" && is_known_etext_end "$direct_err_gc_alloc"; then
+              if is_known_etext_end "$direct_err_hello" "$direct_code_hello" && is_known_etext_end "$direct_err_gc_alloc" "$direct_code_gc_alloc"; then
                 echo "known XFAIL: etext/end still unresolved on FreeBSD tcc for both gc_alloc.c and hello.c, as expected - not blocking CI"
               else
-                echo "libgc.a lane failed with the known summary shape, but at least one of gc_alloc.c/hello.c's direct compile errors does NOT mention an unresolved etext/end symbol - this looks like a different, unexpected regression:" >&2
-                echo "hello.c: $direct_err_hello" >&2
-                echo "gc_alloc.c: $direct_err_gc_alloc" >&2
+                echo "libgc.a lane failed with the known summary shape, but at least one of gc_alloc.c/hello.c's direct compile errors does NOT mention an unresolved etext/end symbol (or exited abnormally) - this looks like a different, unexpected regression:" >&2
+                echo "hello.c: exit=$direct_code_hello: $direct_err_hello" >&2
+                echo "gc_alloc.c: exit=$direct_code_gc_alloc: $direct_err_gc_alloc" >&2
                 exit 1
               fi
               ;;
