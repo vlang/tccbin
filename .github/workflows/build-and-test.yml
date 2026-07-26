@@ -308,8 +308,12 @@ jobs:
           # different, amd64-only configure line, making every uploaded
           # artifact's provenance false (Codex pullrequestreview-
           # 4780817355 on vlang/tccbin#74). Overwrite it with the actual
-          # command used above.
-          echo "CC=\"$CC\" CFLAGS=\"-Os -mtune=generic -fPIC\" LDFLAGS=\"-Os -fPIC\" ./configure --disable-dependency-tracking --disable-docs --enable-static=yes --enable-shared=yes --enable-single-obj-compilation --enable-gc-debug --enable-thread-local-alloc --enable-large-config --enable-cplusplus --with-libatomic-ops=check --enable-sigrt-signals" \
+          # command used above - including MACOSX_DEPLOYMENT_TARGET,
+          # which materially affects dylib/archive compatibility and
+          # would otherwise be missing from anyone trying to reproduce
+          # this exact build from the recorded command (Codex
+          # pullrequestreview-4781470066 on vlang/tccbin#74).
+          echo "MACOSX_DEPLOYMENT_TARGET=\"$MACOSX_DEPLOYMENT_TARGET\" CC=\"$CC\" CFLAGS=\"-Os -mtune=generic -fPIC\" LDFLAGS=\"-Os -fPIC\" ./configure --disable-dependency-tracking --disable-docs --enable-static=yes --enable-shared=yes --enable-single-obj-compilation --enable-gc-debug --enable-thread-local-alloc --enable-large-config --enable-cplusplus --with-libatomic-ops=check --enable-sigrt-signals" \
               > "$TCC_FOLDER/lib/libgc_build_cmd.txt"
           rsync -a bdwgc/.libs/ "$TCC_FOLDER/lib/"
           ls -la "$TCC_FOLDER/lib/"
@@ -333,6 +337,7 @@ jobs:
       # and keep the static libgc.a path as an explicit, signature-checked
       # XFAIL rather than silently dropping it.
       - name: run shared conformance tests (libgc.dylib, dynamic - blocking)
+        id: dylib_test
         working-directory: work
         run: |
           chmod +x thirdparty/tccbin_tests/run.sh
@@ -351,6 +356,7 @@ jobs:
       # link line whatsoever. Check that directly, mirroring macos-arm64's
       # own equivalent step.
       - name: verify no-GC fallback path (plain tcc, no libgc linked)
+        id: nogc_test
         if: ${{ !cancelled() }}
         working-directory: work
         run: |
@@ -376,6 +382,37 @@ jobs:
             exit 1
           fi
           echo "no-GC compile+crash check passed (killed by SIGSEGV as expected)"
+
+          # crash.c exiting 139 only proves SOME crash happened - if a
+          # broken libtcc1.a/crt or startup path made EVERY program
+          # segfault immediately (before ever reaching the intentional
+          # null-pointer dereference), this check would still see exit
+          # 139 and wrongly call it "expected" (Codex pullrequestreview-
+          # 4781468264 on the sibling freebsd-amd64 workflow, vlang/
+          # tccbin#75, same class of gap here). The GC-backed lanes
+          # can't provide this positive check either, since the static
+          # one is expected to fail at link time. Compile and run a
+          # trivial, non-crashing program with the same no-GC flags,
+          # requiring it to actually complete and exit 0 - proving the
+          # toolchain can still produce a genuinely working binary, not
+          # just one that crashes regardless of source.
+          cat > /tmp/nogc_trivial.c <<'TRIVIALEOF'
+          int main(void) { return 0; }
+          TRIVIALEOF
+          thirdparty/tcc/tcc.exe /tmp/nogc_trivial.c -o /tmp/nogc_trivial.exe
+          if [ ! -x /tmp/nogc_trivial.exe ]; then
+            echo "expected tcc to produce a runnable trivial no-GC binary, but it's missing or not executable" >&2
+            exit 1
+          fi
+          set +e
+          /tmp/nogc_trivial.exe
+          trivial_code=$?
+          set -e
+          if [ "$trivial_code" -ne 0 ]; then
+            echo "expected the trivial no-GC program to exit 0, got $trivial_code - the no-GC toolchain path may be broken (e.g. crashing at startup) even though the crash.c check above happened to pass" >&2
+            exit 1
+          fi
+          echo "trivial no-GC success check passed (exit=0)"
 
       # tcc cannot yet link this freshly-rebuilt static libgc.a at all
       # (see the comment above the dylib lane) - this is a temporary,
@@ -446,7 +483,19 @@ jobs:
               *"unresolved reference to '_GC_init'"*|*"unresolved reference to 'GC_init'"*) ;;
               *) return 1 ;;
             esac
-            other=$(printf '%s\n' "$1" | grep -oE "unresolved reference to '[^']+'" | grep -v -E "unresolved reference to '_?GC_[A-Za-z0-9_]+'")
+            # Filtering only "unresolved reference to '...'" lines and
+            # checking their NAMES misses a wholly DIFFERENT kind of tcc
+            # error (invalid object, relocation error, etc.) riding
+            # alongside the known one - such a line simply wouldn't match
+            # the "unresolved reference to" pattern at extraction, so
+            # `other` would stay empty and this would wrongly accept the
+            # XFAIL (Codex pullrequestreview-4781468264 on the sibling
+            # freebsd-amd64 workflow, vlang/tccbin#75, same class of gap
+            # here). Match on tcc's actual error-line prefix instead, so
+            # ANY tcc error line that isn't specifically a GC_-prefixed
+            # unresolved reference gets caught, not just a differently-
+            # named one.
+            other=$(printf '%s\n' "$1" | grep -E '^tcc: error:' | grep -v -E "unresolved reference to '_?GC_[A-Za-z0-9_]+'")
             [ -z "$other" ]
           }
 
@@ -479,11 +528,30 @@ jobs:
       # and V's builder isn't switched to the dylib yet (see this PR's
       # earlier reply on that sequencing) - but a downloader must not be
       # able to miss this caveat.
+      # `!cancelled()` stays true after an ORDINARY step failure (it only
+      # excludes a cancelled run), so a failure in the blocking dylib
+      # lane or the no-GC check still reached this step - publishing an
+      # artifact whose bundled KNOWN_ISSUES.txt unconditionally claimed
+      # "verified working in this build's own CI run" even when this
+      # run's own validation didn't pass (Codex pullrequestreview-
+      # 4781470066 on vlang/tccbin#74). Keep publishing on failure too -
+      # a maintainer debugging a red run still gets a downloadable build
+      # to reproduce against (mirroring macos-arm64's own rationale for
+      # `!cancelled()` here) - but make the claim match what THIS run
+      # actually verified, using the two prior steps' real outcomes.
       - name: package rebuilt tcc for upload
         if: ${{ !cancelled() }}
         working-directory: work
+        env:
+          DYLIB_TEST_OUTCOME: ${{ steps.dylib_test.outcome }}
+          NOGC_TEST_OUTCOME: ${{ steps.nogc_test.outcome }}
         run: |
-          cat > thirdparty/tcc/KNOWN_ISSUES.txt <<'EOF'
+          if [ "$DYLIB_TEST_OUTCOME" = "success" ] && [ "$NOGC_TEST_OUTCOME" = "success" ]; then
+            dylib_claim="Use lib/libgc.dylib with -Wl,-rpath,<path-to-lib> instead; that link path is verified working in this build's own CI run."
+          else
+            dylib_claim="THIS BUILD'S OWN CI VALIDATION DID NOT PASS (dylib test: $DYLIB_TEST_OUTCOME, no-GC test: $NOGC_TEST_OUTCOME) - do not treat lib/libgc.dylib as a verified-working link path from this specific artifact. Check the workflow run's log before relying on it."
+          fi
+          cat > thirdparty/tcc/KNOWN_ISSUES.txt <<EOF
           This is a CI-verification build, not a drop-in replacement for the
           committed tccbin-macos-amd64 distribution.
 
@@ -491,9 +559,7 @@ jobs:
           confirmed via a real CI run: tcc reports "unresolved reference to
           '_GC_init'" etc. even though the symbol is present and well-formed
           in the archive (a tcc Mach-O archive-parsing limitation, the same
-          one already documented on macos-arm64). Use lib/libgc.dylib with
-          -Wl,-rpath,<path-to-lib> instead; that link path is verified
-          working in this build's own CI run.
+          one already documented on macos-arm64). $dylib_claim
 
           V's existing builtin_d_gcboehm.c.v for macOS amd64+tinyc still
           selects the static libgc.a - do not switch it to the dylib until a
