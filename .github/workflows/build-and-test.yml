@@ -104,11 +104,26 @@ jobs:
           # error already root-caused earlier this session: tcc reports
           # "library 'c' not found" when its lib/libc.dylib symlink
           # target doesn't exist.
+          set +e
           direct_err_checkedin=$(thirdparty/tcc/tcc.exe thirdparty/tccbin_tests/shared/crash.c \
-              -o /tmp/crash_checkedin_probe 2>&1) || true
+              -o /tmp/crash_checkedin_probe 2>&1)
+          direct_code_checkedin=$?
+          set -e
 
           case "$output" in
             *"0 passed, 3 failed"*)
+              # A regression could make tcc print the expected "library
+              # 'c' not found" diagnostic and then crash/abort rather
+              # than exiting cleanly - the earlier `|| true` discarded
+              # the exit code entirely (same class of gap Codex flagged
+              # in pullrequestreview-4781865117 on vlang/tccbin#75 for
+              # the libgc.a XFAIL probes). Reject a signal-terminated
+              # exit (128+signal) even if the expected text is present.
+              if [ "$direct_code_checkedin" -gt 128 ]; then
+                echo "::error::The checked-in tcc.exe/libgc.a failed with the known aggregate count, but the direct crash.c probe exited abnormally (exit=$direct_code_checkedin, signal-terminated) rather than tcc's normal compile-error status - this looks like a different, unexpected regression:"
+                echo "$direct_err_checkedin"
+                exit 1
+              fi
               case "$direct_err_checkedin" in
                 *"library 'c' not found"*)
                   echo "known XFAIL: the checked-in tcc.exe/libgc.a fail all 3 shared tests (stale binary, broken libc.dylib symlink - library 'c' not found), as expected - not blocking CI"
@@ -199,31 +214,52 @@ jobs:
           # the tampered source still gets built and run either way
           # (Codex pullrequestreview-4780817355 on vlang/tccbin#74,
           # tightening pullrequestreview-4780178390's earlier retry-then-
-          # fall-back mitigation). Retry HTTPS for the known transient
-          # flakiness, but if it's still unreachable, fail the job for
-          # real rather than downgrading transport - an occasional CI
-          # failure is a far smaller cost than a supply-chain compromise
-          # vector, and tinycc has no alternative TLS-backed mirror to
-          # fall back to (repo.or.cz is canonical, no GitHub mirror
-          # exists) or trusted fixed hash to verify against (this step
-          # intentionally tracks the moving `mob` tip, not a pinned
-          # commit).
-          https_ok=0
-          for i in 1 2 3; do
-            if git ls-remote https://repo.or.cz/tinycc.git >/dev/null 2>&1; then
-              https_ok=1
+          # fall-back mitigation). No downgrade path exists anymore - if
+          # HTTPS is genuinely unreachable, the job fails for real.
+          #
+          # A lightweight `git ls-remote` probe succeeding beforehand
+          # does NOT guarantee the heavier `git clone` the official
+          # script performs moments later will also succeed - confirmed
+          # by a real CI failure (run 30200458603): the probe passed on
+          # retry, but the script's own clone then failed anyway with
+          # "Failed to connect to repo.or.cz port 443... Couldn't
+          # connect to server", and with the fallback removed there was
+          # nothing left to recover with. Retry the ACTUAL build script
+          # invocation instead of a decoupled proxy check - but only
+          # when its failure specifically matches a network-connection
+          # signature, so a genuine build bug (a real gmake failure, a
+          # configure error) fails fast instead of wasting 3 attempts on
+          # something retrying will never fix. The script itself does
+          # `rm -rf tinycc/` unconditionally as its first action, and
+          # the network operation (git clone) happens before any step
+          # that mutates $TCC_FOLDER, so retrying the whole script after
+          # a network failure is safe - no partial state to clean up.
+          attempt=0
+          while true; do
+            attempt=$((attempt + 1))
+            set +e
+            build_output=$(bash thirdparty/build_scripts/thirdparty-macos-amd64_tcc.sh 2>&1)
+            build_code=$?
+            set -e
+            echo "$build_output"
+            if [ "$build_code" -eq 0 ]; then
               break
             fi
-            echo "repo.or.cz HTTPS probe failed (attempt $i/3), retrying..."
-            sleep 5
+            case "$build_output" in
+              *"Failed to connect"*|*"Couldn't connect to server"*|*"Could not resolve host"*|*"Connection reset by peer"*|*"Recv failure"*|*"Connection timed out"*)
+                if [ "$attempt" -ge 3 ]; then
+                  echo "::error::repo.or.cz remained unreachable after $attempt attempts (network-connection failure) - failing rather than falling back to the unauthenticated git:// transport. Re-run the job; if this persists, investigate repo.or.cz's HTTPS availability directly."
+                  exit 1
+                fi
+                echo "tinycc build attempt $attempt failed due to a network-connection error reaching repo.or.cz - retrying ($attempt/3)..."
+                sleep 10
+                ;;
+              *)
+                echo "::error::tinycc build failed for a reason unrelated to repo.or.cz connectivity - not retrying, since retrying wouldn't fix a real build error."
+                exit 1
+                ;;
+            esac
           done
-
-          if [ "$https_ok" -eq 0 ]; then
-            echo "::error::repo.or.cz HTTPS unreachable after 3 attempts - failing rather than falling back to the unauthenticated git:// transport (see this step's comment). Re-run the job; if this persists, investigate repo.or.cz's HTTPS availability directly."
-            exit 1
-          fi
-
-          bash thirdparty/build_scripts/thirdparty-macos-amd64_tcc.sh
           thirdparty/tcc/tcc.exe --version
           thirdparty/tcc/tcc.exe -v -v
 
@@ -453,18 +489,22 @@ jobs:
           # OTHER test (hello.c) hide behind this same summary shape and
           # pass unnoticed (same class of gap as Codex pullrequestreview-
           # 4780815399 on the sibling freebsd-amd64 workflow, vlang/tccbin#75).
+          set +e
           direct_err_gc_alloc=$(./thirdparty/tcc/tcc.exe thirdparty/tccbin_tests/shared/gc_alloc.c \
               -DGC_BUILTIN_ATOMIC=1 -DMPROTECT_VDB=1 \
               -I ./thirdparty/libgc/include \
               ./thirdparty/tcc/lib/libgc.a \
               -ldl -lpthread \
-              -o /tmp/gc_alloc_xfail_probe 2>&1) || true
+              -o /tmp/gc_alloc_xfail_probe 2>&1)
+          direct_code_gc_alloc=$?
           direct_err_hello=$(./thirdparty/tcc/tcc.exe thirdparty/tccbin_tests/shared/hello.c \
               -DGC_BUILTIN_ATOMIC=1 -DMPROTECT_VDB=1 \
               -I ./thirdparty/libgc/include \
               ./thirdparty/tcc/lib/libgc.a \
               -ldl -lpthread \
-              -o /tmp/hello_xfail_probe 2>&1) || true
+              -o /tmp/hello_xfail_probe 2>&1)
+          direct_code_hello=$?
+          set -e
 
           # The known bug is that tcc can't parse this WHOLE archive, so
           # every GC_* symbol the test references legitimately shows up
@@ -479,6 +519,19 @@ jobs:
           # does NOT match the GC_-prefixed pattern the archive-parsing
           # bug produces.
           is_known_gc_init() {
+            # $1 = captured stderr text, $2 = the probe's own exit code.
+            # A regression could make tcc print the expected GC_init
+            # diagnostic and then crash/abort rather than exiting
+            # cleanly with its normal compile-error status - the earlier
+            # `|| true` discarded that exit code entirely (Codex
+            # pullrequestreview-4781865117 on the sibling freebsd-amd64
+            # workflow, vlang/tccbin#75, same class of gap here). A
+            # POSIX shell reports a signal-terminated process as exit
+            # code 128+signal; reject those instead of treating any
+            # nonzero exit as "the expected compile-error status".
+            if [ "$2" -gt 128 ]; then
+              return 1
+            fi
             case "$1" in
               *"unresolved reference to '_GC_init'"*|*"unresolved reference to 'GC_init'"*) ;;
               *) return 1 ;;
@@ -501,12 +554,12 @@ jobs:
 
           case "$output" in
             *"PASS crash"*"FAIL gc_alloc (compile error)"*"FAIL hello (compile error)"*)
-              if is_known_gc_init "$direct_err_gc_alloc" && is_known_gc_init "$direct_err_hello"; then
+              if is_known_gc_init "$direct_err_gc_alloc" "$direct_code_gc_alloc" && is_known_gc_init "$direct_err_hello" "$direct_code_hello"; then
                 echo "known XFAIL: static libgc.a still can't link gc_alloc.c/hello.c (unresolved GC_init, the known tcc archive-parsing bug), as expected - not blocking CI"
               else
-                echo "::error::libgc.a lane failed with the known summary shape, but at least one of gc_alloc.c/hello.c's direct compile errors does NOT mention an unresolved GC_init reference - this looks like a different, unexpected regression:"
-                echo "gc_alloc.c: $direct_err_gc_alloc"
-                echo "hello.c: $direct_err_hello"
+                echo "::error::libgc.a lane failed with the known summary shape, but at least one of gc_alloc.c/hello.c's direct compile errors does NOT mention an unresolved GC_init reference (or exited abnormally) - this looks like a different, unexpected regression:"
+                echo "gc_alloc.c: exit=$direct_code_gc_alloc: $direct_err_gc_alloc"
+                echo "hello.c: exit=$direct_code_hello: $direct_err_hello"
                 exit 1
               fi
               ;;
