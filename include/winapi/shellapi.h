@@ -6,6 +6,8 @@
 #ifndef _INC_SHELLAPI
 #define _INC_SHELLAPI
 
+#include <_mingw_unicode.h>
+
 #ifndef WINSHELLAPI
 #if !defined(_SHELL32_)
 #define WINSHELLAPI DECLSPEC_IMPORT
@@ -34,6 +36,10 @@
 extern "C" {
 #endif
 
+  DECLARE_HANDLE(HDROP);
+
+#define DragQueryFile __MINGW_NAME_AW(DragQueryFile)
+
 #ifdef UNICODE
 #define ShellExecute ShellExecuteW
 #define FindExecutable FindExecutableW
@@ -43,6 +49,11 @@ extern "C" {
 #endif
 
   /* minimal subset distributed with TinyCC. nShowCmd is at winuser.h */
+  SHSTDAPI_(UINT) DragQueryFileA(HDROP hDrop,UINT iFile,LPSTR lpszFile,UINT cch);
+  SHSTDAPI_(UINT) DragQueryFileW(HDROP hDrop,UINT iFile,LPWSTR lpszFile,UINT cch);
+  SHSTDAPI_(WINBOOL) DragQueryPoint(HDROP hDrop,POINT *ppt);
+  SHSTDAPI_(void) DragFinish(HDROP hDrop);
+  SHSTDAPI_(void) DragAcceptFiles(HWND hWnd,WINBOOL fAccept);
   SHSTDAPI_(HINSTANCE) ShellExecuteA(HWND hwnd,LPCSTR lpOperation,LPCSTR lpFile,LPCSTR lpParameters,LPCSTR lpDirectory,INT nShowCmd);
   SHSTDAPI_(HINSTANCE) ShellExecuteW(HWND hwnd,LPCWSTR lpOperation,LPCWSTR lpFile,LPCWSTR lpParameters,LPCWSTR lpDirectory,INT nShowCmd);
   SHSTDAPI_(HINSTANCE) FindExecutableA(LPCSTR lpFile,LPCSTR lpDirectory,LPSTR lpResult);

@@ -1,0 +1,37 @@
+win32: declare InetNtop and InetPton family
+
+InetNtopA/W and InetPtonA/W are part of the ws2_32 API starting at
+_WIN32_WINNT 0x0600. Add the missing declarations and standard
+ANSI/Unicode neutral aliases to ws2tcpip.h, preserving the WSAAPI
+calling convention on both x64 and i386.
+
+diff --git a/win32/include/winapi/ws2tcpip.h b/win32/include/winapi/ws2tcpip.h
+--- a/win32/include/winapi/ws2tcpip.h
++++ b/win32/include/winapi/ws2tcpip.h
+@@ -10,6 +10,7 @@
+ #pragma GCC system_header
+ #endif
+
++#include <_mingw_unicode.h>
+ #include <ws2ipdef.h>
+
+ struct ip_msfilter {
+@@ -384,6 +385,18 @@ WCHAR *gai_strerrorW(int);
+ #define NI_NUMERICSERV 0x08
+ #define NI_DGRAM 0x10
+
++#if (_WIN32_WINNT >= 0x0600)
++#define InetNtopA inet_ntop
++  WINSOCK_API_LINKAGE LPCWSTR WSAAPI InetNtopW(INT Family,LPCVOID pAddr,LPWSTR pStringBuf,size_t StringBufSize);
++  WINSOCK_API_LINKAGE LPCSTR WSAAPI InetNtopA(INT Family,LPCVOID pAddr,LPSTR pStringBuf,size_t StringBufSize);
++#define InetNtop __MINGW_NAME_AW(InetNtop)
++
++#define InetPtonA inet_pton
++  WINSOCK_API_LINKAGE INT WSAAPI InetPtonW(INT Family,LPCWSTR pStringBuf,PVOID pAddr);
++  WINSOCK_API_LINKAGE INT WSAAPI InetPtonA(INT Family,LPCSTR pStringBuf,PVOID pAddr);
++#define InetPton __MINGW_NAME_AW(InetPton)
++#endif
++
+ #ifdef __cplusplus
+ }
+ #endif

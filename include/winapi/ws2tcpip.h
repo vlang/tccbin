@@ -10,6 +10,7 @@
 #pragma GCC system_header
 #endif
 
+#include <_mingw_unicode.h>
 #include <ws2ipdef.h>
 
 struct ip_msfilter {
@@ -383,6 +384,18 @@ WCHAR *gai_strerrorW(int);
 #define NI_NAMEREQD 0x04
 #define NI_NUMERICSERV 0x08
 #define NI_DGRAM 0x10
+
+#if (_WIN32_WINNT >= 0x0600)
+#define InetNtopA inet_ntop
+  WINSOCK_API_LINKAGE LPCWSTR WSAAPI InetNtopW(INT Family,LPCVOID pAddr,LPWSTR pStringBuf,size_t StringBufSize);
+  WINSOCK_API_LINKAGE LPCSTR WSAAPI InetNtopA(INT Family,LPCVOID pAddr,LPSTR pStringBuf,size_t StringBufSize);
+#define InetNtop __MINGW_NAME_AW(InetNtop)
+
+#define InetPtonA inet_pton
+  WINSOCK_API_LINKAGE INT WSAAPI InetPtonW(INT Family,LPCWSTR pStringBuf,PVOID pAddr);
+  WINSOCK_API_LINKAGE INT WSAAPI InetPtonA(INT Family,LPCSTR pStringBuf,PVOID pAddr);
+#define InetPton __MINGW_NAME_AW(InetPton)
+#endif
 
 #ifdef __cplusplus
 }
