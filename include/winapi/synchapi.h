@@ -10,7 +10,6 @@ extern "C" {
 #endif
 
 #include <_mingw_unicode.h>
-#define CreateEvent __MINGW_NAME_AW(CreateEvent)
 
 #define SRWLOCK_INIT RTL_SRWLOCK_INIT
 
@@ -114,7 +113,13 @@ typedef DWORD (WINAPI *PRTL_RUN_ONCE_INIT_FN)(PRTL_RUN_ONCE, PVOID, PVOID *);
 #define OpenMutex OpenMutexW
 #define OpenSemaphore OpenSemaphoreW
 #endif
-#define OpenEvent __MINGW_NAME_AW(OpenEvent)
+#ifndef OpenEvent
+#ifdef UNICODE
+#define OpenEvent OpenEventW
+#else
+#define OpenEvent OpenEventA
+#endif
+#endif
 
   typedef VOID (APIENTRY *PTIMERAPCROUTINE) (LPVOID lpArgToCompletionRoutine, DWORD dwTimerLowValue, DWORD dwTimerHighValue);
 
@@ -164,8 +169,20 @@ typedef DWORD (WINAPI *PRTL_RUN_ONCE_INIT_FN)(PRTL_RUN_ONCE, PVOID, PVOID *);
   WINBOOL WINAPI SetWaitableTimerEx (HANDLE hTimer, const LARGE_INTEGER *lpDueTime, LONG lPeriod, PTIMERAPCROUTINE pfnCompletionRoutine, LPVOID lpArgToCompletionRoutine, PREASON_CONTEXT WakeContext, ULONG TolerableDelay);
 #endif
 
-#define CreateMutex __MINGW_NAME_AW(CreateMutex)
-#define CreateEvent __MINGW_NAME_AW(CreateEvent)
+#ifndef CreateMutex
+#ifdef UNICODE
+#define CreateMutex CreateMutexW
+#else
+#define CreateMutex CreateMutexA
+#endif
+#endif
+#ifndef CreateEvent
+#ifdef UNICODE
+#define CreateEvent CreateEventW
+#else
+#define CreateEvent CreateEventA
+#endif
+#endif
 
 #ifdef UNICODE
 #define OpenWaitableTimer OpenWaitableTimerW

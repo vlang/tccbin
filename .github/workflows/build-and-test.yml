@@ -197,6 +197,54 @@ jobs:
               throw "i386 Unicode WinAPI conformance probe failed"
           }
 
+      - name: validate synchapi aliases with x64 and i386 TCC
+        shell: pwsh
+        run: |
+          $probe = "work/thirdparty/tcc/tests/winapi_synchapi_aliases.c"
+          $architectures = @(
+              @{ Id = "x64"; Name = "x64"; Compiler = "work/thirdparty/tcc/tcc.exe" },
+              @{ Id = "i386"; Name = "i386"; Compiler = "work/thirdparty/tcc/i386-win32-tcc.exe" }
+          )
+          $characterSets = @(
+              @{ Id = "ansi"; Name = "ANSI"; Defines = @() },
+              @{ Id = "unicode"; Name = "Unicode"; Defines = @("-DUNICODE", "-D_UNICODE") }
+          )
+          $includeModes = @(
+              @{ Id = "windows_first"; Name = "windows.h-first"; Defines = @() },
+              @{ Id = "reverse"; Name = "windef.h-synchapi.h-winbase.h"; Defines = @("-DTCCBIN_SYNCHAPI_REVERSE_INCLUDE_ORDER") }
+          )
+
+          foreach ($architecture in $architectures) {
+              foreach ($characterSet in $characterSets) {
+                  foreach ($includeMode in $includeModes) {
+                      $token = [guid]::NewGuid().ToString("N")
+                      $executable = Join-Path $env:RUNNER_TEMP "winapi_synchapi_aliases_$($architecture.Id)_$($characterSet.Id)_$($includeMode.Id)_$token.exe"
+                      try {
+                          $compilerArgs = @(
+                              "-Wall",
+                              "-Wextra",
+                              "-Werror",
+                              "-Werror=implicit-function-declaration"
+                          )
+                          $compilerArgs += $characterSet.Defines
+                          $compilerArgs += $includeMode.Defines
+                          $compilerArgs += @("-o", $executable, $probe)
+
+                          & $architecture.Compiler @compilerArgs
+                          if ($LASTEXITCODE -ne 0) {
+                              throw "$($architecture.Name) $($characterSet.Name) $($includeMode.Name) synchapi probe failed to compile or link"
+                          }
+                          & $executable
+                          if ($LASTEXITCODE -ne 0) {
+                              throw "$($architecture.Name) $($characterSet.Name) $($includeMode.Name) synchapi probe failed at runtime"
+                          }
+                      } finally {
+                          Remove-Item -LiteralPath $executable -Force -ErrorAction SilentlyContinue
+                      }
+                  }
+              }
+          }
+
       - name: validate WSAConnectBy WinAPI declarations with x64 and i386 TCC
         shell: pwsh
         run: |
