@@ -188,11 +188,22 @@ jobs:
               -lpthread \
               -o /tmp/gc_alloc_xfail_probe 2>&1) || true
 
+          # Unlike macos-amd64's whole-archive-unparseable bug, this
+          # FreeBSD bug is narrow: tcc's linker only ever fails to define
+          # the two plain BSD-style symbols (etext, end) that BDWGC
+          # references directly - nothing else in the archive is
+          # affected. So an exact match here is the correct check: reject
+          # if any unresolved-reference line names a symbol OTHER than
+          # etext/end, since that would mean a genuinely different,
+          # additional regression rode along with the known bug (Codex
+          # pullrequestreview-4780907186 on vlang/tccbin#75).
           is_known_etext_end() {
             case "$1" in
-              *"undefined symbol 'etext'"*|*"undefined symbol 'end'"*) return 0 ;;
+              *"undefined symbol 'etext'"*|*"undefined symbol 'end'"*) ;;
               *) return 1 ;;
             esac
+            other=$(printf '%s\n' "$1" | grep -oE "undefined symbol '[^']+'" | grep -v -E "undefined symbol '(etext|end)'")
+            [ -z "$other" ]
           }
 
           case "$output" in
