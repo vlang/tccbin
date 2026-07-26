@@ -168,28 +168,43 @@ jobs:
           # references GC symbols) while gc_alloc/hello both report
           # "compile error", matching this same summary shape for an
           # unrelated reason (Codex pullrequestreview-4780219278 on
-          # vlang/tccbin#75). Compile hello.c directly to capture the
-          # real tcc stderr and assert it's specifically the known
-          # etext/end unresolved-symbol error.
-          direct_err=$(thirdparty/tcc/tcc.exe vsrc/thirdparty/tccbin_tests/shared/hello.c \
+          # vlang/tccbin#75). Compile BOTH failing tests directly to
+          # capture their real tcc stderr and assert each is specifically
+          # the known etext/end unresolved-symbol error - checking only
+          # one of the two (e.g. hello.c) would let an unrelated
+          # regression isolated to the OTHER test (gc_alloc.c) hide
+          # behind this same summary shape and pass unnoticed (Codex
+          # pullrequestreview-4780815399 on vlang/tccbin#75).
+          direct_err_hello=$(thirdparty/tcc/tcc.exe vsrc/thirdparty/tccbin_tests/shared/hello.c \
               -DGC_BUILTIN_ATOMIC=1 -DBUS_PAGE_FAULT=T_PAGEFLT -DALL_INTERIOR_POINTERS=1 \
               -I vsrc/thirdparty/libgc/include \
               thirdparty/tcc/lib/libgc.a \
               -lpthread \
               -o /tmp/hello_xfail_probe 2>&1) || true
+          direct_err_gc_alloc=$(thirdparty/tcc/tcc.exe vsrc/thirdparty/tccbin_tests/shared/gc_alloc.c \
+              -DGC_BUILTIN_ATOMIC=1 -DBUS_PAGE_FAULT=T_PAGEFLT -DALL_INTERIOR_POINTERS=1 \
+              -I vsrc/thirdparty/libgc/include \
+              thirdparty/tcc/lib/libgc.a \
+              -lpthread \
+              -o /tmp/gc_alloc_xfail_probe 2>&1) || true
+
+          is_known_etext_end() {
+            case "$1" in
+              *"undefined symbol 'etext'"*|*"undefined symbol 'end'"*) return 0 ;;
+              *) return 1 ;;
+            esac
+          }
 
           case "$output" in
             *"PASS crash"*"FAIL gc_alloc (compile error)"*"FAIL hello (compile error)"*)
-              case "$direct_err" in
-                *"undefined symbol 'etext'"*|*"undefined symbol 'end'"*)
-                  echo "known XFAIL: etext/end still unresolved on FreeBSD tcc, as expected - not blocking CI"
-                  ;;
-                *)
-                  echo "libgc.a lane failed with the known summary shape, but the direct hello.c compile error does NOT mention an unresolved etext/end symbol - this looks like a different, unexpected regression:" >&2
-                  echo "$direct_err" >&2
-                  exit 1
-                  ;;
-              esac
+              if is_known_etext_end "$direct_err_hello" && is_known_etext_end "$direct_err_gc_alloc"; then
+                echo "known XFAIL: etext/end still unresolved on FreeBSD tcc for both gc_alloc.c and hello.c, as expected - not blocking CI"
+              else
+                echo "libgc.a lane failed with the known summary shape, but at least one of gc_alloc.c/hello.c's direct compile errors does NOT mention an unresolved etext/end symbol - this looks like a different, unexpected regression:" >&2
+                echo "hello.c: $direct_err_hello" >&2
+                echo "gc_alloc.c: $direct_err_gc_alloc" >&2
+                exit 1
+              fi
               ;;
             *)
               echo "libgc.a lane failed, but NOT with the known/expected summary (PASS crash, FAIL gc_alloc/hello with compile error) - this looks like a different, unexpected problem and should not be silently treated as the known XFAIL." >&2
