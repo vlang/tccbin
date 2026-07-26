@@ -48,13 +48,18 @@ jobs:
       # still get a passing CI result, since the suite would only ever
       # exercise the unrelated freshly-rebuilt artifacts. Test the
       # checked-out distribution BEFORE any rebuild step touches it.
-      # TEMPORARY: this branch's checked-in tcc.exe is currently known
-      # broken (stale v0.9.27, its lib/libc.dylib symlink targets a
-      # Big-Sur-era path that no longer exists on current macOS) and this
-      # PR does not itself update the committed binaries - so the exact
-      # failure signature isn't hardened yet; report the result without
-      # failing the job, then harden this into a signature-matched XFAIL
-      # (mirroring the libgc.a lane below) once the real output is known.
+      # This branch's checked-in tcc.exe is currently known broken (stale
+      # v0.9.27, its lib/libc.dylib symlink targets a Big-Sur-era path
+      # that no longer exists on current macOS) and this PR does not
+      # itself update the committed binaries - so this is an explicit,
+      # signature-matched XFAIL (all 3 shared tests fail, confirmed via
+      # a real CI run: "0 passed, 3 failed") rather than a blocking lane,
+      # mirroring the libgc.a lane below: an UNEXPECTED failure shape
+      # (or an unexpected full pass) from a future PR that changes these
+      # binaries still fails the job for real instead of being silently
+      # absorbed - closing the gap Codex flagged where this step
+      # previously reported without validating anything at all
+      # (pullrequestreview-4780817355 on vlang/tccbin#74).
       - name: verify the checked-in tcc.exe (as distributed, before rebuild)
         working-directory: work
         run: |
@@ -69,15 +74,21 @@ jobs:
           set -e
           echo "$output"
 
-          # First real run showed even crash.c (no GC involved) fails -
-          # capture the direct compiler error to pin down the exact known
-          # signature (expected: the broken lib/libc.dylib symlink from
-          # this branch's stale Big-Sur-era workaround) before hardening
-          # this into a real signature-matched XFAIL.
-          direct_err=$(thirdparty/tcc/tcc.exe thirdparty/tccbin_tests/shared/crash.c \
-              -o /tmp/crash_checkedin_probe 2>&1) || true
-          echo "direct crash.c compile error on checked-in tcc.exe: $direct_err"
-          echo "::warning::checked-in tcc.exe/libgc.a (as distributed) result: exit=$code - see this step's comment for why this isn't blocking yet"
+          if [ "$code" -eq 0 ]; then
+            echo "::error::The checked-in tcc.exe/libgc.a now pass the conformance suite as distributed - this branch's binaries must have been fixed; remove this XFAIL special-casing (it's superseded by the rebuild-then-test lanes below anyway)."
+            exit 1
+          fi
+
+          case "$output" in
+            *"0 passed, 3 failed"*)
+              echo "known XFAIL: the checked-in tcc.exe/libgc.a fail all 3 shared tests (stale binary, broken libc.dylib symlink), as expected - not blocking CI"
+              ;;
+            *)
+              echo "::error::The checked-in tcc.exe/libgc.a failed, but NOT with the known/expected summary (0 passed, 3 failed) - this looks like a different, unexpected regression in the binaries this PR proposes to commit:"
+              echo "$output"
+              exit 1
+              ;;
+          esac
 
       - name: install build dependencies
         # automake/libtool are needed by bdwgc's autogen.sh (aclocal,
@@ -130,16 +141,25 @@ jobs:
 
           # repo.or.cz's HTTPS endpoint has been observed to fail
           # intermittently in CI (confirmed independently, including from
-          # a non-CI network) - but unconditionally falling back to the
-          # unauthenticated, unencrypted git:// transport lets an on-path
-          # attacker feed tampered tinycc source straight into a
+          # a non-CI network). An earlier version of this step fell back
+          # to the unauthenticated, unencrypted git:// transport when
+          # HTTPS failed - but that fallback is itself the vulnerability:
+          # an active on-path attacker can simply block HTTPS to FORCE
+          # the fallback, then feed tampered tinycc source into a
           # compile-and-run pipeline whose output gets uploaded as a
-          # build artifact (Codex pullrequestreview-4780178390 on
-          # vlang/tccbin#74). Prefer HTTPS, retrying a few times for the
-          # known transient flakiness, and only fall back to git:// -
-          # loudly - if HTTPS is genuinely unreachable. Patch the LOCAL
-          # copy of the official script for this run only - the
-          # canonical script in vlang/v is untouched.
+          # build artifact. A warning in the log doesn't mitigate that -
+          # the tampered source still gets built and run either way
+          # (Codex pullrequestreview-4780817355 on vlang/tccbin#74,
+          # tightening pullrequestreview-4780178390's earlier retry-then-
+          # fall-back mitigation). Retry HTTPS for the known transient
+          # flakiness, but if it's still unreachable, fail the job for
+          # real rather than downgrading transport - an occasional CI
+          # failure is a far smaller cost than a supply-chain compromise
+          # vector, and tinycc has no alternative TLS-backed mirror to
+          # fall back to (repo.or.cz is canonical, no GitHub mirror
+          # exists) or trusted fixed hash to verify against (this step
+          # intentionally tracks the moving `mob` tip, not a pinned
+          # commit).
           https_ok=0
           for i in 1 2 3; do
             if git ls-remote https://repo.or.cz/tinycc.git >/dev/null 2>&1; then
@@ -151,9 +171,8 @@ jobs:
           done
 
           if [ "$https_ok" -eq 0 ]; then
-            echo "::warning::repo.or.cz HTTPS unreachable after 3 attempts - falling back to the unauthenticated git:// transport for this run only. Source integrity is not verified over this transport."
-            sed -i '' 's#https://repo\.or\.cz#git://repo.or.cz#' \
-                thirdparty/build_scripts/thirdparty-macos-amd64_tcc.sh
+            echo "::error::repo.or.cz HTTPS unreachable after 3 attempts - failing rather than falling back to the unauthenticated git:// transport (see this step's comment). Re-run the job; if this persists, investigate repo.or.cz's HTTPS availability directly."
+            exit 1
           fi
 
           bash thirdparty/build_scripts/thirdparty-macos-amd64_tcc.sh
@@ -221,6 +240,16 @@ jobs:
           date                          > "$TCC_FOLDER/lib/libgc_build_on_date.txt"
           echo "$LIBGC_COMMIT_FULL_HASH" > "$TCC_FOLDER/lib/libgc_build_source_hash.txt"
           uname -a                      > "$TCC_FOLDER/lib/libgc_build_machine_uname.txt"
+          # The checked-in lib/libgc_build_cmd.txt describes the OLD
+          # archive's build (a universal x86_64/arm64 configure
+          # invocation) - if left untouched it would keep claiming that
+          # for the archive THIS step just produced with a materially
+          # different, amd64-only configure line, making every uploaded
+          # artifact's provenance false (Codex pullrequestreview-
+          # 4780817355 on vlang/tccbin#74). Overwrite it with the actual
+          # command used above.
+          echo "CC=\"$CC\" CFLAGS=\"-Os -mtune=generic -fPIC\" LDFLAGS=\"-Os -fPIC\" ./configure --disable-dependency-tracking --disable-docs --enable-static=yes --enable-shared=yes --enable-single-obj-compilation --enable-gc-debug --enable-thread-local-alloc --enable-large-config --enable-cplusplus --with-libatomic-ops=check --enable-sigrt-signals" \
+              > "$TCC_FOLDER/lib/libgc_build_cmd.txt"
           rsync -a bdwgc/.libs/ "$TCC_FOLDER/lib/"
           ls -la "$TCC_FOLDER/lib/"
 
@@ -273,11 +302,19 @@ jobs:
           /tmp/crash_nogc.exe
           code=$?
           set -e
-          if [ "$code" -eq 0 ]; then
-            echo "expected a nonzero exit from an unguarded null-pointer dereference, got 0" >&2
+          # Any nonzero exit isn't enough: if the executable can't even
+          # start (missing loader, an unresolved dynamic library) the
+          # shell also reports a nonzero status, which this check would
+          # wrongly accept as "the expected crash" (Codex
+          # pullrequestreview-4780817355 on vlang/tccbin#74). crash.c's
+          # null-pointer dereference is expected to be killed by SIGSEGV
+          # specifically, which a POSIX shell reports as exit code
+          # 128+11=139 - verify that exact signal-terminated signature.
+          if [ "$code" -ne 139 ]; then
+            echo "expected exit 139 (killed by SIGSEGV) from an unguarded null-pointer dereference, got $code" >&2
             exit 1
           fi
-          echo "no-GC compile+crash check passed (exit=$code)"
+          echo "no-GC compile+crash check passed (killed by SIGSEGV as expected)"
 
       # tcc cannot yet link this freshly-rebuilt static libgc.a at all
       # (see the comment above the dylib lane) - this is a temporary,
@@ -311,28 +348,43 @@ jobs:
           # regression that happens to fail the same two tests (a
           # corrupted/wrong-architecture archive, an unrelated compiler
           # bug) - Codex pullrequestreview-4780178390 on vlang/tccbin#74.
-          # Compile gc_alloc.c directly to capture the real tcc stderr and
-          # assert it's specifically the known unresolved-GC-symbol error,
-          # not just any compile failure.
-          direct_err=$(./thirdparty/tcc/tcc.exe thirdparty/tccbin_tests/shared/gc_alloc.c \
+          # Compile BOTH failing tests directly to capture their real tcc
+          # stderr and assert each is specifically the known unresolved-
+          # GC-symbol error - checking only one of the two (e.g.
+          # gc_alloc.c) would let an unrelated regression isolated to the
+          # OTHER test (hello.c) hide behind this same summary shape and
+          # pass unnoticed (same class of gap as Codex pullrequestreview-
+          # 4780815399 on the sibling freebsd-amd64 workflow, vlang/tccbin#75).
+          direct_err_gc_alloc=$(./thirdparty/tcc/tcc.exe thirdparty/tccbin_tests/shared/gc_alloc.c \
               -DGC_BUILTIN_ATOMIC=1 -DMPROTECT_VDB=1 \
               -I ./thirdparty/libgc/include \
               ./thirdparty/tcc/lib/libgc.a \
               -ldl -lpthread \
               -o /tmp/gc_alloc_xfail_probe 2>&1) || true
+          direct_err_hello=$(./thirdparty/tcc/tcc.exe thirdparty/tccbin_tests/shared/hello.c \
+              -DGC_BUILTIN_ATOMIC=1 -DMPROTECT_VDB=1 \
+              -I ./thirdparty/libgc/include \
+              ./thirdparty/tcc/lib/libgc.a \
+              -ldl -lpthread \
+              -o /tmp/hello_xfail_probe 2>&1) || true
+
+          is_known_gc_init() {
+            case "$1" in
+              *"unresolved reference to '_GC_init'"*|*"unresolved reference to 'GC_init'"*) return 0 ;;
+              *) return 1 ;;
+            esac
+          }
 
           case "$output" in
             *"PASS crash"*"FAIL gc_alloc (compile error)"*"FAIL hello (compile error)"*)
-              case "$direct_err" in
-                *"unresolved reference to '_GC_init'"*|*"unresolved reference to 'GC_init'"*)
-                  echo "known XFAIL: static libgc.a still can't link gc_alloc/hello (unresolved GC_init, the known tcc archive-parsing bug), as expected - not blocking CI"
-                  ;;
-                *)
-                  echo "::error::libgc.a lane failed with the known summary shape, but the direct gc_alloc.c compile error does NOT mention an unresolved GC_init reference - this looks like a different, unexpected regression:"
-                  echo "$direct_err"
-                  exit 1
-                  ;;
-              esac
+              if is_known_gc_init "$direct_err_gc_alloc" && is_known_gc_init "$direct_err_hello"; then
+                echo "known XFAIL: static libgc.a still can't link gc_alloc.c/hello.c (unresolved GC_init, the known tcc archive-parsing bug), as expected - not blocking CI"
+              else
+                echo "::error::libgc.a lane failed with the known summary shape, but at least one of gc_alloc.c/hello.c's direct compile errors does NOT mention an unresolved GC_init reference - this looks like a different, unexpected regression:"
+                echo "gc_alloc.c: $direct_err_gc_alloc"
+                echo "hello.c: $direct_err_hello"
+                exit 1
+              fi
               ;;
             *)
               echo "::error::Static libgc.a lane failed, but NOT with the known/expected summary (PASS crash, FAIL gc_alloc/hello with compile error) - this looks like a different, unexpected problem and should not be silently treated as the known XFAIL."
