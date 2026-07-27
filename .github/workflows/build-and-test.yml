@@ -251,8 +251,14 @@ jobs:
             # pullrequestreview-4781865117 on vlang/tccbin#75). A POSIX
             # shell reports a signal-terminated process as exit code
             # 128+signal; reject those instead of treating any nonzero
-            # exit as "the expected compile-error status".
-            if [ "$2" -gt 128 ]; then
+            # exit as "the expected compile-error status". Also reject
+            # exit 0: a changed tcc.exe could start printing this same
+            # diagnostic as noise while still reporting overall success
+            # - the text alone isn't proof the compile actually failed
+            # (Codex pullrequestreview-4783389496 on the sibling
+            # macos-amd64 workflow, vlang/tccbin#74, same class of gap
+            # here).
+            if [ "$2" -eq 0 ] || [ "$2" -gt 128 ]; then
               return 1
             fi
             case "$1" in
