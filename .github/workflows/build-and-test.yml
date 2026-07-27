@@ -63,7 +63,19 @@ jobs:
       - name: verify the checked-in tcc.exe (as distributed, before rebuild)
         working-directory: work
         run: |
-          chmod +x thirdparty/tcc/tcc.exe
+          # A PR that accidentally committed tcc.exe with the wrong
+          # (non-executable) file mode would still pass this "as
+          # distributed" verification, since the unconditional chmod
+          # below silently repaired it first - but a real consumer
+          # checking out this exact commit gets the actual committed
+          # mode, not this CI job's repaired one (Codex
+          # pullrequestreview-4783470598 on vlang/tccbin#74). Assert
+          # the committed mode is already correct instead of silently
+          # fixing it.
+          if [ ! -x thirdparty/tcc/tcc.exe ]; then
+            echo "::error::thirdparty/tcc/tcc.exe is not committed as executable - a consumer checking out this exact commit would get a non-executable file. This is a real regression in what this PR proposes to commit, not something CI should silently repair before testing."
+            exit 1
+          fi
 
           # Informational: what deployment target does the CURRENTLY
           # distributed binary actually support? Neither this workflow's
@@ -96,7 +108,38 @@ jobs:
             echo "::error::thirdparty/tcc/lib/libgc.a is not a well-formed archive (ar t failed) - this is a real regression in the checked-in archive this PR proposes to commit, not the known broken-libc.dylib-symlink issue."
             exit 1
           fi
-          if ! nm -g thirdparty/tcc/lib/libgc.a 2>&1 | grep -qE '(^| )[Tt] _?GC_init$'; then
+          # A well-formed, correctly-symboled archive for the WRONG
+          # architecture (e.g. an accidentally-committed arm64 build)
+          # would pass both this check and the one below - the direct
+          # signature probe (crash.c) never touches libgc.a at all, so
+          # nothing else here would catch it either (Codex
+          # pullrequestreview-4783470598 on vlang/tccbin#74). Confirm
+          # the archive is actually x86_64 before trusting anything
+          # else about it.
+          checkedin_arch=$(lipo -info thirdparty/tcc/lib/libgc.a 2>&1) || true
+          case "$checkedin_arch" in
+            *"x86_64"*) ;;
+            *)
+              echo "::error::thirdparty/tcc/lib/libgc.a is not an x86_64 archive (lipo -info: $checkedin_arch) - this is a real regression (wrong architecture) in the checked-in archive this PR proposes to commit, not the known broken-libc.dylib-symlink issue."
+              exit 1
+              ;;
+          esac
+          # `grep -q` stops reading as soon as it finds a match, which
+          # can make `nm` receive SIGPIPE while still writing the rest
+          # of a large archive's symbol list - under GitHub's bash
+          # (pipefail enabled), that SIGPIPE-killed `nm` makes the WHOLE
+          # pipeline report failure even though grep itself found the
+          # match, so this reported "does not define GC_init" on every
+          # run regardless of the archive's actual contents (Codex
+          # pullrequestreview-4783470598 on vlang/tccbin#74, reproduced
+          # directly: a large mocked producer piped through `grep -qE`
+          # under `set -eo pipefail` reported "not found" even though
+          # the very first line matched). Capture the full output first
+          # (command substitution fully drains the producer, no early
+          # exit possible) and grep the captured text without -q.
+          checkedin_gc_symbols=$(nm -g thirdparty/tcc/lib/libgc.a 2>&1) || true
+          checkedin_gc_init_defined=$(printf '%s\n' "$checkedin_gc_symbols" | grep -E '(^| )[Tt] _?GC_init$') || true
+          if [ -z "$checkedin_gc_init_defined" ]; then
             echo "::error::thirdparty/tcc/lib/libgc.a does not define GC_init - this is a real regression in the checked-in archive this PR proposes to commit (missing/incomplete symbols), not the known broken-libc.dylib-symlink issue."
             exit 1
           fi
@@ -536,7 +579,21 @@ jobs:
             echo "::error::thirdparty/tcc/lib/libgc.a is not a well-formed archive (ar t failed) right after being rebuilt - this is a real regression in the bdwgc build, not the known tcc archive-parsing limitation."
             exit 1
           fi
-          if ! nm -g ./thirdparty/tcc/lib/libgc.a 2>&1 | grep -qE '(^| )[Tt] _?GC_init$'; then
+          # `grep -q` stops reading as soon as it finds a match, which
+          # can make `nm` receive SIGPIPE while still writing the rest
+          # of a large archive's symbol list - under GitHub's bash
+          # (pipefail enabled), that SIGPIPE-killed `nm` makes the WHOLE
+          # pipeline report failure even though grep itself found the
+          # match, so this reported "does not define GC_init" on every
+          # run regardless of the archive's actual contents (Codex
+          # pullrequestreview-4783470598 on vlang/tccbin#74 - the exact
+          # bug that broke run 30234854073, the CI run right after this
+          # check was first added). Capture the full output first
+          # (command substitution fully drains the producer, no early
+          # exit possible) and grep the captured text without -q.
+          rebuilt_gc_symbols=$(nm -g ./thirdparty/tcc/lib/libgc.a 2>&1) || true
+          rebuilt_gc_init_defined=$(printf '%s\n' "$rebuilt_gc_symbols" | grep -E '(^| )[Tt] _?GC_init$') || true
+          if [ -z "$rebuilt_gc_init_defined" ]; then
             echo "::error::thirdparty/tcc/lib/libgc.a does not define GC_init right after being rebuilt - this is a real regression in the bdwgc build (missing/incomplete symbols), not the known tcc archive-parsing limitation."
             exit 1
           fi
