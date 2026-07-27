@@ -78,6 +78,29 @@ jobs:
           # rather than a guess.
           otool -l thirdparty/tcc/tcc.exe | grep -A3 "LC_VERSION_MIN_MACOSX\|LC_BUILD_VERSION" || echo "(no LC_VERSION_MIN_MACOSX/LC_BUILD_VERSION load command found)"
 
+          # crash.c (used below as the signature probe) never
+          # references any GC symbol, so it never actually exercises
+          # thirdparty/tcc/lib/libgc.a - if a PR replaced the checked-in
+          # libgc.a with a corrupt, empty, or wrong-architecture
+          # archive while leaving tcc.exe's stale libc.dylib symlink
+          # broken, this whole step would still see the same "0 passed,
+          # 3 failed" aggregate and the same "library 'c' not found"
+          # signature, since nothing here ever actually touches
+          # libgc.a's contents - a real archive regression would pass
+          # CI completely undetected (Codex pullrequestreview-
+          # 4783389496 on vlang/tccbin#74). Validate the checked-in
+          # archive directly via ar/nm, independent of tcc.exe's own
+          # (broken) linking, before the rebuild step below overwrites
+          # it.
+          if ! ar t thirdparty/tcc/lib/libgc.a >/dev/null 2>&1; then
+            echo "::error::thirdparty/tcc/lib/libgc.a is not a well-formed archive (ar t failed) - this is a real regression in the checked-in archive this PR proposes to commit, not the known broken-libc.dylib-symlink issue."
+            exit 1
+          fi
+          if ! nm -g thirdparty/tcc/lib/libgc.a 2>&1 | grep -qE '(^| )[Tt] _?GC_init$'; then
+            echo "::error::thirdparty/tcc/lib/libgc.a does not define GC_init - this is a real regression in the checked-in archive this PR proposes to commit (missing/incomplete symbols), not the known broken-libc.dylib-symlink issue."
+            exit 1
+          fi
+
           set +e
           output=$(thirdparty/tccbin_tests/run.sh thirdparty/tcc/tcc.exe macos -- \
               -DGC_BUILTIN_ATOMIC=1 -DMPROTECT_VDB=1 \
@@ -136,8 +159,13 @@ jobs:
             # code entirely (same class of gap Codex flagged in
             # pullrequestreview-4781865117 on vlang/tccbin#75 for the
             # libgc.a XFAIL probes). Reject a signal-terminated exit
-            # (128+signal) even if the expected text is present.
-            if [ "$2" -gt 128 ]; then
+            # (128+signal) even if the expected text is present. Also
+            # reject exit 0: a changed tcc.exe could start printing this
+            # same diagnostic as noise while still reporting overall
+            # success (e.g. without producing the requested executable)
+            # - the text alone isn't proof the compile actually failed
+            # (Codex pullrequestreview-4783389496 on vlang/tccbin#74).
+            if [ "$2" -eq 0 ] || [ "$2" -gt 128 ]; then
               return 1
             fi
             case "$1" in
@@ -493,6 +521,26 @@ jobs:
         working-directory: work
         if: ${{ !cancelled() }}
         run: |
+          # If the rebuild produced a structurally valid but empty or
+          # incomplete libgc.a (a real, different regression from a
+          # broken bdwgc build), both direct probes below would still
+          # show only "unresolved reference to '_GC_init'" text - the
+          # exact same shape as tcc's own known archive-parsing
+          # limitation - and KNOWN_ISSUES.txt would claim the symbol is
+          # "present and well-formed" even though nothing here ever
+          # checked that (Codex pullrequestreview-4783389496 on vlang/
+          # tccbin#74). Validate the rebuilt archive directly via ar/nm
+          # before treating any link failure against it as the known,
+          # harmless tcc limitation.
+          if ! ar t ./thirdparty/tcc/lib/libgc.a >/dev/null 2>&1; then
+            echo "::error::thirdparty/tcc/lib/libgc.a is not a well-formed archive (ar t failed) right after being rebuilt - this is a real regression in the bdwgc build, not the known tcc archive-parsing limitation."
+            exit 1
+          fi
+          if ! nm -g ./thirdparty/tcc/lib/libgc.a 2>&1 | grep -qE '(^| )[Tt] _?GC_init$'; then
+            echo "::error::thirdparty/tcc/lib/libgc.a does not define GC_init right after being rebuilt - this is a real regression in the bdwgc build (missing/incomplete symbols), not the known tcc archive-parsing limitation."
+            exit 1
+          fi
+
           set +e
           output=$(./thirdparty/tccbin_tests/run.sh ./thirdparty/tcc/tcc.exe macos -- \
               -DGC_BUILTIN_ATOMIC=1 -DMPROTECT_VDB=1 \
@@ -561,8 +609,13 @@ jobs:
             # workflow, vlang/tccbin#75, same class of gap here). A
             # POSIX shell reports a signal-terminated process as exit
             # code 128+signal; reject those instead of treating any
-            # nonzero exit as "the expected compile-error status".
-            if [ "$2" -gt 128 ]; then
+            # nonzero exit as "the expected compile-error status". Also
+            # reject exit 0: a changed tcc.exe could start printing this
+            # same diagnostic as noise while still reporting overall
+            # success - the text alone isn't proof the compile actually
+            # failed (Codex pullrequestreview-4783389496 on vlang/
+            # tccbin#74).
+            if [ "$2" -eq 0 ] || [ "$2" -gt 128 ]; then
               return 1
             fi
             case "$1" in
