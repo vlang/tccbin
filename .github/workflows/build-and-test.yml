@@ -101,43 +101,31 @@ jobs:
           # libgc.a's contents - a real archive regression would pass
           # CI completely undetected (Codex pullrequestreview-
           # 4783389496 on vlang/tccbin#74). Validate the checked-in
-          # archive directly via ar/nm, independent of tcc.exe's own
-          # (broken) linking, before the rebuild step below overwrites
-          # it.
-          # TEMPORARY diagnostic: the previous version of this check
-          # (redirecting ar t's own stderr to /dev/null) failed on a
-          # real CI run with no visible reason - capture and print the
-          # actual error before deciding whether this is a genuine new
-          # regression or a pre-existing characteristic of this ancient
-          # archive (paired with the equally-ancient checked-in
-          # v0.9.27 tcc.exe) that a real ar/nm can't parse regardless.
-          set +e
-          ar_t_output=$(ar t thirdparty/tcc/lib/libgc.a 2>&1)
-          ar_t_code=$?
-          set -e
-          echo "ar t output: $ar_t_output"
-          echo "ar t exit code: $ar_t_code"
-          file thirdparty/tcc/lib/libgc.a || true
-          if [ "$ar_t_code" -ne 0 ]; then
-            echo "::error::thirdparty/tcc/lib/libgc.a is not a well-formed archive (ar t failed) - this is a real regression in the checked-in archive this PR proposes to commit, not the known broken-libc.dylib-symlink issue."
+          # archive directly via lipo/ar/nm, independent of tcc.exe's
+          # own (broken) linking, before the rebuild step below
+          # overwrites it.
+          #
+          # This checked-in libgc.a is a FAT/universal binary
+          # containing BOTH x86_64 and arm64 slices (confirmed via a
+          # real CI run's `file` output: "Mach-O universal binary with
+          # 2 architectures: [x86_64:...] [arm64:...]") - macOS's plain
+          # `ar` refuses to read a fat archive directly ("ar: ... is a
+          # fat file (use libtool(1) or lipo(1) and ar(1) on it)"), and
+          # a naive x86_64-only `lipo -info` substring match would have
+          # also passed for an ARM64-ONLY archive that merely happens
+          # to have "x86_64" appear elsewhere in a fat listing (Codex
+          # pullrequestreview-4783470598 on vlang/tccbin#74). Extract
+          # the x86_64 slice explicitly first - this validates the
+          # slice actually exists AND gives a normal thin archive that
+          # `ar`/`nm` can read directly, closing both gaps at once.
+          if ! lipo -thin x86_64 thirdparty/tcc/lib/libgc.a -output /tmp/checkedin_libgc_x86_64.a 2>&1; then
+            echo "::error::thirdparty/tcc/lib/libgc.a does not contain an x86_64 slice (lipo -thin x86_64 failed) - this is a real regression (wrong/missing architecture) in the checked-in archive this PR proposes to commit, not the known broken-libc.dylib-symlink issue."
             exit 1
           fi
-          # A well-formed, correctly-symboled archive for the WRONG
-          # architecture (e.g. an accidentally-committed arm64 build)
-          # would pass both this check and the one below - the direct
-          # signature probe (crash.c) never touches libgc.a at all, so
-          # nothing else here would catch it either (Codex
-          # pullrequestreview-4783470598 on vlang/tccbin#74). Confirm
-          # the archive is actually x86_64 before trusting anything
-          # else about it.
-          checkedin_arch=$(lipo -info thirdparty/tcc/lib/libgc.a 2>&1) || true
-          case "$checkedin_arch" in
-            *"x86_64"*) ;;
-            *)
-              echo "::error::thirdparty/tcc/lib/libgc.a is not an x86_64 archive (lipo -info: $checkedin_arch) - this is a real regression (wrong architecture) in the checked-in archive this PR proposes to commit, not the known broken-libc.dylib-symlink issue."
-              exit 1
-              ;;
-          esac
+          if ! ar t /tmp/checkedin_libgc_x86_64.a >/dev/null 2>&1; then
+            echo "::error::thirdparty/tcc/lib/libgc.a's x86_64 slice is not a well-formed archive (ar t failed) - this is a real regression in the checked-in archive this PR proposes to commit, not the known broken-libc.dylib-symlink issue."
+            exit 1
+          fi
           # `grep -q` stops reading as soon as it finds a match, which
           # can make `nm` receive SIGPIPE while still writing the rest
           # of a large archive's symbol list - under GitHub's bash
@@ -151,10 +139,10 @@ jobs:
           # the very first line matched). Capture the full output first
           # (command substitution fully drains the producer, no early
           # exit possible) and grep the captured text without -q.
-          checkedin_gc_symbols=$(nm -g thirdparty/tcc/lib/libgc.a 2>&1) || true
+          checkedin_gc_symbols=$(nm -g /tmp/checkedin_libgc_x86_64.a 2>&1) || true
           checkedin_gc_init_defined=$(printf '%s\n' "$checkedin_gc_symbols" | grep -E '(^| )[Tt] _?GC_init$') || true
           if [ -z "$checkedin_gc_init_defined" ]; then
-            echo "::error::thirdparty/tcc/lib/libgc.a does not define GC_init - this is a real regression in the checked-in archive this PR proposes to commit (missing/incomplete symbols), not the known broken-libc.dylib-symlink issue."
+            echo "::error::thirdparty/tcc/lib/libgc.a's x86_64 slice does not define GC_init - this is a real regression in the checked-in archive this PR proposes to commit (missing/incomplete symbols), not the known broken-libc.dylib-symlink issue."
             exit 1
           fi
 
