@@ -30,6 +30,7 @@ $TccPatch5 = Join-Path $PSScriptRoot "0005-win32-declare-InetNtop-InetPton-famil
 $TccPatch6 = Join-Path $PSScriptRoot "0006-win32-declare-shell-drag-drop-family.patch"
 $TccPatch7 = Join-Path $PSScriptRoot "0007-win32-declare-secure-narrow-stdio.patch"
 $TccPatch8 = Join-Path $PSScriptRoot "0008-win32-fix-exp2-range-reduction.patch"
+$TccPatch9 = Join-Path $PSScriptRoot "0009-win32-declare-CancelIoEx.patch"
 $GcPatch = Join-Path $PSScriptRoot "v-ae88ee5-tinycc-bdwgc.patch"
 $OutDir = $PSScriptRoot
 
@@ -59,6 +60,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "$TccPatch7 failed to apply" }
     git apply $TccPatch8
     if ($LASTEXITCODE -ne 0) { throw "$TccPatch8 failed to apply" }
+    git apply $TccPatch9
+    if ($LASTEXITCODE -ne 0) { throw "$TccPatch9 failed to apply" }
 
     Set-Location win32
     & .\build-tcc.bat -clean
