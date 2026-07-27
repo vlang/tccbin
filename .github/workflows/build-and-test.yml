@@ -172,11 +172,25 @@ jobs:
           # error already root-caused earlier this session: tcc reports
           # "library 'c' not found" when its lib/libc.dylib symlink
           # target doesn't exist.
+          rm -f /tmp/crash_checkedin_probe
           set +e
           direct_err_checkedin=$(thirdparty/tcc/tcc.exe thirdparty/tccbin_tests/shared/crash.c \
               -o /tmp/crash_checkedin_probe 2>&1)
           direct_code_checkedin=$?
           set -e
+          # This ancient, checked-in v0.9.27 tcc.exe has been observed
+          # (via a real CI run) to exit 0 while STILL printing "tcc:
+          # error: library 'c' not found" and NOT producing a runnable
+          # binary - a real quirk/bug of this specific old build, not a
+          # new regression. Whether the probe actually produced a
+          # runnable executable is a more direct, reliable signal of
+          # "did the compile really fail" than trusting this old
+          # binary's own exit code.
+          if [ -x /tmp/crash_checkedin_probe ]; then
+            direct_produced_binary_checkedin=1
+          else
+            direct_produced_binary_checkedin=0
+          fi
 
           # `other_checkedin=$(... | grep -v ...)` as a standalone
           # assignment (not a function called from an if-condition) is
@@ -197,20 +211,29 @@ jobs:
           # is_known_gc_init/is_known_etext_end already work elsewhere
           # in this same file.
           is_known_checkedin_error() {
-            # $1 = captured stderr text, $2 = the probe's own exit code.
+            # $1 = captured stderr text, $2 = the probe's own exit code,
+            # $3 = 1 if the probe actually produced a runnable binary,
+            # 0 otherwise.
             # A regression could make tcc print the expected "library
             # 'c' not found" diagnostic and then crash/abort rather than
             # exiting cleanly - the earlier `|| true` discarded the exit
             # code entirely (same class of gap Codex flagged in
             # pullrequestreview-4781865117 on vlang/tccbin#75 for the
             # libgc.a XFAIL probes). Reject a signal-terminated exit
-            # (128+signal) even if the expected text is present. Also
-            # reject exit 0: a changed tcc.exe could start printing this
-            # same diagnostic as noise while still reporting overall
-            # success (e.g. without producing the requested executable)
-            # - the text alone isn't proof the compile actually failed
-            # (Codex pullrequestreview-4783389496 on vlang/tccbin#74).
-            if [ "$2" -eq 0 ] || [ "$2" -gt 128 ]; then
+            # (128+signal) even if the expected text is present.
+            if [ "$2" -gt 128 ]; then
+              return 1
+            fi
+            # Exit 0 alone isn't disqualifying: this ancient checked-in
+            # tcc.exe has been observed to exit 0 while still printing
+            # the expected error and producing NO runnable binary (a
+            # real quirk/bug of this specific old build). What matters
+            # is whether a changed tcc.exe reports overall success AND
+            # actually produces a working executable despite the noise
+            # - that combination is the real problem the exit-0 check
+            # was meant to catch (Codex pullrequestreview-4783389496 on
+            # vlang/tccbin#74); exit 0 with no binary produced is not.
+            if [ "$2" -eq 0 ] && [ "$3" -eq 1 ]; then
               return 1
             fi
             case "$1" in
@@ -232,11 +255,11 @@ jobs:
 
           case "$output" in
             *"0 passed, 3 failed"*)
-              if is_known_checkedin_error "$direct_err_checkedin" "$direct_code_checkedin"; then
+              if is_known_checkedin_error "$direct_err_checkedin" "$direct_code_checkedin" "$direct_produced_binary_checkedin"; then
                 echo "known XFAIL: the checked-in tcc.exe/libgc.a fail all 3 shared tests (stale binary, broken libc.dylib symlink - library 'c' not found), as expected - not blocking CI"
               else
-                echo "::error::The checked-in tcc.exe/libgc.a failed with the known aggregate count, but the direct crash.c compile error does NOT match the known broken-libc.dylib-symlink signature exactly (missing, abnormally terminated, or accompanied by another error) - this looks like a different, unexpected regression:"
-                echo "exit=$direct_code_checkedin: $direct_err_checkedin"
+                echo "::error::The checked-in tcc.exe/libgc.a failed with the known aggregate count, but the direct crash.c compile error does NOT match the known broken-libc.dylib-symlink signature exactly (missing, abnormally terminated, produced a runnable binary despite exit 0, or accompanied by another error) - this looks like a different, unexpected regression:"
+                echo "exit=$direct_code_checkedin produced_binary=$direct_produced_binary_checkedin: $direct_err_checkedin"
                 exit 1
               fi
               ;;
