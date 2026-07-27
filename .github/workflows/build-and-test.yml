@@ -1,0 +1,795 @@
+name: build and test (macos-amd64)
+
+on:
+  push:
+    branches: [thirdparty-macos-amd64]
+  pull_request:
+    branches: [thirdparty-macos-amd64]
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: macos-15-intel
+    steps:
+      # thirdparty/tccbin_tests (the shared cross-platform conformance
+      # suite - see its README), thirdparty/libgc/include (gc.h), and
+      # thirdparty/build_scripts/thirdparty-macos-amd64_tcc.sh (the
+      # official rebuild recipe vlang/v's own update_tccbin.yml uses for
+      # this exact platform) all live in the main v repo, not here.
+      # vlib/v/compiler_errors_test.v is a sentinel file the build
+      # script checks for, to confirm it's being run from a real v repo
+      # checkout.
+      - name: checkout v (for thirdparty/libgc, tccbin_tests, and the build script)
+        uses: actions/checkout@v4
+        with:
+          repository: vlang/v
+          ref: c82d3f08271e9324d6fb8de3c251e9c0e1a9154b
+          sparse-checkout: |
+            thirdparty/libgc
+            thirdparty/tccbin_tests
+            thirdparty/build_scripts
+            vlib/v/compiler_errors_test.v
+          sparse-checkout-cone-mode: false
+          path: work
+
+      # this branch, checked out where the build script expects to find
+      # itself (work/thirdparty/tcc), matching a normal local checkout
+      # layout.
+      - name: checkout this branch
+        uses: actions/checkout@v4
+        with:
+          path: work/thirdparty/tcc
+
+      # Codex pullrequestreview-4780178390 on vlang/tccbin#74 (P1): the
+      # steps below replace this branch's checked-in tcc.exe with a
+      # rebuild from tinycc `mob`, and later replace libgc.a with a
+      # rebuild from bdwgc `master`, before ever testing either - so a
+      # future PR that commits a broken tcc.exe/libgc.a pair here would
+      # still get a passing CI result, since the suite would only ever
+      # exercise the unrelated freshly-rebuilt artifacts. Test the
+      # checked-out distribution BEFORE any rebuild step touches it.
+      # This branch's checked-in tcc.exe is currently known broken (stale
+      # v0.9.27, its lib/libc.dylib symlink targets a Big-Sur-era path
+      # that no longer exists on current macOS) and this PR does not
+      # itself update the committed binaries - so this is an explicit,
+      # signature-matched XFAIL (all 3 shared tests fail, confirmed via
+      # a real CI run: "0 passed, 3 failed") rather than a blocking lane,
+      # mirroring the libgc.a lane below: an UNEXPECTED failure shape
+      # (or an unexpected full pass) from a future PR that changes these
+      # binaries still fails the job for real instead of being silently
+      # absorbed - closing the gap Codex flagged where this step
+      # previously reported without validating anything at all
+      # (pullrequestreview-4780817355 on vlang/tccbin#74).
+      - name: verify the checked-in tcc.exe (as distributed, before rebuild)
+        working-directory: work
+        run: |
+          # A PR that accidentally committed tcc.exe with the wrong
+          # (non-executable) file mode would still pass this "as
+          # distributed" verification, since the unconditional chmod
+          # below silently repaired it first - but a real consumer
+          # checking out this exact commit gets the actual committed
+          # mode, not this CI job's repaired one (Codex
+          # pullrequestreview-4783470598 on vlang/tccbin#74). Assert
+          # the committed mode is already correct instead of silently
+          # fixing it.
+          if [ ! -x thirdparty/tcc/tcc.exe ]; then
+            echo "::error::thirdparty/tcc/tcc.exe is not committed as executable - a consumer checking out this exact commit would get a non-executable file. This is a real regression in what this PR proposes to commit, not something CI should silently repair before testing."
+            exit 1
+          fi
+
+          # Informational: what deployment target does the CURRENTLY
+          # distributed binary actually support? Neither this workflow's
+          # rebuild nor the official upstream build script sets
+          # MACOSX_DEPLOYMENT_TARGET, so without one, clang stamps
+          # rebuilt binaries with the CI runner's own macOS 15 minimum -
+          # silently dropping support for whatever older macOS versions
+          # this checked-in binary was actually built to support (Codex
+          # pullrequestreview-4780918023 on vlang/tccbin#74). Surface the
+          # old binary's real minimum here, before it's overwritten, so
+          # the fixed target below can be refined against real data
+          # rather than a guess.
+          otool -l thirdparty/tcc/tcc.exe | grep -A3 "LC_VERSION_MIN_MACOSX\|LC_BUILD_VERSION" || echo "(no LC_VERSION_MIN_MACOSX/LC_BUILD_VERSION load command found)"
+
+          # crash.c (used below as the signature probe) never
+          # references any GC symbol, so it never actually exercises
+          # thirdparty/tcc/lib/libgc.a - if a PR replaced the checked-in
+          # libgc.a with a corrupt, empty, or wrong-architecture
+          # archive while leaving tcc.exe's stale libc.dylib symlink
+          # broken, this whole step would still see the same "0 passed,
+          # 3 failed" aggregate and the same "library 'c' not found"
+          # signature, since nothing here ever actually touches
+          # libgc.a's contents - a real archive regression would pass
+          # CI completely undetected (Codex pullrequestreview-
+          # 4783389496 on vlang/tccbin#74). Validate the checked-in
+          # archive directly via lipo/ar/nm, independent of tcc.exe's
+          # own (broken) linking, before the rebuild step below
+          # overwrites it.
+          #
+          # This checked-in libgc.a is a FAT/universal binary
+          # containing BOTH x86_64 and arm64 slices (confirmed via a
+          # real CI run's `file` output: "Mach-O universal binary with
+          # 2 architectures: [x86_64:...] [arm64:...]") - macOS's plain
+          # `ar` refuses to read a fat archive directly ("ar: ... is a
+          # fat file (use libtool(1) or lipo(1) and ar(1) on it)"), and
+          # a naive x86_64-only `lipo -info` substring match would have
+          # also passed for an ARM64-ONLY archive that merely happens
+          # to have "x86_64" appear elsewhere in a fat listing (Codex
+          # pullrequestreview-4783470598 on vlang/tccbin#74). Extract
+          # the x86_64 slice explicitly first - this validates the
+          # slice actually exists AND gives a normal thin archive that
+          # `ar`/`nm` can read directly, closing both gaps at once.
+          if ! lipo -thin x86_64 thirdparty/tcc/lib/libgc.a -output /tmp/checkedin_libgc_x86_64.a 2>&1; then
+            echo "::error::thirdparty/tcc/lib/libgc.a does not contain an x86_64 slice (lipo -thin x86_64 failed) - this is a real regression (wrong/missing architecture) in the checked-in archive this PR proposes to commit, not the known broken-libc.dylib-symlink issue."
+            exit 1
+          fi
+          if ! ar t /tmp/checkedin_libgc_x86_64.a >/dev/null 2>&1; then
+            echo "::error::thirdparty/tcc/lib/libgc.a's x86_64 slice is not a well-formed archive (ar t failed) - this is a real regression in the checked-in archive this PR proposes to commit, not the known broken-libc.dylib-symlink issue."
+            exit 1
+          fi
+          # `grep -q` stops reading as soon as it finds a match, which
+          # can make `nm` receive SIGPIPE while still writing the rest
+          # of a large archive's symbol list - under GitHub's bash
+          # (pipefail enabled), that SIGPIPE-killed `nm` makes the WHOLE
+          # pipeline report failure even though grep itself found the
+          # match, so this reported "does not define GC_init" on every
+          # run regardless of the archive's actual contents (Codex
+          # pullrequestreview-4783470598 on vlang/tccbin#74, reproduced
+          # directly: a large mocked producer piped through `grep -qE`
+          # under `set -eo pipefail` reported "not found" even though
+          # the very first line matched). Capture the full output first
+          # (command substitution fully drains the producer, no early
+          # exit possible) and grep the captured text without -q.
+          checkedin_gc_symbols=$(nm -g /tmp/checkedin_libgc_x86_64.a 2>&1) || true
+          checkedin_gc_init_defined=$(printf '%s\n' "$checkedin_gc_symbols" | grep -E '(^| )[Tt] _?GC_init$') || true
+          if [ -z "$checkedin_gc_init_defined" ]; then
+            echo "::error::thirdparty/tcc/lib/libgc.a's x86_64 slice does not define GC_init - this is a real regression in the checked-in archive this PR proposes to commit (missing/incomplete symbols), not the known broken-libc.dylib-symlink issue."
+            exit 1
+          fi
+
+          set +e
+          output=$(thirdparty/tccbin_tests/run.sh thirdparty/tcc/tcc.exe macos -- \
+              -DGC_BUILTIN_ATOMIC=1 -DMPROTECT_VDB=1 \
+              -I thirdparty/libgc/include \
+              thirdparty/tcc/lib/libgc.a \
+              -ldl -lpthread 2>&1)
+          code=$?
+          set -e
+          echo "$output"
+
+          if [ "$code" -eq 0 ]; then
+            echo "::error::The checked-in tcc.exe/libgc.a now pass the conformance suite as distributed - this branch's binaries must have been fixed; remove this XFAIL special-casing (it's superseded by the rebuild-then-test lanes below anyway)."
+            exit 1
+          fi
+
+          # "0 passed, 3 failed" is only an aggregate count - a future PR
+          # could replace tcc.exe/libgc.a with a DIFFERENTLY broken pair
+          # (corrupt archive, wrong architecture) and still produce this
+          # same count, passing CI unnoticed (Codex pullrequestreview-
+          # 4780918023 on vlang/tccbin#74). Compile crash.c directly
+          # (no GC involved, so any failure here is specifically about
+          # this binary's basic linking, not a GC-archive issue) and
+          # assert it's specifically the known broken-libc.dylib-symlink
+          # error already root-caused earlier this session: tcc reports
+          # "library 'c' not found" when its lib/libc.dylib symlink
+          # target doesn't exist.
+          set +e
+          direct_err_checkedin=$(thirdparty/tcc/tcc.exe thirdparty/tccbin_tests/shared/crash.c \
+              -o /tmp/crash_checkedin_probe 2>&1)
+          direct_code_checkedin=$?
+          set -e
+
+          # `other_checkedin=$(... | grep -v ...)` as a standalone
+          # assignment (not a function called from an if-condition) is
+          # NOT safe under `set -e`: in the expected-good case (no OTHER
+          # error present), the final `grep -v` legitimately finds
+          # nothing to filter and exits 1 (grep's normal "no match"
+          # status, not an error) - and since GitHub's bash runs with
+          # pipefail, that nonzero pipeline status kills the assignment
+          # statement itself, aborting the whole step SILENTLY, with no
+          # echo, right in the case that should reach "known XFAIL"
+          # (Codex pullrequestreview-4782839244 on vlang/tccbin#74,
+          # reproduced directly: `bash -c 'set -e; x=$(printf ... |
+          # grep -v ...); echo after'` never prints "after"). Wrapping
+          # this in a function invoked as an if-condition is safe
+          # instead: bash suspends errexit for the entire dynamic extent
+          # of evaluating an if/while/until condition, including
+          # anything a called function does internally - exactly how
+          # is_known_gc_init/is_known_etext_end already work elsewhere
+          # in this same file.
+          is_known_checkedin_error() {
+            # $1 = captured stderr text, $2 = the probe's own exit code.
+            #
+            # A regression could make tcc print the expected "library
+            # 'c' not found" diagnostic and then crash/abort rather than
+            # exiting cleanly - the earlier `|| true` discarded the exit
+            # code entirely (same class of gap Codex flagged in
+            # pullrequestreview-4781865117 on vlang/tccbin#75 for the
+            # libgc.a XFAIL probes). Reject a signal-terminated exit
+            # (128+signal) even if the expected text is present.
+            if [ "$2" -gt 128 ]; then
+              return 1
+            fi
+            # Deliberately NOT rejecting exit 0 here (unlike the
+            # rebuilt-archive equivalent check below): two separate
+            # real CI runs empirically showed this ancient, checked-in
+            # v0.9.27 tcc.exe prints "tcc: error: library 'c' not
+            # found" while exiting 0, and in one of those runs it even
+            # left behind an executable-permission /tmp file despite
+            # the error - this specific 15+-year-old build's exit-code/
+            # output-file behavior for this error is simply unreliable
+            # as a signal, not evidence of "secretly still working".
+            # The outer `case "$output" in *"0 passed, 3 failed"*)`
+            # already independently confirms via run.sh's own
+            # compile+run cycle that all 3 shared tests genuinely
+            # failed - a real "tcc got fixed" scenario would show up
+            # there as passing tests, not in this probe's exit code.
+            # This function's remaining job is just to confirm the
+            # SPECIFIC cause (Codex pullrequestreview-4783389496 on
+            # vlang/tccbin#74).
+            case "$1" in
+              *"library 'c' not found"*) ;;
+              *) return 1 ;;
+            esac
+            # A future checked-in tcc.exe could still emit the expected
+            # "library 'c' not found" line while ALSO reporting a wholly
+            # different, unrelated error (a malformed object, a wrong-
+            # architecture failure) - a bare substring-present check
+            # would accept that too, since it never looks at what else
+            # came back (Codex pullrequestreview-4782525602 on vlang/
+            # tccbin#74, same class of gap already fixed for the
+            # libgc.a XFAIL probes). Reject unless EVERY tcc error line
+            # is specifically the known libc diagnostic.
+            other_checkedin=$(printf '%s\n' "$1" | grep -E '^tcc: error:' | grep -v -F "library 'c' not found")
+            [ -z "$other_checkedin" ]
+          }
+
+          case "$output" in
+            *"0 passed, 3 failed"*)
+              if is_known_checkedin_error "$direct_err_checkedin" "$direct_code_checkedin"; then
+                echo "known XFAIL: the checked-in tcc.exe/libgc.a fail all 3 shared tests (stale binary, broken libc.dylib symlink - library 'c' not found), as expected - not blocking CI"
+              else
+                echo "::error::The checked-in tcc.exe/libgc.a failed with the known aggregate count, but the direct crash.c compile error does NOT match the known broken-libc.dylib-symlink signature exactly (abnormally terminated, or accompanied by another error) - this looks like a different, unexpected regression:"
+                echo "exit=$direct_code_checkedin: $direct_err_checkedin"
+                exit 1
+              fi
+              ;;
+            *)
+              echo "::error::The checked-in tcc.exe/libgc.a failed, but NOT with the known/expected summary (0 passed, 3 failed) - this looks like a different, unexpected regression in the binaries this PR proposes to commit:"
+              echo "$output"
+              exit 1
+              ;;
+          esac
+
+      - name: install build dependencies
+        # automake/libtool are needed by bdwgc's autogen.sh (aclocal,
+        # libtoolize) for the libgc rebuild step below - not required
+        # by the tcc build itself.
+        run: brew install make automake libtool
+
+      - name: configure git identity
+        # the build script commits the rebuilt binaries inside
+        # $TCC_FOLDER as its last step; it needs an identity to do
+        # that even though we never push this commit anywhere.
+        run: |
+          git config --global user.name tccbin-ci
+          git config --global user.email tccbin-ci@users.noreply.github.com
+
+      # This branch's tcc.exe is stale (version 0.9.27, no
+      # build_source_hash.txt/build_version.txt provenance tracking at
+      # all - unlike every other actively-maintained platform branch),
+      # and its bundled lib/libc.dylib is a symlink to
+      # /System/DriverKit/usr/lib/libSystem.dylib - an intentional
+      # workaround for macOS Big Sur (see the official build script's
+      # own "## needed for Big Sur" comment), but that DriverKit path
+      # no longer exists on current macOS (confirmed via otool: "No
+      # such file or directory" on this macos-15-intel runner). No CI
+      # flag can fix a broken symlink baked into the committed binary -
+      # rebuilding from current tinycc (mob) with the official script
+      # is the actual fix, reusing this branch's already-committed
+      # libgc.a (the script's own rsync step preserves it, no GC
+      # rebuild needed).
+      # MACOSX_DEPLOYMENT_TARGET pinned to 10.13 (High Sierra, 2017) -
+      # without it, clang stamps rebuilt binaries with this CI runner's
+      # own macOS 15 minimum, so the uploaded generic macOS-amd64
+      # distribution silently couldn't run on older Intel macOS releases
+      # the existing prebuilt distribution supports (Codex
+      # pullrequestreview-4780918023 on vlang/tccbin#74). 10.13 is a
+      # conservative, widely-used baseline for Intel-only distributions;
+      # the "verify the checked-in tcc.exe" step above now also surfaces
+      # the CURRENT binary's actual load-command minimum via otool, to
+      # refine this value against real data rather than a guess.
+      - name: build tcc.exe from current tinycc (mob)
+        working-directory: work
+        env:
+          TCC_COMMIT: mob
+          TCC_FOLDER: thirdparty/tcc
+          CC: clang
+          MACOSX_DEPLOYMENT_TARGET: "10.13"
+        run: |
+          set -eu
+          # The official script's own carry-forward step
+          # (`rsync -a thirdparty/tcc.original/lib/build*  $TCC_FOLDER/lib/`)
+          # expects prior lib/build_*.txt provenance files to exist -
+          # true for every other platform, since they've already been
+          # through this pipeline at least once. This branch never has
+          # (confirmed: no build_source_hash.txt/build_version.txt at
+          # all before this), so the glob matches nothing and rsync
+          # errors "No such file or directory" on its first-ever run
+          # through the modern pipeline. Seed one placeholder so the
+          # glob has something to match; the script overwrites the real
+          # build_*.txt files with accurate content right after anyway.
+          touch thirdparty/tcc/lib/build_bootstrap_marker.txt
+
+          # repo.or.cz's HTTPS endpoint has been observed to fail
+          # intermittently in CI (confirmed independently, including from
+          # a non-CI network). An earlier version of this step fell back
+          # to the unauthenticated, unencrypted git:// transport when
+          # HTTPS failed - but that fallback is itself the vulnerability:
+          # an active on-path attacker can simply block HTTPS to FORCE
+          # the fallback, then feed tampered tinycc source into a
+          # compile-and-run pipeline whose output gets uploaded as a
+          # build artifact. A warning in the log doesn't mitigate that -
+          # the tampered source still gets built and run either way
+          # (Codex pullrequestreview-4780817355 on vlang/tccbin#74,
+          # tightening pullrequestreview-4780178390's earlier retry-then-
+          # fall-back mitigation). No downgrade path exists anymore - if
+          # HTTPS is genuinely unreachable, the job fails for real.
+          #
+          # A lightweight `git ls-remote` probe succeeding beforehand
+          # does NOT guarantee the heavier `git clone` the official
+          # script performs moments later will also succeed - confirmed
+          # by a real CI failure (run 30200458603): the probe passed on
+          # retry, but the script's own clone then failed anyway with
+          # "Failed to connect to repo.or.cz port 443... Couldn't
+          # connect to server", and with the fallback removed there was
+          # nothing left to recover with. Retry the ACTUAL build script
+          # invocation instead of a decoupled proxy check - but only
+          # when its failure specifically matches a network-connection
+          # signature, so a genuine build bug (a real gmake failure, a
+          # configure error) fails fast instead of wasting 3 attempts on
+          # something retrying will never fix. The script itself does
+          # `rm -rf tinycc/` unconditionally as its first action, and
+          # the network operation (git clone) happens before any step
+          # that mutates $TCC_FOLDER, so retrying the whole script after
+          # a network failure is safe - no partial state to clean up.
+          attempt=0
+          while true; do
+            attempt=$((attempt + 1))
+            set +e
+            build_output=$(bash thirdparty/build_scripts/thirdparty-macos-amd64_tcc.sh 2>&1)
+            build_code=$?
+            set -e
+            echo "$build_output"
+            if [ "$build_code" -eq 0 ]; then
+              break
+            fi
+            case "$build_output" in
+              *"Failed to connect"*|*"Couldn't connect to server"*|*"Could not resolve host"*|*"Connection reset by peer"*|*"Recv failure"*|*"Connection timed out"*)
+                if [ "$attempt" -ge 3 ]; then
+                  echo "::error::repo.or.cz remained unreachable after $attempt attempts (network-connection failure) - failing rather than falling back to the unauthenticated git:// transport. Re-run the job; if this persists, investigate repo.or.cz's HTTPS availability directly."
+                  exit 1
+                fi
+                echo "tinycc build attempt $attempt failed due to a network-connection error reaching repo.or.cz - retrying ($attempt/3)..."
+                sleep 10
+                ;;
+              *)
+                echo "::error::tinycc build failed for a reason unrelated to repo.or.cz connectivity - not retrying, since retrying wouldn't fix a real build error."
+                exit 1
+                ;;
+            esac
+          done
+          thirdparty/tcc/tcc.exe --version
+          thirdparty/tcc/tcc.exe -v -v
+
+          # The official script's own "## needed for Big Sur" symlink
+          # (thirdparty/tcc/lib/libc.dylib -> /System/DriverKit/usr/lib/
+          # libSystem.dylib) no longer resolves on current macOS -
+          # confirmed via otool ("No such file or directory") on this
+          # macos-15-intel runner. /usr/lib/libSystem.B.dylib is the one
+          # system library Apple has kept as a real on-disk compatibility
+          # shim (unlike individual frameworks, which only exist inside
+          # dyld's shared cache) - repoint at that instead.
+          ls -la /usr/lib/libSystem.B.dylib || ls -la /usr/lib/ | head -20
+          rm -f thirdparty/tcc/lib/libc.dylib
+          ln -s /usr/lib/libSystem.B.dylib thirdparty/tcc/lib/libc.dylib
+          ls -la thirdparty/tcc/lib/libc.dylib
+
+      # There is no official thirdparty-macos-amd64_bdwgc.sh in vlang/v
+      # (unlike every other actively-maintained platform) - adapted
+      # directly from thirdparty-macos-arm64_bdwgc.sh, which is
+      # otherwise architecture-generic (produces whatever architecture
+      # the host clang natively targets - amd64 here, arm64 there).
+      # Needed because the branch's old bundled libgc.a is from a much
+      # older tcc/toolchain and the freshly-rebuilt tcc.exe can't even
+      # parse it ("unrecognized file type") - the same class of
+      # old-lib-vs-new-compiler mismatch as windows-amd64's original
+      # tinyc_getbp issue earlier this session, just without an
+      # existing community fix to reuse here.
+      - name: rebuild libgc.a from current bdwgc source
+        working-directory: work
+        env:
+          CC: clang
+          TCC_FOLDER: thirdparty/tcc
+          LIBGC_COMMIT: master
+          # See the "build tcc.exe" step's comment - same deployment-
+          # target gap Codex flagged applies to this build too (Codex
+          # pullrequestreview-4780918023 on vlang/tccbin#74).
+          MACOSX_DEPLOYMENT_TARGET: "10.13"
+        run: |
+          set -eu
+          rm -rf bdwgc/
+          git clone --quiet https://github.com/ivmai/bdwgc
+          cd bdwgc/
+          git checkout --quiet "$LIBGC_COMMIT"
+          LIBGC_COMMIT_FULL_HASH="$(git rev-parse HEAD)"
+          # libatomic_ops is cloned from its moving default branch and
+          # gets compiled into the resulting archive, but the provenance
+          # below previously recorded only bdwgc's own commit - two
+          # artifacts could carry an identical libgc_build_source_hash.txt
+          # while containing different libatomic_ops code, making the
+          # archive untraceable (Codex pullrequestreview-4780918023 on
+          # vlang/tccbin#74). Record its resolved commit too.
+          git clone --quiet https://github.com/bdwgc/libatomic_ops
+          LIBATOMIC_OPS_COMMIT_FULL_HASH="$(git -C libatomic_ops rev-parse HEAD)"
+          ./autogen.sh
+          CC="$CC" CFLAGS="-Os -mtune=generic -fPIC" LDFLAGS="-Os -fPIC" ./configure \
+              --disable-dependency-tracking \
+              --disable-docs \
+              --enable-static=yes \
+              --enable-shared=yes \
+              --enable-single-obj-compilation \
+              --enable-gc-debug \
+              --enable-thread-local-alloc \
+              --enable-large-config \
+              --enable-cplusplus \
+              --with-libatomic-ops=check \
+              --enable-sigrt-signals
+          make
+          cd .libs/
+          for dname in *.dylib; do
+            install_name_tool -id "@rpath/${dname}" "$dname"
+            otool -D "$dname"
+          done
+          cd ../..
+          date                                    > "$TCC_FOLDER/lib/libgc_build_on_date.txt"
+          echo "$LIBGC_COMMIT_FULL_HASH"           > "$TCC_FOLDER/lib/libgc_build_source_hash.txt"
+          echo "$LIBATOMIC_OPS_COMMIT_FULL_HASH"   > "$TCC_FOLDER/lib/libgc_build_libatomic_ops_source_hash.txt"
+          uname -a                                > "$TCC_FOLDER/lib/libgc_build_machine_uname.txt"
+          # The checked-in lib/libgc_build_cmd.txt describes the OLD
+          # archive's build (a universal x86_64/arm64 configure
+          # invocation) - if left untouched it would keep claiming that
+          # for the archive THIS step just produced with a materially
+          # different, amd64-only configure line, making every uploaded
+          # artifact's provenance false (Codex pullrequestreview-
+          # 4780817355 on vlang/tccbin#74). Overwrite it with the actual
+          # command used above - including MACOSX_DEPLOYMENT_TARGET,
+          # which materially affects dylib/archive compatibility and
+          # would otherwise be missing from anyone trying to reproduce
+          # this exact build from the recorded command (Codex
+          # pullrequestreview-4781470066 on vlang/tccbin#74).
+          echo "MACOSX_DEPLOYMENT_TARGET=\"$MACOSX_DEPLOYMENT_TARGET\" CC=\"$CC\" CFLAGS=\"-Os -mtune=generic -fPIC\" LDFLAGS=\"-Os -fPIC\" ./configure --disable-dependency-tracking --disable-docs --enable-static=yes --enable-shared=yes --enable-single-obj-compilation --enable-gc-debug --enable-thread-local-alloc --enable-large-config --enable-cplusplus --with-libatomic-ops=check --enable-sigrt-signals" \
+              > "$TCC_FOLDER/lib/libgc_build_cmd.txt"
+          rsync -a bdwgc/.libs/ "$TCC_FOLDER/lib/"
+          ls -la "$TCC_FOLDER/lib/"
+
+      # V's own builder comment ("macOS amd64 tccbin only ships libgc.a -
+      # no .dylib") describes the OLD, ancient-toolchain-built archive,
+      # which apparently linked fine under the OLD tcc.exe. Diagnosed
+      # directly against THIS freshly-rebuilt archive: `nm -g` shows
+      # `_GC_init` present as a proper defined global symbol, and `ar t`/
+      # `file` show a well-formed archive with a valid `__.SYMDEF SORTED`
+      # index - yet tcc still reports "unresolved reference to '_GC_init'"
+      # linking against it. That rules out a build misconfiguration on our
+      # side; it's the same tcc archive-parsing limitation already
+      # documented on macos-arm64 ("tcc on macOS arm64 can leave the
+      # bundled GC archive symbols unresolved"), just newly surfaced here
+      # because rebuilding the archive with a modern toolchain produces an
+      # ar/symdef layout tcc's reader doesn't handle - where the old,
+      # untouched archive happened to be in a layout it did handle. Same
+      # fix as arm64: link the dynamic libgc.dylib (produced by the
+      # `--enable-shared=yes` configure flag above) with an rpath instead,
+      # and keep the static libgc.a path as an explicit, signature-checked
+      # XFAIL rather than silently dropping it.
+      - name: run shared conformance tests (libgc.dylib, dynamic - blocking)
+        id: dylib_test
+        working-directory: work
+        run: |
+          chmod +x thirdparty/tccbin_tests/run.sh
+          ./thirdparty/tccbin_tests/run.sh thirdparty/tcc/tcc.exe macos -- \
+              -DGC_BUILTIN_ATOMIC=1 \
+              -DMPROTECT_VDB=1 \
+              -I thirdparty/libgc/include \
+              "$PWD/thirdparty/tcc/lib/libgc.dylib" \
+              -Wl,-rpath,"$PWD/thirdparty/tcc/lib" \
+              -ldl -lpthread
+
+      # The GC-linked lane above always passes libgc.dylib/rpath to every
+      # shared test, including crash.c - which doesn't touch the GC at
+      # all. That never exercises this branch's other documented
+      # supported path: a plain tcc invocation with no GC library on the
+      # link line whatsoever. Check that directly, mirroring macos-arm64's
+      # own equivalent step.
+      - name: verify no-GC fallback path (plain tcc, no libgc linked)
+        id: nogc_test
+        if: ${{ !cancelled() }}
+        working-directory: work
+        run: |
+          thirdparty/tcc/tcc.exe thirdparty/tccbin_tests/shared/crash.c -o /tmp/crash_nogc.exe
+          if [ ! -x /tmp/crash_nogc.exe ]; then
+            echo "expected tcc to produce a runnable /tmp/crash_nogc.exe, but it's missing or not executable - tcc likely exited 0 without actually producing a working binary" >&2
+            exit 1
+          fi
+          set +e
+          /tmp/crash_nogc.exe
+          code=$?
+          set -e
+          # Any nonzero exit isn't enough: if the executable can't even
+          # start (missing loader, an unresolved dynamic library) the
+          # shell also reports a nonzero status, which this check would
+          # wrongly accept as "the expected crash" (Codex
+          # pullrequestreview-4780817355 on vlang/tccbin#74). crash.c's
+          # null-pointer dereference is expected to be killed by SIGSEGV
+          # specifically, which a POSIX shell reports as exit code
+          # 128+11=139 - verify that exact signal-terminated signature.
+          if [ "$code" -ne 139 ]; then
+            echo "expected exit 139 (killed by SIGSEGV) from an unguarded null-pointer dereference, got $code" >&2
+            exit 1
+          fi
+          echo "no-GC compile+crash check passed (killed by SIGSEGV as expected)"
+
+          # crash.c exiting 139 only proves SOME crash happened - if a
+          # broken libtcc1.a/crt or startup path made EVERY program
+          # segfault immediately (before ever reaching the intentional
+          # null-pointer dereference), this check would still see exit
+          # 139 and wrongly call it "expected" (Codex pullrequestreview-
+          # 4781468264 on the sibling freebsd-amd64 workflow, vlang/
+          # tccbin#75, same class of gap here). The GC-backed lanes
+          # can't provide this positive check either, since the static
+          # one is expected to fail at link time. Compile and run a
+          # trivial, non-crashing program with the same no-GC flags,
+          # requiring it to actually complete and exit 0 - proving the
+          # toolchain can still produce a genuinely working binary, not
+          # just one that crashes regardless of source.
+          cat > /tmp/nogc_trivial.c <<'TRIVIALEOF'
+          int main(void) { return 0; }
+          TRIVIALEOF
+          thirdparty/tcc/tcc.exe /tmp/nogc_trivial.c -o /tmp/nogc_trivial.exe
+          if [ ! -x /tmp/nogc_trivial.exe ]; then
+            echo "expected tcc to produce a runnable trivial no-GC binary, but it's missing or not executable" >&2
+            exit 1
+          fi
+          set +e
+          /tmp/nogc_trivial.exe
+          trivial_code=$?
+          set -e
+          if [ "$trivial_code" -ne 0 ]; then
+            echo "expected the trivial no-GC program to exit 0, got $trivial_code - the no-GC toolchain path may be broken (e.g. crashing at startup) even though the crash.c check above happened to pass" >&2
+            exit 1
+          fi
+          echo "trivial no-GC success check passed (exit=0)"
+
+      # tcc cannot yet link this freshly-rebuilt static libgc.a at all
+      # (see the comment above the dylib lane) - this is a temporary,
+      # explicit XFAIL, not a blanket continue-on-error, so an unexpected
+      # failure shape (or an unexpected full pass, meaning tcc's archive
+      # parsing got fixed) still fails the job for real instead of being
+      # silently absorbed.
+      - name: run shared conformance tests (libgc.a, static - XFAIL)
+        id: static_xfail_test
+        working-directory: work
+        if: ${{ !cancelled() }}
+        run: |
+          # If the rebuild produced a structurally valid but empty or
+          # incomplete libgc.a (a real, different regression from a
+          # broken bdwgc build), both direct probes below would still
+          # show only "unresolved reference to '_GC_init'" text - the
+          # exact same shape as tcc's own known archive-parsing
+          # limitation - and KNOWN_ISSUES.txt would claim the symbol is
+          # "present and well-formed" even though nothing here ever
+          # checked that (Codex pullrequestreview-4783389496 on vlang/
+          # tccbin#74). Validate the rebuilt archive directly via ar/nm
+          # before treating any link failure against it as the known,
+          # harmless tcc limitation.
+          if ! ar t ./thirdparty/tcc/lib/libgc.a >/dev/null 2>&1; then
+            echo "::error::thirdparty/tcc/lib/libgc.a is not a well-formed archive (ar t failed) right after being rebuilt - this is a real regression in the bdwgc build, not the known tcc archive-parsing limitation."
+            exit 1
+          fi
+          # `grep -q` stops reading as soon as it finds a match, which
+          # can make `nm` receive SIGPIPE while still writing the rest
+          # of a large archive's symbol list - under GitHub's bash
+          # (pipefail enabled), that SIGPIPE-killed `nm` makes the WHOLE
+          # pipeline report failure even though grep itself found the
+          # match, so this reported "does not define GC_init" on every
+          # run regardless of the archive's actual contents (Codex
+          # pullrequestreview-4783470598 on vlang/tccbin#74 - the exact
+          # bug that broke run 30234854073, the CI run right after this
+          # check was first added). Capture the full output first
+          # (command substitution fully drains the producer, no early
+          # exit possible) and grep the captured text without -q.
+          rebuilt_gc_symbols=$(nm -g ./thirdparty/tcc/lib/libgc.a 2>&1) || true
+          rebuilt_gc_init_defined=$(printf '%s\n' "$rebuilt_gc_symbols" | grep -E '(^| )[Tt] _?GC_init$') || true
+          if [ -z "$rebuilt_gc_init_defined" ]; then
+            echo "::error::thirdparty/tcc/lib/libgc.a does not define GC_init right after being rebuilt - this is a real regression in the bdwgc build (missing/incomplete symbols), not the known tcc archive-parsing limitation."
+            exit 1
+          fi
+
+          set +e
+          output=$(./thirdparty/tccbin_tests/run.sh ./thirdparty/tcc/tcc.exe macos -- \
+              -DGC_BUILTIN_ATOMIC=1 -DMPROTECT_VDB=1 \
+              -I ./thirdparty/libgc/include \
+              ./thirdparty/tcc/lib/libgc.a \
+              -ldl -lpthread 2>&1)
+          code=$?
+          set -e
+          echo "$output"
+
+          if [ "$code" -eq 0 ]; then
+            echo "::error::Static libgc.a linking now succeeds on macOS amd64 - this lane's special-casing should be removed and folded back into a single blocking lane, this workaround is no longer needed."
+            exit 1
+          fi
+
+          # The pinned run.sh (c82d3f0..., predates vlang/v#27935's
+          # stderr-capture fix) only ever prints "(compile error)" with no
+          # detail, so the summary-line match above can't tell "the known
+          # GC_init archive-parsing bug" apart from a DIFFERENT static-link
+          # regression that happens to fail the same two tests (a
+          # corrupted/wrong-architecture archive, an unrelated compiler
+          # bug) - Codex pullrequestreview-4780178390 on vlang/tccbin#74.
+          # Compile BOTH failing tests directly to capture their real tcc
+          # stderr and assert each is specifically the known unresolved-
+          # GC-symbol error - checking only one of the two (e.g.
+          # gc_alloc.c) would let an unrelated regression isolated to the
+          # OTHER test (hello.c) hide behind this same summary shape and
+          # pass unnoticed (same class of gap as Codex pullrequestreview-
+          # 4780815399 on the sibling freebsd-amd64 workflow, vlang/tccbin#75).
+          set +e
+          direct_err_gc_alloc=$(./thirdparty/tcc/tcc.exe thirdparty/tccbin_tests/shared/gc_alloc.c \
+              -DGC_BUILTIN_ATOMIC=1 -DMPROTECT_VDB=1 \
+              -I ./thirdparty/libgc/include \
+              ./thirdparty/tcc/lib/libgc.a \
+              -ldl -lpthread \
+              -o /tmp/gc_alloc_xfail_probe 2>&1)
+          direct_code_gc_alloc=$?
+          direct_err_hello=$(./thirdparty/tcc/tcc.exe thirdparty/tccbin_tests/shared/hello.c \
+              -DGC_BUILTIN_ATOMIC=1 -DMPROTECT_VDB=1 \
+              -I ./thirdparty/libgc/include \
+              ./thirdparty/tcc/lib/libgc.a \
+              -ldl -lpthread \
+              -o /tmp/hello_xfail_probe 2>&1)
+          direct_code_hello=$?
+          set -e
+
+          # The known bug is that tcc can't parse this WHOLE archive, so
+          # every GC_* symbol the test references legitimately shows up
+          # as unresolved together (gc_alloc.c: _GC_init, _GC_malloc,
+          # _GC_noop1; hello.c: _GC_init, _GC_noop1) - checking for one
+          # exact symbol name alone isn't enough to also catch a
+          # DIFFERENT regression that adds a non-GC unresolved symbol
+          # alongside the known ones (Codex pullrequestreview-4780907186
+          # on the sibling freebsd-amd64 workflow, vlang/tccbin#75, same
+          # class of gap). Require GC_init specifically to confirm the
+          # known root cause, AND reject if any unresolved-reference line
+          # does NOT match the GC_-prefixed pattern the archive-parsing
+          # bug produces.
+          is_known_gc_init() {
+            # $1 = captured stderr text, $2 = the probe's own exit code.
+            # A regression could make tcc print the expected GC_init
+            # diagnostic and then crash/abort rather than exiting
+            # cleanly with its normal compile-error status - the earlier
+            # `|| true` discarded that exit code entirely (Codex
+            # pullrequestreview-4781865117 on the sibling freebsd-amd64
+            # workflow, vlang/tccbin#75, same class of gap here). A
+            # POSIX shell reports a signal-terminated process as exit
+            # code 128+signal; reject those instead of treating any
+            # nonzero exit as "the expected compile-error status". Also
+            # reject exit 0: a changed tcc.exe could start printing this
+            # same diagnostic as noise while still reporting overall
+            # success - the text alone isn't proof the compile actually
+            # failed (Codex pullrequestreview-4783389496 on vlang/
+            # tccbin#74).
+            if [ "$2" -eq 0 ] || [ "$2" -gt 128 ]; then
+              return 1
+            fi
+            case "$1" in
+              *"unresolved reference to '_GC_init'"*|*"unresolved reference to 'GC_init'"*) ;;
+              *) return 1 ;;
+            esac
+            # Filtering only "unresolved reference to '...'" lines and
+            # checking their NAMES misses a wholly DIFFERENT kind of tcc
+            # error (invalid object, relocation error, etc.) riding
+            # alongside the known one - such a line simply wouldn't match
+            # the "unresolved reference to" pattern at extraction, so
+            # `other` would stay empty and this would wrongly accept the
+            # XFAIL (Codex pullrequestreview-4781468264 on the sibling
+            # freebsd-amd64 workflow, vlang/tccbin#75, same class of gap
+            # here). Match on tcc's actual error-line prefix instead, so
+            # ANY tcc error line that isn't specifically a GC_-prefixed
+            # unresolved reference gets caught, not just a differently-
+            # named one.
+            other=$(printf '%s\n' "$1" | grep -E '^tcc: error:' | grep -v -E "unresolved reference to '_?GC_[A-Za-z0-9_]+'")
+            [ -z "$other" ]
+          }
+
+          case "$output" in
+            *"PASS crash"*"FAIL gc_alloc (compile error)"*"FAIL hello (compile error)"*)
+              if is_known_gc_init "$direct_err_gc_alloc" "$direct_code_gc_alloc" && is_known_gc_init "$direct_err_hello" "$direct_code_hello"; then
+                echo "known XFAIL: static libgc.a still can't link gc_alloc.c/hello.c (unresolved GC_init, the known tcc archive-parsing bug), as expected - not blocking CI"
+              else
+                echo "::error::libgc.a lane failed with the known summary shape, but at least one of gc_alloc.c/hello.c's direct compile errors does NOT mention an unresolved GC_init reference (or exited abnormally) - this looks like a different, unexpected regression:"
+                echo "gc_alloc.c: exit=$direct_code_gc_alloc: $direct_err_gc_alloc"
+                echo "hello.c: exit=$direct_code_hello: $direct_err_hello"
+                exit 1
+              fi
+              ;;
+            *)
+              echo "::error::Static libgc.a lane failed, but NOT with the known/expected summary (PASS crash, FAIL gc_alloc/hello with compile error) - this looks like a different, unexpected problem and should not be silently treated as the known XFAIL."
+              exit 1
+              ;;
+          esac
+
+      # This artifact bundles thirdparty/tcc/lib/libgc.a even though the
+      # XFAIL lane above proves this tcc.exe can't link it - V's existing
+      # tinyc+boehm path for macOS amd64 still selects that static
+      # archive (vlib/builtin/builtin_d_gcboehm.c.v), so anyone who
+      # downloads and installs this as the distribution would hit
+      # working GC builds turning into silent link failures, despite the
+      # dynamic dylib lane passing (Codex pullrequestreview-4780918023
+      # on vlang/tccbin#74). Not pulling libgc.a out of the archive -
+      # some future consumer may still want it for reference/debugging,
+      # and V's builder isn't switched to the dylib yet (see this PR's
+      # earlier reply on that sequencing) - but a downloader must not be
+      # able to miss this caveat.
+      # `!cancelled()` stays true after an ORDINARY step failure (it only
+      # excludes a cancelled run), so a failure in the blocking dylib
+      # lane or the no-GC check still reached this step - publishing an
+      # artifact whose bundled KNOWN_ISSUES.txt unconditionally claimed
+      # "verified working in this build's own CI run" even when this
+      # run's own validation didn't pass (Codex pullrequestreview-
+      # 4781470066 on vlang/tccbin#74). Keep publishing on failure too -
+      # a maintainer debugging a red run still gets a downloadable build
+      # to reproduce against (mirroring macos-arm64's own rationale for
+      # `!cancelled()` here) - but make the claim match what THIS run
+      # actually verified, using the two prior steps' real outcomes.
+      # The static-link claim below (that libgc.a can't be linked by
+      # this tcc.exe) was, until now, ALSO printed unconditionally - if
+      # the static XFAIL step above failed with an unexpected signature,
+      # or unexpectedly passed, this artifact would still assert the
+      # known archive-parsing diagnosis as if this run had confirmed it
+      # (Codex pullrequestreview-4782525602 on vlang/tccbin#74, same
+      # class of gap as the dylib/no-GC claims fixed just below it).
+      - name: package rebuilt tcc for upload
+        if: ${{ !cancelled() }}
+        working-directory: work
+        env:
+          DYLIB_TEST_OUTCOME: ${{ steps.dylib_test.outcome }}
+          NOGC_TEST_OUTCOME: ${{ steps.nogc_test.outcome }}
+          STATIC_XFAIL_TEST_OUTCOME: ${{ steps.static_xfail_test.outcome }}
+        run: |
+          if [ "$STATIC_XFAIL_TEST_OUTCOME" = "success" ]; then
+            static_claim="lib/libgc.a (static archive) CANNOT be linked by this tcc.exe - confirmed via a real CI run: tcc reports \"unresolved reference to '_GC_init'\" etc. even though the symbol is present and well-formed in the archive (a tcc Mach-O archive-parsing limitation, the same one already documented on macos-arm64)."
+          else
+            static_claim="THIS BUILD'S OWN CI VALIDATION OF THE STATIC libgc.a LINK FAILURE DID NOT CONFIRM THE EXPECTED SIGNATURE (static XFAIL test outcome: $STATIC_XFAIL_TEST_OUTCOME) - do not assume lib/libgc.a's link status from this specific artifact without checking the workflow run's log."
+          fi
+          if [ "$DYLIB_TEST_OUTCOME" = "success" ] && [ "$NOGC_TEST_OUTCOME" = "success" ]; then
+            dylib_claim="Use lib/libgc.dylib with -Wl,-rpath,<path-to-lib> instead; that link path is verified working in this build's own CI run."
+          else
+            dylib_claim="THIS BUILD'S OWN CI VALIDATION DID NOT PASS (dylib test: $DYLIB_TEST_OUTCOME, no-GC test: $NOGC_TEST_OUTCOME) - do not treat lib/libgc.dylib as a verified-working link path from this specific artifact. Check the workflow run's log before relying on it."
+          fi
+          cat > thirdparty/tcc/KNOWN_ISSUES.txt <<EOF
+          This is a CI-verification build, not a drop-in replacement for the
+          committed tccbin-macos-amd64 distribution.
+
+          $static_claim $dylib_claim
+
+          V's existing builtin_d_gcboehm.c.v for macOS amd64+tinyc still
+          selects the static libgc.a - do not switch it to the dylib until a
+          build like this one is committed to the actual distribution branch.
+          EOF
+          tar --exclude=.git -czf tccbin-macos-amd64-current.tar.gz thirdparty/tcc
+
+      - name: upload rebuilt binaries
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: tccbin-macos-amd64-current
+          path: work/tccbin-macos-amd64-current.tar.gz
