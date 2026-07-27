@@ -104,7 +104,21 @@ jobs:
           # archive directly via ar/nm, independent of tcc.exe's own
           # (broken) linking, before the rebuild step below overwrites
           # it.
-          if ! ar t thirdparty/tcc/lib/libgc.a >/dev/null 2>&1; then
+          # TEMPORARY diagnostic: the previous version of this check
+          # (redirecting ar t's own stderr to /dev/null) failed on a
+          # real CI run with no visible reason - capture and print the
+          # actual error before deciding whether this is a genuine new
+          # regression or a pre-existing characteristic of this ancient
+          # archive (paired with the equally-ancient checked-in
+          # v0.9.27 tcc.exe) that a real ar/nm can't parse regardless.
+          set +e
+          ar_t_output=$(ar t thirdparty/tcc/lib/libgc.a 2>&1)
+          ar_t_code=$?
+          set -e
+          echo "ar t output: $ar_t_output"
+          echo "ar t exit code: $ar_t_code"
+          file thirdparty/tcc/lib/libgc.a || true
+          if [ "$ar_t_code" -ne 0 ]; then
             echo "::error::thirdparty/tcc/lib/libgc.a is not a well-formed archive (ar t failed) - this is a real regression in the checked-in archive this PR proposes to commit, not the known broken-libc.dylib-symlink issue."
             exit 1
           fi
