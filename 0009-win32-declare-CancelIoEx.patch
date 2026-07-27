@@ -1,0 +1,31 @@
+win32: declare and export CancelIoEx
+
+CancelIoEx is available from Windows Vista onward. Add its gated declaration
+with the WINAPI calling convention and add its kernel32 export so builds from
+the pinned TinyCC source retain the correct ABI on both x64 and i386.
+
+diff --git a/win32/include/winapi/winbase.h b/win32/include/winapi/winbase.h
+--- a/win32/include/winapi/winbase.h
++++ b/win32/include/winapi/winbase.h
+@@ -2420,6 +2420,9 @@ extern "C" {
+   WINBASEAPI WINBOOL WINAPI GetVolumeInformationA(LPCSTR lpRootPathName,LPSTR lpVolumeNameBuffer,DWORD nVolumeNameSize,LPDWORD lpVolumeSerialNumber,LPDWORD lpMaximumComponentLength,LPDWORD lpFileSystemFlags,LPSTR lpFileSystemNameBuffer,DWORD nFileSystemNameSize);
+   WINBASEAPI WINBOOL WINAPI GetVolumeInformationW(LPCWSTR lpRootPathName,LPWSTR lpVolumeNameBuffer,DWORD nVolumeNameSize,LPDWORD lpVolumeSerialNumber,LPDWORD lpMaximumComponentLength,LPDWORD lpFileSystemFlags,LPWSTR lpFileSystemNameBuffer,DWORD nFileSystemNameSize);
+   WINBASEAPI WINBOOL WINAPI CancelIo(HANDLE hFile);
++#if _WIN32_WINNT >= 0x0600
++  WINBASEAPI WINBOOL WINAPI CancelIoEx(HANDLE hFile,LPOVERLAPPED lpOverlapped);
++#endif
+   WINADVAPI WINBOOL WINAPI ClearEventLogA(HANDLE hEventLog,LPCSTR lpBackupFileName);
+   WINADVAPI WINBOOL WINAPI ClearEventLogW(HANDLE hEventLog,LPCWSTR lpBackupFileName);
+   WINADVAPI WINBOOL WINAPI BackupEventLogA(HANDLE hEventLog,LPCSTR lpBackupFileName);
+
+diff --git a/win32/lib/kernel32.def b/win32/lib/kernel32.def
+--- a/win32/lib/kernel32.def
++++ b/win32/lib/kernel32.def
+@@ -40,6 +40,7 @@ Callback64
+ Callback8
+ CancelDeviceWakeupRequest
+ CancelIo
++CancelIoEx
+ CancelWaitableTimer
+ ClearCommBreak
+ ClearCommError

@@ -197,6 +197,30 @@ jobs:
               throw "i386 Unicode WinAPI conformance probe failed"
           }
 
+      - name: validate CancelIoEx ABI with x64 and i386 TCC
+        shell: pwsh
+        run: |
+          $probe = "work/thirdparty/tcc/tests/winapi_cancel_io_ex.c"
+          $cases = @(
+              @{ Id = "x64"; Compiler = "work/thirdparty/tcc/tcc.exe" },
+              @{ Id = "i386"; Compiler = "work/thirdparty/tcc/i386-win32-tcc.exe" }
+          )
+
+          foreach ($case in $cases) {
+              $executable = "$env:RUNNER_TEMP/winapi_cancel_io_ex_$($case.Id).exe"
+              & $case.Compiler `
+                  -Wall -Wextra -Werror `
+                  -Werror=implicit-function-declaration `
+                  -o $executable $probe
+              if ($LASTEXITCODE -ne 0) {
+                  throw "$($case.Id) CancelIoEx ABI probe failed to compile"
+              }
+              & $executable
+              if ($LASTEXITCODE -ne 0) {
+                  throw "$($case.Id) CancelIoEx ABI probe failed at runtime"
+              }
+          }
+
       - name: validate synchapi aliases with x64 and i386 TCC
         shell: pwsh
         run: |
