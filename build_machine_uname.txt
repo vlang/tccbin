@@ -1,1 +1,1 @@
-Darwin m1.local 24.6.0 Darwin Kernel Version 24.6.0: Wed Nov  5 21:32:56 PST 2025; root:xnu-11417.140.69.705.2~1/RELEASE_ARM64_T8103 arm64
+Darwin sat12-bq147-cfdf8a1a-a66a-49af-af6d-7c591fa5a494-CABFF2B27E25.local 25.4.0 Darwin Kernel Version 25.4.0: Thu Mar 19 19:29:33 PDT 2026; root:xnu-12377.101.15~1/RELEASE_ARM64_VMAPPLE arm64

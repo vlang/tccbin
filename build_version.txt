@@ -1,1 +1,1 @@
-tcc version 0.9.28rc 2026-01-10 HEAD@5ec0e6f8 (AArch64 Darwin)
+tcc version 0.9.28rc 2026-07-24 HEAD@85ba3ae8 (AArch64 Darwin)

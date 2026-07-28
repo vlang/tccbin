@@ -105,18 +105,6 @@ LIBTCCAPI void tcc_list_symbols(TCCState *s, void *ctx,
 LIBTCCAPI void *_tcc_setjmp(TCCState *s1, void *jmp_buf, void *top_func, void *longjmp);
 #define tcc_setjmp(s1,jb,f) setjmp(_tcc_setjmp(s1, jb, f, longjmp))
 
-/* debugging */
-/* For debugging to work you have to enable it with tcc_set_options */
-
-/* compile a string containing a C source. Return -1 if error.
-   Write the string to file filename if debug is set. */
-LIBTCCAPI int tcc_compile_string_file(TCCState *s, const char *buf, const char *filename);
-
-/* Output object file. This must be done after tcc_relocate.
-   It only generates the file if debug is set.
-   The filename can be loaded with gdb command add-symbol-file */
-LIBTCCAPI int elf_output_obj(TCCState *s1, const char *filename);
-
 /* custom error printer for runtime exceptions. Returning 0 stops backtrace */
 typedef int TCCBtFunc(void *udata, void *pc, const char *file, int line, const char* func, const char *msg);
 LIBTCCAPI void tcc_set_backtrace_func(TCCState *s1, void* userdata, TCCBtFunc*);

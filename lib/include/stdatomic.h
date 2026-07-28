@@ -100,7 +100,7 @@ typedef struct {
        __val; })
 #define atomic_load_explicit(object, order)                               \
     ({ __typeof__ (object) ptr = (object);                                \
-       __typeof__ (*ptr) tmp;                                             \
+       __typeof__ ((void)0,*ptr) tmp;                                             \
        __atomic_load (ptr, &tmp, (order));                                \
        tmp;                                                               \
     })

@@ -90,8 +90,6 @@
     #define __NO_TLS 1
     #define __RUNETYPE_INTERNAL 1
 # if __SIZEOF_POINTER__ == 8
-    /* FIXME, __int128_t is used by setjump */
-    #define __int128_t struct { unsigned char _dummy[16] __attribute((aligned(16))); }
     #define __SIZEOF_SIZE_T__ 8
     #define __SIZEOF_PTRDIFF_T__ 8
 #else
@@ -142,12 +140,6 @@
 #endif
     #define __INT32_TYPE__ int
 
-#if defined __aarch64__
-    /* GCC's __uint128_t appears in some Linux/OSX header files. Make it a
-       synonym for long double to get the size and alignment right. */
-    #define __uint128_t long double
-#endif
-
 #if !defined _WIN32
     /* glibc defines. We do not support __USER_NAME_PREFIX__ */
     #define __REDIRECT(name, proto, alias) name proto __asm__ (#alias)
@@ -187,14 +179,17 @@
 # endif
 #endif
 
+    /* GCC's __uint128_t appears in some Linux/OSX header files.
+       Just make it some type with same size and alignment. */
+    struct __uint128__ { char x[16]; } __attribute((__aligned__(16)));
+    #define __int128_t struct __uint128__
+    #define __uint128_t struct __uint128__
+
     /* __builtin_va_list */
 #if defined __x86_64__
 #if !defined _WIN32
     /* GCC compatible definition of va_list. */
-
-    enum __va_arg_type {
-        __va_gen_reg, __va_float_reg, __va_stack
-    };
+    /* This should be in sync with the declaration in our lib/va_list.c */
     typedef struct {
         unsigned gp_offset, fp_offset;
         union {
@@ -204,43 +199,7 @@
         char *reg_save_area;
     } __builtin_va_list[1];
 
-    static inline void *__va_arg(__builtin_va_list ap, int arg_type,
-                                 int size, int align)
-    {
-        size = (size + 7) & ~7;
-        align = (align + 7) & ~7;
-        switch ((enum __va_arg_type)arg_type) {
-        case __va_gen_reg:
-            if (ap->gp_offset + size <= 48) {
-                ap->gp_offset += size;
-                return ap->reg_save_area + ap->gp_offset - size;
-            }
-            goto use_overflow_area;
-        case __va_float_reg:
-            if (ap->fp_offset < 128 + 48) {
-                ap->fp_offset += 16;
-                if (size == 8)
-                    return ap->reg_save_area + ap->fp_offset - 16;
-                if (ap->fp_offset < 128 + 48) {
-                    double *p = (double *)(ap->reg_save_area + ap->fp_offset);
-                    p[-1] = p[0];
-                    ap->fp_offset += 16;
-                    return ap->reg_save_area + ap->fp_offset - 32;
-                }
-            }
-            goto use_overflow_area;
-        case __va_stack:
-        use_overflow_area:
-            ap->overflow_arg_area += size;
-            ap->overflow_arg_area =
-	      (char*)((long long)(ap->overflow_arg_area + align - 1) & -align);
-            return ap->overflow_arg_area - size;
-        default: /* should never happen */
-            char *a = (char *)0; *a = 0; // abort
-            return 0;
-        }
-    }
-
+    void *__va_arg(__builtin_va_list ap, int arg_type, int size, int align);
     #define __builtin_va_start(ap, last) \
        (*(ap) = *(__builtin_va_list)((char*)__builtin_frame_address(0) - 24))
     #define __builtin_va_arg(ap, t)   \
@@ -263,7 +222,9 @@
                            &~3), *(type *)(ap - ((sizeof(type)+3)&~3)))
 
 #elif defined __aarch64__
-#if defined __APPLE__
+#if defined _WIN32
+    typedef char *__builtin_va_list;
+#elif defined __APPLE__
     typedef struct {
         void *__stack;
     } __builtin_va_list;
