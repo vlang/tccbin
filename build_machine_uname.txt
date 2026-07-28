@@ -1,0 +1,1 @@
+Darwin sat12-jr307-df1ea335-2ae3-4fe2-a711-f065cf82e127-267B0D787780.local 24.6.0 Darwin Kernel Version 24.6.0: Tue Apr 21 20:17:54 PDT 2026; root:xnu-11417.140.69.710.16~1/RELEASE_X86_64 x86_64
