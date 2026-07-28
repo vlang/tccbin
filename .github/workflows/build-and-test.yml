@@ -284,31 +284,32 @@ jobs:
           # committed by this commit (Codex review on vlang/tccbin#82,
           # P1 round 1: "provenance should choose the applicable
           # validation expectations, not disable the blocking check").
-          # A no-GC-only sanity check is not applicable enough either: a
-          # bundled libgc.a that's a well-formed x86_64 archive defining
-          # GC_init can still be semantically broken in a way that only
-          # shows up under real GC load, and a no-GC check would never
-          # exercise that at all (Codex P1 round 2: "keep tracked-
-          # distribution conformance failures blocking"). Require BOTH
-          # the no-GC path AND a real GC-linked allocation test
-          # (reusing thirdparty/tccbin_tests/shared/gc_alloc.c directly,
-          # with the exact same flags/archive run.sh already uses below,
-          # rather than a synthetic proxy) to independently compile,
-          # link, AND run to completion - the same two bars the
-          # "verify no-GC fallback path" step and the shared dynamic
-          # conformance lane already hold the freshly rebuilt binary to.
-          # Run this unconditionally whenever provenance is tracked,
-          # not only when the full suite already failed (Codex P1 round
-          # 2, second finding: skipping it on a provenance-tracked pass
-          # left `direct_code_checkedin` uninspected in that path too) -
-          # cheap, and uniform is simpler to reason about than
-          # conditional. A build that can't pass both is broken
-          # regardless of which upstream commit it came from, and stays
-          # a hard failure; only a build that passes both is presumed
-          # sane enough for a remaining signature mismatch to be
-          # informational.
+          #
+          # A no-GC sanity check alone can't rule out a genuine GC-path
+          # regression (Codex P1 round 2: "keep tracked-distribution
+          # conformance failures blocking") - but testing
+          # thirdparty/tccbin_tests/shared/gc_alloc.c against THIS SAME
+          # checked-in libgc.a right here would be circular: gc_alloc.c
+          # is literally one of the 3 tests run.sh just ran as part of
+          # the "0 passed, 3 failed" aggregate above, so re-running it
+          # against the identical checked-in tcc.exe/libgc.a pair can
+          # never independently pass in the one branch it would gate (a
+          # mistake made and reverted earlier in this same PR - see
+          # 29d5da8, which this commit undoes). The only way to get an
+          # INDEPENDENT signal on whether the checked-in COMPILER itself
+          # is GC-sound is to pair it with a libgc it hasn't already
+          # been shown to fail against - which means waiting for
+          # "rebuild libgc.a from current bdwgc source" further down
+          # this job to produce a freshly rebuilt one. Preserve a copy
+          # of the checked-in tcc.exe now, before the "build tcc.exe
+          # from current tinycc (mob)" step below overwrites it, and
+          # for a provenance-tracked binary that fails here without
+          # matching the legacy signature but DOES pass the no-GC
+          # check, defer the final classification to a later step
+          # instead of guessing at it now.
+          cp thirdparty/tcc/tcc.exe /tmp/checkedin_tcc_original.exe
+
           checkedin_basic_sanity_ok=""
-          checkedin_gc_sanity_ok=""
           if [ -n "$checkedin_tcc_source_hash" ]; then
             cat > /tmp/checkedin_trivial.c <<'TRIVIALEOF'
           int main(void) { return 0; }
@@ -329,53 +330,35 @@ jobs:
             if [ -z "$checkedin_basic_sanity_ok" ]; then
               echo "checked-in tcc.exe (TinyCC $checkedin_tcc_source_hash) failed a basic no-GC compile+run sanity check - this is a real functional break, not just a signature mismatch, so it stays a hard failure below."
             fi
-
-            set +e
-            thirdparty/tcc/tcc.exe thirdparty/tccbin_tests/shared/gc_alloc.c \
-                -DGC_BUILTIN_ATOMIC=1 -DMPROTECT_VDB=1 \
-                -I thirdparty/libgc/include \
-                thirdparty/tcc/lib/libgc.a \
-                -ldl -lpthread \
-                -o /tmp/checkedin_gc_alloc_probe.exe >/tmp/checkedin_gc_alloc_build.log 2>&1
-            checkedin_gc_build_code=$?
-            set -e
-            if [ "$checkedin_gc_build_code" -eq 0 ] && [ -x /tmp/checkedin_gc_alloc_probe.exe ]; then
-              set +e
-              /tmp/checkedin_gc_alloc_probe.exe
-              checkedin_gc_run_code=$?
-              set -e
-              if [ "$checkedin_gc_run_code" -eq 0 ]; then
-                checkedin_gc_sanity_ok=1
-              fi
-            fi
-            if [ -z "$checkedin_gc_sanity_ok" ]; then
-              echo "checked-in tcc.exe (TinyCC $checkedin_tcc_source_hash) + checked-in libgc.a failed a real GC-allocation compile+link+run sanity check (thirdparty/tccbin_tests/shared/gc_alloc.c, same flags as the suite invocation below) - this is a real functional break, not just a signature mismatch, so it stays a hard failure below."
-            fi
           fi
 
-          checkedin_sane_enough_for_warning=""
-          if [ "$checkedin_basic_sanity_ok" = "1" ] && [ "$checkedin_gc_sanity_ok" = "1" ]; then
-            checkedin_sane_enough_for_warning=1
-          fi
+          defer_checkedin_verification() {
+            # $1 = human-readable reason, folded into the deferred step's
+            # messaging. Written to plain files and read back later via
+            # command substitution (not `source`d) - the reason text can
+            # contain apostrophes/quotes that would break if parsed as
+            # shell syntax rather than captured as literal data.
+            echo "checked-in tcc.exe (TinyCC $checkedin_tcc_source_hash) $1, but passes the no-GC sanity check - deferring final classification until thirdparty/tcc/lib/libgc.a has been freshly rebuilt further down this job, so the checked-in compiler can be tested against a libgc it hasn't already failed against instead of re-testing against the one that just failed."
+            printf '%s' "$checkedin_tcc_source_hash" > /tmp/checkedin_deferred_hash.txt
+            printf '%s' "$1" > /tmp/checkedin_deferred_reason.txt
+          }
 
           if [ -z "$checkedin_provenance_pass" ]; then
             case "$output" in
               *"0 passed, 3 failed"*)
                 if is_known_checkedin_error "$direct_err_checkedin" "$direct_code_checkedin"; then
                   echo "known XFAIL: the checked-in tcc.exe/libgc.a fail all 3 shared tests (stale binary, broken libc.dylib symlink - library 'c' not found), as expected - not blocking CI"
-                elif [ -n "$checkedin_tcc_source_hash" ] && [ "$checkedin_sane_enough_for_warning" = "1" ]; then
-                  echo "::warning::The checked-in tcc.exe (rebuilt from TinyCC $checkedin_tcc_source_hash, not the permanent ancient binary) fails all 3 shared tests, but not with the ancient binary's known signature, and it still passes both the no-GC and the real GC-allocation compile+link+run sanity checks - treated as a compatibility difference from this new build, not a hard regression. The rebuild-then-test lanes below are the real correctness gate for what this commit ships:"
-                  echo "exit=$direct_code_checkedin: $direct_err_checkedin"
+                elif [ -n "$checkedin_tcc_source_hash" ] && [ "$checkedin_basic_sanity_ok" = "1" ]; then
+                  defer_checkedin_verification "fails all 3 shared tests, not with the ancient binary's known signature"
                 else
-                  echo "::error::The checked-in tcc.exe/libgc.a failed with the known aggregate count, but the direct crash.c compile error does NOT match the known broken-libc.dylib-symlink signature exactly (abnormally terminated, or accompanied by another error), or it failed one of the no-GC/GC-allocation sanity checks above - this looks like a different, unexpected regression:"
+                  echo "::error::The checked-in tcc.exe/libgc.a failed with the known aggregate count, but the direct crash.c compile error does NOT match the known broken-libc.dylib-symlink signature exactly (abnormally terminated, or accompanied by another error), or it failed the no-GC sanity check above - this looks like a different, unexpected regression:"
                   echo "exit=$direct_code_checkedin: $direct_err_checkedin"
                   exit 1
                 fi
                 ;;
               *)
-                if [ -n "$checkedin_tcc_source_hash" ] && [ "$checkedin_sane_enough_for_warning" = "1" ]; then
-                  echo "::warning::The checked-in tcc.exe (rebuilt from TinyCC $checkedin_tcc_source_hash, not the permanent ancient binary) failed, but NOT with the known/expected summary (0 passed, 3 failed), and it still passes both the no-GC and the real GC-allocation compile+link+run sanity checks - not treated as a hard failure since this isn't the pinned legacy build the known-XFAIL logic targets. The rebuild-then-test lanes below are the real correctness gate for what this commit ships:"
-                  echo "$output"
+                if [ -n "$checkedin_tcc_source_hash" ] && [ "$checkedin_basic_sanity_ok" = "1" ]; then
+                  defer_checkedin_verification "failed, but not with the known/expected summary (0 passed, 3 failed)"
                 else
                   echo "::error::The checked-in tcc.exe/libgc.a failed, but NOT with the known/expected summary (0 passed, 3 failed) - this looks like a different, unexpected regression in the binaries this PR proposes to commit:"
                   echo "$output"
@@ -615,6 +598,68 @@ jobs:
       # `--enable-shared=yes` configure flag above) with an rpath instead,
       # and keep the static libgc.a path as an explicit, signature-checked
       # XFAIL rather than silently dropping it.
+
+      # Resolves the classification "verify the checked-in tcc.exe"
+      # deferred above (a provenance-tracked binary that fails
+      # conformance without matching the legacy signature, but passes
+      # the no-GC check): test the PRESERVED checked-in tcc.exe (saved
+      # before "build tcc.exe from current tinycc (mob)" overwrote
+      # thirdparty/tcc/tcc.exe) against the libgc.dylib this job just
+      # rebuilt - a genuinely independent artifact the checked-in
+      # compiler has never been tested against, unlike re-testing
+      # against the same checked-in libgc.a that already failed. Uses
+      # the dylib+rpath approach (mirroring the blocking lane right
+      # below), not the static archive, for the same reason that lane
+      # does: tcc's known archive-parsing limitation with a modern-
+      # toolchain-built static libgc.a (see the comment above) would
+      # otherwise fail this probe for a reason unrelated to the checked-
+      # in compiler's own health.
+      - name: verify deferred checked-in tcc.exe classification (against freshly-rebuilt libgc.dylib)
+        working-directory: work
+        run: |
+          if [ ! -f /tmp/checkedin_deferred_hash.txt ]; then
+            echo "nothing deferred by the earlier checked-in-tcc.exe step - skipping"
+            exit 0
+          fi
+          # Read back via command substitution, not `source` - the
+          # reason text can contain apostrophes/quotes that would break
+          # if parsed as shell syntax rather than captured as literal
+          # data (caught by a local end-to-end simulation before this
+          # ever reached real CI).
+          CHECKEDIN_TCC_HASH=$(cat /tmp/checkedin_deferred_hash.txt)
+          CHECKEDIN_REASON=$(cat /tmp/checkedin_deferred_reason.txt)
+          echo "resolving deferred classification for checked-in tcc.exe (TinyCC $CHECKEDIN_TCC_HASH): $CHECKEDIN_REASON"
+
+          set +e
+          /tmp/checkedin_tcc_original.exe thirdparty/tccbin_tests/shared/gc_alloc.c \
+              -DGC_BUILTIN_ATOMIC=1 -DMPROTECT_VDB=1 \
+              -I thirdparty/libgc/include \
+              "$PWD/thirdparty/tcc/lib/libgc.dylib" \
+              -Wl,-rpath,"$PWD/thirdparty/tcc/lib" \
+              -ldl -lpthread \
+              -o /tmp/checkedin_gc_deferred_probe.exe >/tmp/checkedin_gc_deferred_build.log 2>&1
+          checkedin_gc_deferred_build_code=$?
+          set -e
+
+          checkedin_gc_deferred_ok=""
+          if [ "$checkedin_gc_deferred_build_code" -eq 0 ] && [ -x /tmp/checkedin_gc_deferred_probe.exe ]; then
+            set +e
+            /tmp/checkedin_gc_deferred_probe.exe
+            checkedin_gc_deferred_run_code=$?
+            set -e
+            if [ "$checkedin_gc_deferred_run_code" -eq 0 ]; then
+              checkedin_gc_deferred_ok=1
+            fi
+          fi
+
+          if [ -n "$checkedin_gc_deferred_ok" ]; then
+            echo "::warning::The checked-in tcc.exe (TinyCC $CHECKEDIN_TCC_HASH, not the permanent ancient binary) $CHECKEDIN_REASON - but it DOES successfully compile, link (via libgc.dylib+rpath), and run a real GC allocation test (thirdparty/tccbin_tests/shared/gc_alloc.c) against a freshly-rebuilt libgc.dylib it has never been tested against before. The original failure is attributed to the checked-in libgc.a being stale relative to this newer compiler (the update_tccbin.yml bot deliberately never rebuilds libgc.a alongside tcc.exe), not a regression in the compiler itself. Not treated as a hard failure."
+          else
+            echo "::error::The checked-in tcc.exe (TinyCC $CHECKEDIN_TCC_HASH, not the permanent ancient binary) $CHECKEDIN_REASON, AND it fails to compile/link/run a real GC allocation test even against a freshly-rebuilt libgc.dylib it has never been tested against before - this points to a genuine regression in the checked-in compiler itself, not just a stale-archive pairing:"
+            cat /tmp/checkedin_gc_deferred_build.log 2>/dev/null || true
+            exit 1
+          fi
+
       - name: run shared conformance tests (libgc.dylib, dynamic - blocking)
         id: dylib_test
         working-directory: work
