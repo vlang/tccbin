@@ -282,18 +282,34 @@ jobs:
           # silently, since the LATER rebuild-then-test lanes exercise a
           # freshly-built binary from current mob, not the one actually
           # committed by this commit (Codex review on vlang/tccbin#82,
-          # P1: "provenance should choose the applicable validation
-          # expectations, not disable the blocking check"). Require a
-          # real, version-independent positive signal instead: the
-          # checked-in binary must still compile, link, AND run a
-          # trivial no-GC program to completion (the same bar the
-          # "verify no-GC fallback path" step below holds the rebuilt
-          # binary to). A build that can't even do that is broken
+          # P1 round 1: "provenance should choose the applicable
+          # validation expectations, not disable the blocking check").
+          # A no-GC-only sanity check is not applicable enough either: a
+          # bundled libgc.a that's a well-formed x86_64 archive defining
+          # GC_init can still be semantically broken in a way that only
+          # shows up under real GC load, and a no-GC check would never
+          # exercise that at all (Codex P1 round 2: "keep tracked-
+          # distribution conformance failures blocking"). Require BOTH
+          # the no-GC path AND a real GC-linked allocation test
+          # (reusing thirdparty/tccbin_tests/shared/gc_alloc.c directly,
+          # with the exact same flags/archive run.sh already uses below,
+          # rather than a synthetic proxy) to independently compile,
+          # link, AND run to completion - the same two bars the
+          # "verify no-GC fallback path" step and the shared dynamic
+          # conformance lane already hold the freshly rebuilt binary to.
+          # Run this unconditionally whenever provenance is tracked,
+          # not only when the full suite already failed (Codex P1 round
+          # 2, second finding: skipping it on a provenance-tracked pass
+          # left `direct_code_checkedin` uninspected in that path too) -
+          # cheap, and uniform is simpler to reason about than
+          # conditional. A build that can't pass both is broken
           # regardless of which upstream commit it came from, and stays
-          # a hard failure; only a build that passes this is presumed
-          # sane enough for its signature mismatch to be informational.
+          # a hard failure; only a build that passes both is presumed
+          # sane enough for a remaining signature mismatch to be
+          # informational.
           checkedin_basic_sanity_ok=""
-          if [ -n "$checkedin_tcc_source_hash" ] && [ -z "$checkedin_provenance_pass" ]; then
+          checkedin_gc_sanity_ok=""
+          if [ -n "$checkedin_tcc_source_hash" ]; then
             cat > /tmp/checkedin_trivial.c <<'TRIVIALEOF'
           int main(void) { return 0; }
           TRIVIALEOF
@@ -313,6 +329,33 @@ jobs:
             if [ -z "$checkedin_basic_sanity_ok" ]; then
               echo "checked-in tcc.exe (TinyCC $checkedin_tcc_source_hash) failed a basic no-GC compile+run sanity check - this is a real functional break, not just a signature mismatch, so it stays a hard failure below."
             fi
+
+            set +e
+            thirdparty/tcc/tcc.exe thirdparty/tccbin_tests/shared/gc_alloc.c \
+                -DGC_BUILTIN_ATOMIC=1 -DMPROTECT_VDB=1 \
+                -I thirdparty/libgc/include \
+                thirdparty/tcc/lib/libgc.a \
+                -ldl -lpthread \
+                -o /tmp/checkedin_gc_alloc_probe.exe >/tmp/checkedin_gc_alloc_build.log 2>&1
+            checkedin_gc_build_code=$?
+            set -e
+            if [ "$checkedin_gc_build_code" -eq 0 ] && [ -x /tmp/checkedin_gc_alloc_probe.exe ]; then
+              set +e
+              /tmp/checkedin_gc_alloc_probe.exe
+              checkedin_gc_run_code=$?
+              set -e
+              if [ "$checkedin_gc_run_code" -eq 0 ]; then
+                checkedin_gc_sanity_ok=1
+              fi
+            fi
+            if [ -z "$checkedin_gc_sanity_ok" ]; then
+              echo "checked-in tcc.exe (TinyCC $checkedin_tcc_source_hash) + checked-in libgc.a failed a real GC-allocation compile+link+run sanity check (thirdparty/tccbin_tests/shared/gc_alloc.c, same flags as the suite invocation below) - this is a real functional break, not just a signature mismatch, so it stays a hard failure below."
+            fi
+          fi
+
+          checkedin_sane_enough_for_warning=""
+          if [ "$checkedin_basic_sanity_ok" = "1" ] && [ "$checkedin_gc_sanity_ok" = "1" ]; then
+            checkedin_sane_enough_for_warning=1
           fi
 
           if [ -z "$checkedin_provenance_pass" ]; then
@@ -320,18 +363,18 @@ jobs:
               *"0 passed, 3 failed"*)
                 if is_known_checkedin_error "$direct_err_checkedin" "$direct_code_checkedin"; then
                   echo "known XFAIL: the checked-in tcc.exe/libgc.a fail all 3 shared tests (stale binary, broken libc.dylib symlink - library 'c' not found), as expected - not blocking CI"
-                elif [ -n "$checkedin_tcc_source_hash" ] && [ "$checkedin_basic_sanity_ok" = "1" ]; then
-                  echo "::warning::The checked-in tcc.exe (rebuilt from TinyCC $checkedin_tcc_source_hash, not the permanent ancient binary) fails all 3 shared tests, but not with the ancient binary's known signature, and it still passes a basic no-GC compile+run sanity check - treated as a compatibility difference from this new build, not a hard regression. The rebuild-then-test lanes below are the real correctness gate for what this commit ships:"
+                elif [ -n "$checkedin_tcc_source_hash" ] && [ "$checkedin_sane_enough_for_warning" = "1" ]; then
+                  echo "::warning::The checked-in tcc.exe (rebuilt from TinyCC $checkedin_tcc_source_hash, not the permanent ancient binary) fails all 3 shared tests, but not with the ancient binary's known signature, and it still passes both the no-GC and the real GC-allocation compile+link+run sanity checks - treated as a compatibility difference from this new build, not a hard regression. The rebuild-then-test lanes below are the real correctness gate for what this commit ships:"
                   echo "exit=$direct_code_checkedin: $direct_err_checkedin"
                 else
-                  echo "::error::The checked-in tcc.exe/libgc.a failed with the known aggregate count, but the direct crash.c compile error does NOT match the known broken-libc.dylib-symlink signature exactly (abnormally terminated, or accompanied by another error) - this looks like a different, unexpected regression:"
+                  echo "::error::The checked-in tcc.exe/libgc.a failed with the known aggregate count, but the direct crash.c compile error does NOT match the known broken-libc.dylib-symlink signature exactly (abnormally terminated, or accompanied by another error), or it failed one of the no-GC/GC-allocation sanity checks above - this looks like a different, unexpected regression:"
                   echo "exit=$direct_code_checkedin: $direct_err_checkedin"
                   exit 1
                 fi
                 ;;
               *)
-                if [ -n "$checkedin_tcc_source_hash" ] && [ "$checkedin_basic_sanity_ok" = "1" ]; then
-                  echo "::warning::The checked-in tcc.exe (rebuilt from TinyCC $checkedin_tcc_source_hash, not the permanent ancient binary) failed, but NOT with the known/expected summary (0 passed, 3 failed), and it still passes a basic no-GC compile+run sanity check - not treated as a hard failure since this isn't the pinned legacy build the known-XFAIL logic targets. The rebuild-then-test lanes below are the real correctness gate for what this commit ships:"
+                if [ -n "$checkedin_tcc_source_hash" ] && [ "$checkedin_sane_enough_for_warning" = "1" ]; then
+                  echo "::warning::The checked-in tcc.exe (rebuilt from TinyCC $checkedin_tcc_source_hash, not the permanent ancient binary) failed, but NOT with the known/expected summary (0 passed, 3 failed), and it still passes both the no-GC and the real GC-allocation compile+link+run sanity checks - not treated as a hard failure since this isn't the pinned legacy build the known-XFAIL logic targets. The rebuild-then-test lanes below are the real correctness gate for what this commit ships:"
                   echo "$output"
                 else
                   echo "::error::The checked-in tcc.exe/libgc.a failed, but NOT with the known/expected summary (0 passed, 3 failed) - this looks like a different, unexpected regression in the binaries this PR proposes to commit:"
