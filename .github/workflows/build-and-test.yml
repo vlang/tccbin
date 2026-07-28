@@ -99,6 +99,7 @@ jobs:
           # "library 'c' not found" - not a regression, just a different
           # binary this step wasn't designed to characterize.)
           checkedin_tcc_source_hash=""
+          checkedin_provenance_pass=""
           if [ -f thirdparty/tcc/build_source_hash.txt ]; then
             checkedin_tcc_source_hash=$(cat thirdparty/tcc/build_source_hash.txt)
             echo "checked-in tcc.exe was rebuilt from TinyCC commit $checkedin_tcc_source_hash (not the permanent ancient binary) - the ancient-binary-specific known-XFAIL signature below is informational only for this build; the rebuild-then-test lanes further down are the real correctness gate."
@@ -186,6 +187,7 @@ jobs:
           if [ "$code" -eq 0 ]; then
             if [ -n "$checkedin_tcc_source_hash" ]; then
               echo "The checked-in tcc.exe (rebuilt from TinyCC $checkedin_tcc_source_hash, not the permanent ancient binary) now passes the conformance suite as distributed - nothing to XFAIL for this build."
+              checkedin_provenance_pass=1
             else
               echo "::error::The checked-in tcc.exe/libgc.a now pass the conformance suite as distributed - this branch's binaries must have been fixed; remove this XFAIL special-casing (it's superseded by the rebuild-then-test lanes below anyway)."
               exit 1
@@ -274,30 +276,71 @@ jobs:
             [ -z "$other_checkedin" ]
           }
 
-          case "$output" in
-            *"0 passed, 3 failed"*)
-              if is_known_checkedin_error "$direct_err_checkedin" "$direct_code_checkedin"; then
-                echo "known XFAIL: the checked-in tcc.exe/libgc.a fail all 3 shared tests (stale binary, broken libc.dylib symlink - library 'c' not found), as expected - not blocking CI"
-              elif [ -n "$checkedin_tcc_source_hash" ]; then
-                echo "::warning::The checked-in tcc.exe (rebuilt from TinyCC $checkedin_tcc_source_hash, not the permanent ancient binary) fails all 3 shared tests, but not with the ancient binary's known signature - expected to differ since it's a different build, not treated as a hard failure here. The rebuild-then-test lanes below are the real correctness gate for what this commit ships:"
-                echo "exit=$direct_code_checkedin: $direct_err_checkedin"
-              else
-                echo "::error::The checked-in tcc.exe/libgc.a failed with the known aggregate count, but the direct crash.c compile error does NOT match the known broken-libc.dylib-symlink signature exactly (abnormally terminated, or accompanied by another error) - this looks like a different, unexpected regression:"
-                echo "exit=$direct_code_checkedin: $direct_err_checkedin"
-                exit 1
+          # A provenance-tracked binary that merely fails to match the
+          # OLD ancient signature is not automatically "fine" - that
+          # would let a genuinely broken bot-rebuilt tcc.exe pass CI
+          # silently, since the LATER rebuild-then-test lanes exercise a
+          # freshly-built binary from current mob, not the one actually
+          # committed by this commit (Codex review on vlang/tccbin#82,
+          # P1: "provenance should choose the applicable validation
+          # expectations, not disable the blocking check"). Require a
+          # real, version-independent positive signal instead: the
+          # checked-in binary must still compile, link, AND run a
+          # trivial no-GC program to completion (the same bar the
+          # "verify no-GC fallback path" step below holds the rebuilt
+          # binary to). A build that can't even do that is broken
+          # regardless of which upstream commit it came from, and stays
+          # a hard failure; only a build that passes this is presumed
+          # sane enough for its signature mismatch to be informational.
+          checkedin_basic_sanity_ok=""
+          if [ -n "$checkedin_tcc_source_hash" ] && [ -z "$checkedin_provenance_pass" ]; then
+            cat > /tmp/checkedin_trivial.c <<'TRIVIALEOF'
+          int main(void) { return 0; }
+          TRIVIALEOF
+            set +e
+            thirdparty/tcc/tcc.exe /tmp/checkedin_trivial.c -o /tmp/checkedin_trivial.exe >/tmp/checkedin_trivial_build.log 2>&1
+            checkedin_trivial_build_code=$?
+            set -e
+            if [ "$checkedin_trivial_build_code" -eq 0 ] && [ -x /tmp/checkedin_trivial.exe ]; then
+              set +e
+              /tmp/checkedin_trivial.exe
+              checkedin_trivial_run_code=$?
+              set -e
+              if [ "$checkedin_trivial_run_code" -eq 0 ]; then
+                checkedin_basic_sanity_ok=1
               fi
-              ;;
-            *)
-              if [ -n "$checkedin_tcc_source_hash" ]; then
-                echo "::warning::The checked-in tcc.exe (rebuilt from TinyCC $checkedin_tcc_source_hash, not the permanent ancient binary) failed, but NOT with the known/expected summary (0 passed, 3 failed) - not treated as a hard failure since this isn't the pinned legacy build the known-XFAIL logic targets. The rebuild-then-test lanes below are the real correctness gate for what this commit ships:"
-                echo "$output"
-              else
-                echo "::error::The checked-in tcc.exe/libgc.a failed, but NOT with the known/expected summary (0 passed, 3 failed) - this looks like a different, unexpected regression in the binaries this PR proposes to commit:"
-                echo "$output"
-                exit 1
-              fi
-              ;;
-          esac
+            fi
+            if [ -z "$checkedin_basic_sanity_ok" ]; then
+              echo "checked-in tcc.exe (TinyCC $checkedin_tcc_source_hash) failed a basic no-GC compile+run sanity check - this is a real functional break, not just a signature mismatch, so it stays a hard failure below."
+            fi
+          fi
+
+          if [ -z "$checkedin_provenance_pass" ]; then
+            case "$output" in
+              *"0 passed, 3 failed"*)
+                if is_known_checkedin_error "$direct_err_checkedin" "$direct_code_checkedin"; then
+                  echo "known XFAIL: the checked-in tcc.exe/libgc.a fail all 3 shared tests (stale binary, broken libc.dylib symlink - library 'c' not found), as expected - not blocking CI"
+                elif [ -n "$checkedin_tcc_source_hash" ] && [ "$checkedin_basic_sanity_ok" = "1" ]; then
+                  echo "::warning::The checked-in tcc.exe (rebuilt from TinyCC $checkedin_tcc_source_hash, not the permanent ancient binary) fails all 3 shared tests, but not with the ancient binary's known signature, and it still passes a basic no-GC compile+run sanity check - treated as a compatibility difference from this new build, not a hard regression. The rebuild-then-test lanes below are the real correctness gate for what this commit ships:"
+                  echo "exit=$direct_code_checkedin: $direct_err_checkedin"
+                else
+                  echo "::error::The checked-in tcc.exe/libgc.a failed with the known aggregate count, but the direct crash.c compile error does NOT match the known broken-libc.dylib-symlink signature exactly (abnormally terminated, or accompanied by another error) - this looks like a different, unexpected regression:"
+                  echo "exit=$direct_code_checkedin: $direct_err_checkedin"
+                  exit 1
+                fi
+                ;;
+              *)
+                if [ -n "$checkedin_tcc_source_hash" ] && [ "$checkedin_basic_sanity_ok" = "1" ]; then
+                  echo "::warning::The checked-in tcc.exe (rebuilt from TinyCC $checkedin_tcc_source_hash, not the permanent ancient binary) failed, but NOT with the known/expected summary (0 passed, 3 failed), and it still passes a basic no-GC compile+run sanity check - not treated as a hard failure since this isn't the pinned legacy build the known-XFAIL logic targets. The rebuild-then-test lanes below are the real correctness gate for what this commit ships:"
+                  echo "$output"
+                else
+                  echo "::error::The checked-in tcc.exe/libgc.a failed, but NOT with the known/expected summary (0 passed, 3 failed) - this looks like a different, unexpected regression in the binaries this PR proposes to commit:"
+                  echo "$output"
+                  exit 1
+                fi
+                ;;
+            esac
+          fi
 
       - name: install build dependencies
         # automake/libtool are needed by bdwgc's autogen.sh (aclocal,
