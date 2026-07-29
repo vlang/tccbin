@@ -357,6 +357,14 @@ beginning with `-Wno-'.
 `-Wl,-[Ttext=# | section-alignment=# | file-alignment=# | image-base=# | stack=#]'
      Modify executable layout.
 
+`-Wl,-(no-|disable-)[dynamicbase | nxcompat | high-entropy-va | tsaware]'
+     Set or clear PE (Windows) executable header hardening flags.  The
+     `-Wl,-high-entropy-va' option is supported on x86-64 and ARM64 PE
+     targets and implies `-Wl,-dynamicbase'.  Clearing dynamicbase also
+     clears high-entropy-va.  When `-Wl,-dynamicbase' is used for an
+     executable, TCC also enables base relocation emission for Windows
+     ASLR.
+
 `-Wl,-Bsymbolic'
      Set DT_SYMBOLIC tag.
 
@@ -1389,11 +1397,11 @@ Tag Table:
 Node: Top207
 Node: Introduction929
 Node: Invoke2250
-Node: Clang12933
-Node: asm18722
-Node: linker21322
-Node: Bounds23053
-Node: Libtcc26775
-Node: devel27274
+Node: Clang13373
+Node: asm19162
+Node: linker21762
+Node: Bounds23493
+Node: Libtcc27215
+Node: devel27714
 
 End Tag Table

@@ -55,7 +55,7 @@
 .\" ========================================================================
 .\"
 .IX Title "TCC-DOC 1"
-.TH TCC-DOC 1 2025-12-12 0.9.28rc "Tiny C Compiler"
+.TH TCC-DOC 1 2026-07-29 0.9.28rc "Tiny C Compiler"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -368,6 +368,13 @@ Set type for PE (Windows) executables.
 .IP "\fB\-Wl,\-[Ttext=# | section\-alignment=# | file\-alignment=# | image\-base=# | stack=#]\fR" 4
 .IX Item "-Wl,-[Ttext=# | section-alignment=# | file-alignment=# | image-base=# | stack=#]"
 Modify executable layout.
+.IP "\fB\-Wl,\-(no\-|disable\-)[dynamicbase | nxcompat | high-entropy-va | tsaware]\fR" 4
+.IX Item "-Wl,-(no-|disable-)[dynamicbase | nxcompat | high-entropy-va | tsaware]"
+Set or clear PE (Windows) executable header hardening flags.  The
+\&\fB\-Wl,\-high\-entropy\-va\fR option is supported on x86\-64 and ARM64 PE
+targets and implies \fB\-Wl,\-dynamicbase\fR.  Clearing dynamicbase also
+clears high-entropy-va.  When \fB\-Wl,\-dynamicbase\fR is used for an
+executable, TCC also enables base relocation emission for Windows ASLR.
 .IP \fB\-Wl,\-Bsymbolic\fR 4
 .IX Item "-Wl,-Bsymbolic"
 Set DT_SYMBOLIC tag.

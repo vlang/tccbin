@@ -90,8 +90,6 @@
     #define __NO_TLS 1
     #define __RUNETYPE_INTERNAL 1
 # if __SIZEOF_POINTER__ == 8
-    /* FIXME, __int128_t is used by setjump */
-    #define __int128_t struct { unsigned char _dummy[16] __attribute((aligned(16))); }
     #define __SIZEOF_SIZE_T__ 8
     #define __SIZEOF_PTRDIFF_T__ 8
 #else
@@ -142,12 +140,6 @@
 #endif
     #define __INT32_TYPE__ int
 
-#if defined __aarch64__
-    /* GCC's __uint128_t appears in some Linux/OSX header files. Make it a
-       synonym for long double to get the size and alignment right. */
-    #define __uint128_t long double
-#endif
-
 #if !defined _WIN32
     /* glibc defines. We do not support __USER_NAME_PREFIX__ */
     #define __REDIRECT(name, proto, alias) name proto __asm__ (#alias)
@@ -187,11 +179,17 @@
 # endif
 #endif
 
+    /* GCC's __uint128_t appears in some Linux/OSX header files.
+       Just make it some type with same size and alignment. */
+    struct __uint128__ { char x[16]; } __attribute((__aligned__(16)));
+    #define __int128_t struct __uint128__
+    #define __uint128_t struct __uint128__
+
     /* __builtin_va_list */
 #if defined __x86_64__
 #if !defined _WIN32
     /* GCC compatible definition of va_list. */
-    /* This should be in sync with the declaration in our lib/libtcc1.c */
+    /* This should be in sync with the declaration in our lib/va_list.c */
     typedef struct {
         unsigned gp_offset, fp_offset;
         union {
@@ -224,7 +222,9 @@
                            &~3), *(type *)(ap - ((sizeof(type)+3)&~3)))
 
 #elif defined __aarch64__
-#if defined __APPLE__
+#if defined _WIN32
+    typedef char *__builtin_va_list;
+#elif defined __APPLE__
     typedef struct {
         void *__stack;
     } __builtin_va_list;
@@ -308,11 +308,8 @@
     __MAYBE_REDIR(void*, calloc, (__SIZE_TYPE__, __SIZE_TYPE__))
     __MAYBE_REDIR(void*, memalign, (__SIZE_TYPE__, __SIZE_TYPE__))
     __MAYBE_REDIR(void, free, (void*))
-#if defined __i386__ || defined __x86_64__
     __BOTH(void*, alloca, (__SIZE_TYPE__))
-#else
-    __BUILTIN(void*, alloca, (__SIZE_TYPE__))
-#endif
+    void *alloca(__SIZE_TYPE__);
     __BUILTIN(void, abort, (void))
     __BOUND(void, longjmp, ())
 #if !defined _WIN32

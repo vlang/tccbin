@@ -385,6 +385,12 @@ opened with <code>dlopen()</code> needs to access executable symbols.
 
      <br><dt><samp><span class="option">-Wl,-[Ttext=# | section-alignment=# | file-alignment=# | image-base=# | stack=#]</span></samp><dd>Modify executable layout.
 
+     <br><dt><samp><span class="option">-Wl,-(no-|disable-)[dynamicbase | nxcompat | high-entropy-va | tsaware]</span></samp><dd>Set or clear PE (Windows) executable header hardening flags.  The
+<samp><span class="option">-Wl,-high-entropy-va</span></samp> option is supported on x86-64 and ARM64 PE
+targets and implies <samp><span class="option">-Wl,-dynamicbase</span></samp>.  Clearing dynamicbase also
+clears high-entropy-va.  When <samp><span class="option">-Wl,-dynamicbase</span></samp> is used for an
+executable, TCC also enables base relocation emission for Windows ASLR.
+
      <br><dt><samp><span class="option">-Wl,-Bsymbolic</span></samp><dd>Set DT_SYMBOLIC tag.
 
      <br><dt><samp><span class="option">-Wl,-(no-)whole-archive</span></samp><dd>Turn on/off linking of all objects in archives.

@@ -80,16 +80,6 @@ typedef struct {
 #define ATOMIC_FLAG_INIT {0}
 #define ATOMIC_VAR_INIT(value) (value)
 
-#define atomic_flag_test_and_set_explicit(object, order)                  \
-    __atomic_test_and_set((void *)(&((object)->value)), order)
-#define atomic_flag_test_and_set(object)                                  \
-    atomic_flag_test_and_set_explicit(object, __ATOMIC_SEQ_CST)
-
-#define atomic_flag_clear_explicit(object, order)                         \
-    __atomic_clear((bool *)(&((object)->value)), order)
-#define atomic_flag_clear(object) \
-    atomic_flag_clear_explicit(object, __ATOMIC_SEQ_CST)
-
 /* Generic routines */
 #define atomic_init(object, desired)                                      \
     atomic_store_explicit(object, desired, __ATOMIC_RELAXED)
@@ -110,7 +100,7 @@ typedef struct {
        __val; })
 #define atomic_load_explicit(object, order)                               \
     ({ __typeof__ (object) ptr = (object);                                \
-       __typeof__ (*ptr) tmp;                                             \
+       __typeof__ ((void)0,*ptr) tmp;                                             \
        __atomic_load (ptr, &tmp, (order));                                \
        tmp;                                                               \
     })
@@ -167,15 +157,15 @@ typedef struct {
 #define atomic_fetch_and_explicit __atomic_fetch_and
 
 extern void atomic_thread_fence (memory_order);
-extern void __atomic_thread_fence (memory_order);
-#define atomic_thread_fence(order) __atomic_thread_fence (order)
+#define __atomic_thread_fence(order) atomic_thread_fence (order)
 extern void atomic_signal_fence (memory_order);
-extern void __atomic_signal_fence (memory_order);
+#define __atomic_signal_fence(order) atomic_signal_fence(order)
 #define atomic_signal_fence(order) __atomic_signal_fence  (order)
 extern bool __atomic_is_lock_free(size_t size, void *ptr);
 #define atomic_is_lock_free(OBJ) __atomic_is_lock_free (sizeof (*(OBJ)), (OBJ))
 
-extern bool __atomic_test_and_set (void *, memory_order);
-extern void __atomic_clear (bool *, memory_order);
-
+extern bool atomic_flag_test_and_set(void *object);
+extern bool atomic_flag_test_and_set_explicit(void *object, memory_order order);
+extern void atomic_flag_clear(void *object);
+extern void atomic_flag_clear_explicit(void *object, memory_order order);
 #endif /* _STDATOMIC_H */

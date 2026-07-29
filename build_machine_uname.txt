@@ -1,1 +1,1 @@
-OpenBSD openbsd-dev.home.lan 7.8 GENERIC.MP#142 amd64
+OpenBSD runnervmg1sw1.local 7.8 GENERIC.MP#54 amd64
