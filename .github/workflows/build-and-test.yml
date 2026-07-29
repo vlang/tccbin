@@ -1,0 +1,297 @@
+name: build and test (freebsd-amd64)
+
+on:
+  push:
+    branches: [thirdparty-freebsd-amd64]
+  pull_request:
+    branches: [thirdparty-freebsd-amd64]
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # `github.sha` and `github.event.repository.clone_url` are used
+    # uniformly across all 3 trigger event types, and correctly cover
+    # each:
+    # - pull_request: `github.sha` is GitHub's own synthesized MERGE
+    #   commit (what the target branch would actually look like if
+    #   this PR were merged right now), not the PR branch's own head -
+    #   testing only the head tree in isolation could pass a PR whose
+    #   OWN commit works fine, while the actual merge result (combined
+    #   with whatever the target branch has since gained) is broken
+    #   (Codex pullrequestreview-4781865117 on vlang/tccbin#75). That
+    #   merge commit exists ONLY as an object in the base repo
+    #   (vlang/tccbin, exposed via `refs/pull/<n>/merge`) - never in a
+    #   contributor's fork - so this must clone from
+    #   `github.event.repository.clone_url` (the base repo), not the
+    #   fork's URL, regardless of where the PR originated.
+    # - push/workflow_dispatch: `github.sha`/`github.event.repository`
+    #   are simply the pushed/dispatched commit and the repo it lives
+    #   in - already exactly what should be tested.
+    # In every case, `github.sha` is fixed for this run's entire
+    # lifetime once the triggering event fires (a later push creates a
+    # brand new run with its own new `github.sha`, it doesn't mutate
+    # this one) - so this is exactly as race-safe against a
+    # mid-queue push as the earlier head.sha-based approach was (Codex
+    # pullrequestreview-4780048339 on vlang/tccbin#75), while also
+    # testing the actual merge result instead of the head tree alone.
+    # Set at job level (matching update_tccbin.yml's own working BSD
+    # job env, which only ever references github.*/secrets.*, never
+    # steps.* - step-level env on the "Start VM" step was tried first
+    # and empirically did NOT get forwarded into the VM by
+    # environment_variables, unlike this job-level placement).
+    env:
+      TCCBIN_CLONE_URL: ${{ github.event.repository.clone_url }}
+      TCCBIN_CLONE_SHA: ${{ github.sha }}
+    steps:
+      # cross-platform-actions/action boots a real FreeBSD VM inside this
+      # Linux runner - the same action vlang/v's own update_tccbin.yml
+      # uses to rebuild this branch's binaries. Cloning both repos
+      # directly inside the VM (rather than actions/checkout on the
+      # runner + sync_files) mirrors that proven-working pattern instead
+      # of relying on an unverified file-permission-preserving sync.
+      # Pinned to the v1.3.0 tag's commit (resolved via the GitHub API)
+      # rather than the mutable tag itself, so a retag upstream can't
+      # silently swap in different third-party code here without a
+      # review-visible diff (Codex pullrequestreview-4780048339 on
+      # vlang/tccbin#75).
+      - name: Start freebsd-amd64 VM
+        uses: cross-platform-actions/action@4347c661239bf5dcd0cd77708061488d907343d6 # v1.3.0
+        with:
+          operating_system: freebsd
+          version: '15.1'
+          memory: 4G
+          shell: sh
+          sync_files: runner-to-vm
+          environment_variables: TCCBIN_CLONE_URL TCCBIN_CLONE_SHA
+
+      - name: fetch shared conformance suite and this branch's binaries
+        shell: cpa.sh {0}
+        run: |
+          set -eu
+          sudo pkg install -y bash git
+
+          # Fetch the exact commit that triggered this run, not a branch
+          # name - `git clone --branch <name>` would resolve whatever
+          # that name points to *at clone time*, which can race a push
+          # that lands after this run started (Codex pullrequestreview-
+          # 4780048339 on vlang/tccbin#75).
+          mkdir -p thirdparty/tcc && cd thirdparty/tcc
+          git init -q
+          git remote add origin "$TCCBIN_CLONE_URL"
+          git fetch --depth=1 origin "$TCCBIN_CLONE_SHA"
+          git checkout -q FETCH_HEAD
+          cd ../..
+
+          # thirdparty/libgc/include (gc.h) and thirdparty/tccbin_tests
+          # (the shared cross-platform conformance suite) both live in
+          # the main v repo, not here. A plain `git clone --depth=1`
+          # only ever contains the CURRENT tip commit's objects - once
+          # vlang/v advances past this pinned SHA, that historical commit
+          # object won't exist in a fresh shallow clone and this checkout
+          # would fail (Codex P1, pullrequestreview-4780048339 on
+          # vlang/tccbin#75, line 60). Fetch that exact SHA directly
+          # instead of cloning HEAD and hoping it's still there.
+          mkdir -p vsrc && cd vsrc
+          git init -q
+          git remote add origin https://github.com/vlang/v.git
+          git sparse-checkout init --no-cone
+          git sparse-checkout set thirdparty/libgc thirdparty/tccbin_tests
+          git fetch --filter=blob:none --depth=1 origin c82d3f08271e9324d6fb8de3c251e9c0e1a9154b
+          git checkout -q FETCH_HEAD
+          cd ..
+
+          chmod +x thirdparty/tcc/tcc.exe
+
+      # tcc on FreeBSD cannot currently link the bundled libgc.a: its
+      # linker only ever defines the glibc-style _etext/_edata/_end
+      # (see tccelf.c's tcc_add_linker_symbols), never the plain BSD-
+      # style etext/edata/end that BDWGC's FreeBSD data-segment-scanning
+      # code references directly - so any GC-dependent program fails
+      # with "undefined symbol 'etext'"/"'end'". Root-caused and a fix
+      # verified against a real FreeBSD VM (patched tcc successfully
+      # builds+runs shared/hello.c against this same libgc.a); the fix
+      # is being submitted upstream to tinycc-devel but isn't in any
+      # shipped tcc.exe yet, so it can't be relied on here.
+      #
+      # crash.c doesn't touch the GC at all, so it's checked directly
+      # (bypassing run.sh, which would otherwise apply the same GC
+      # flags to every test) as the real, blocking regression check for
+      # this platform's tcc/libtcc1.a/crt pairing.
+      - name: run shared conformance tests (crash only, no GC - blocking)
+        shell: cpa.sh {0}
+        run: |
+          set -eu
+          thirdparty/tcc/tcc.exe vsrc/thirdparty/tccbin_tests/shared/crash.c \
+              -o /tmp/crash_nogc
+
+          set +e
+          /tmp/crash_nogc
+          code=$?
+          set -e
+
+          # Any nonzero exit isn't enough: an exec-format error, a
+          # missing dynamic loader, or an unrelated miscompilation that
+          # just exit(1)s would also satisfy that and silently mask a
+          # real regression, since the GC-backed suite below is
+          # non-blocking. crash.c's null-pointer dereference is
+          # expected to be killed by SIGSEGV specifically, which a
+          # POSIX shell reports as exit code 128+11=139 - verify that
+          # exact signal-terminated signature, not just "nonzero".
+          if [ "$code" -ne 139 ]; then
+            echo "expected exit 139 (killed by SIGSEGV) from an unguarded null-pointer dereference, got $code" >&2
+            exit 1
+          fi
+          echo "no-GC compile+crash check passed (killed by SIGSEGV as expected)"
+
+          # crash.c exiting 139 only proves SOME crash happened - if a
+          # broken libtcc1.a/crt or startup path made EVERY program
+          # segfault immediately (before ever reaching the intentional
+          # null-pointer dereference), this check would still see exit
+          # 139 and wrongly call it "expected" (Codex pullrequestreview-
+          # 4781468264 on vlang/tccbin#75). The GC-backed lane below
+          # can't provide this positive check either, since it's
+          # expected to fail at link time. Compile and run a trivial,
+          # non-crashing program with the same no-GC flags, requiring it
+          # to actually complete and exit 0 - proving the toolchain can
+          # still produce a genuinely working binary, not just one that
+          # crashes regardless of source.
+          cat > /tmp/nogc_trivial.c <<'TRIVIALEOF'
+          int main(void) { return 0; }
+          TRIVIALEOF
+          thirdparty/tcc/tcc.exe /tmp/nogc_trivial.c -o /tmp/nogc_trivial
+          set +e
+          /tmp/nogc_trivial
+          trivial_code=$?
+          set -e
+          if [ "$trivial_code" -ne 0 ]; then
+            echo "expected the trivial no-GC program to exit 0, got $trivial_code - the no-GC toolchain path may be broken (e.g. crashing at startup) even though the crash.c check above happened to pass" >&2
+            exit 1
+          fi
+          echo "trivial no-GC success check passed (exit=0)"
+
+      # continue-on-error alone would also swallow an unrelated failure
+      # (a corrupted libgc.a, a bad checkout, run.sh going missing) as if
+      # it were the known etext/end failure, and the blocking crash-only
+      # step above never references libgc.a at all - so a real
+      # regression in the archive itself could pass CI unnoticed (Codex
+      # pullrequestreview-4780048339 on vlang/tccbin#75, line 107).
+      # Assert the exact known failure signature instead, mirroring
+      # macos-arm64's own libgc.a XFAIL lane: any other failure shape
+      # (or an unexpected full pass, meaning the etext/end fix landed)
+      # fails the job for real.
+      - name: run shared conformance tests (libgc.a - XFAIL until the etext/end tcc fix ships)
+        shell: cpa.sh {0}
+        run: |
+          set +e
+          output=$(bash vsrc/thirdparty/tccbin_tests/run.sh "$PWD/thirdparty/tcc/tcc.exe" freebsd -- \
+              -DGC_BUILTIN_ATOMIC=1 -DBUS_PAGE_FAULT=T_PAGEFLT -DALL_INTERIOR_POINTERS=1 \
+              -I "$PWD/vsrc/thirdparty/libgc/include" \
+              "$PWD/thirdparty/tcc/lib/libgc.a" \
+              -lpthread 2>&1)
+          code=$?
+          set -e
+          echo "$output"
+
+          if [ "$code" -eq 0 ]; then
+            echo "expected the known etext/end unresolved-symbol failure, but this lane fully passed - the upstream tcc fix must have landed; remove this XFAIL special-casing and fold it back into a single blocking lane." >&2
+            exit 1
+          fi
+
+          # The pinned run.sh only ever prints "(compile error)" with no
+          # detail, so the summary-line match above can't tell "the known
+          # etext/end bug" apart from a DIFFERENT static-link regression
+          # that happens to fail the same two tests - e.g. a PR that
+          # replaces libgc.a with a valid-but-incomplete archive lacking
+          # the GC objects entirely: crash.c still compiles (it never
+          # references GC symbols) while gc_alloc/hello both report
+          # "compile error", matching this same summary shape for an
+          # unrelated reason (Codex pullrequestreview-4780219278 on
+          # vlang/tccbin#75). Compile BOTH failing tests directly to
+          # capture their real tcc stderr and assert each is specifically
+          # the known etext/end unresolved-symbol error - checking only
+          # one of the two (e.g. hello.c) would let an unrelated
+          # regression isolated to the OTHER test (gc_alloc.c) hide
+          # behind this same summary shape and pass unnoticed (Codex
+          # pullrequestreview-4780815399 on vlang/tccbin#75).
+          set +e
+          direct_err_hello=$(thirdparty/tcc/tcc.exe vsrc/thirdparty/tccbin_tests/shared/hello.c \
+              -DGC_BUILTIN_ATOMIC=1 -DBUS_PAGE_FAULT=T_PAGEFLT -DALL_INTERIOR_POINTERS=1 \
+              -I vsrc/thirdparty/libgc/include \
+              thirdparty/tcc/lib/libgc.a \
+              -lpthread \
+              -o /tmp/hello_xfail_probe 2>&1)
+          direct_code_hello=$?
+          direct_err_gc_alloc=$(thirdparty/tcc/tcc.exe vsrc/thirdparty/tccbin_tests/shared/gc_alloc.c \
+              -DGC_BUILTIN_ATOMIC=1 -DBUS_PAGE_FAULT=T_PAGEFLT -DALL_INTERIOR_POINTERS=1 \
+              -I vsrc/thirdparty/libgc/include \
+              thirdparty/tcc/lib/libgc.a \
+              -lpthread \
+              -o /tmp/gc_alloc_xfail_probe 2>&1)
+          direct_code_gc_alloc=$?
+          set -e
+
+          # Unlike macos-amd64's whole-archive-unparseable bug, this
+          # FreeBSD bug is narrow: tcc's linker only ever fails to define
+          # the two plain BSD-style symbols (etext, end) that BDWGC
+          # references directly - nothing else in the archive is
+          # affected. So an exact match here is the correct check: reject
+          # if any unresolved-reference line names a symbol OTHER than
+          # etext/end, since that would mean a genuinely different,
+          # additional regression rode along with the known bug (Codex
+          # pullrequestreview-4780907186 on vlang/tccbin#75).
+          is_known_etext_end() {
+            # $1 = captured stderr text, $2 = the probe's own exit code.
+            # A regression could make tcc print the expected etext/end
+            # diagnostic and then crash/abort rather than exiting
+            # cleanly with its normal compile-error status - the earlier
+            # `|| true` discarded that exit code entirely, so a shell
+            # "Segmentation fault" or similar abnormal termination
+            # alongside the expected text would still pass (Codex
+            # pullrequestreview-4781865117 on vlang/tccbin#75). A POSIX
+            # shell reports a signal-terminated process as exit code
+            # 128+signal; reject those instead of treating any nonzero
+            # exit as "the expected compile-error status". Also reject
+            # exit 0: a changed tcc.exe could start printing this same
+            # diagnostic as noise while still reporting overall success
+            # - the text alone isn't proof the compile actually failed
+            # (Codex pullrequestreview-4783389496 on the sibling
+            # macos-amd64 workflow, vlang/tccbin#74, same class of gap
+            # here).
+            if [ "$2" -eq 0 ] || [ "$2" -gt 128 ]; then
+              return 1
+            fi
+            case "$1" in
+              *"undefined symbol 'etext'"*|*"undefined symbol 'end'"*) ;;
+              *) return 1 ;;
+            esac
+            # Filtering only "undefined symbol '...'" lines and checking
+            # their NAMES misses a wholly DIFFERENT kind of tcc error
+            # (invalid object, relocation error, etc.) riding alongside
+            # the known one - such a line simply wouldn't match the
+            # "undefined symbol" pattern at extraction, so `other` would
+            # stay empty and this would wrongly accept the XFAIL (Codex
+            # pullrequestreview-4781468264 on vlang/tccbin#75). Match on
+            # tcc's actual error-line prefix instead, so ANY tcc error
+            # line that isn't specifically etext/end gets caught, not
+            # just a differently-named undefined symbol.
+            other=$(printf '%s\n' "$1" | grep -E '^tcc: error:' | grep -v -E "undefined symbol '(etext|end)'")
+            [ -z "$other" ]
+          }
+
+          case "$output" in
+            *"PASS crash"*"FAIL gc_alloc (compile error)"*"FAIL hello (compile error)"*)
+              if is_known_etext_end "$direct_err_hello" "$direct_code_hello" && is_known_etext_end "$direct_err_gc_alloc" "$direct_code_gc_alloc"; then
+                echo "known XFAIL: etext/end still unresolved on FreeBSD tcc for both gc_alloc.c and hello.c, as expected - not blocking CI"
+              else
+                echo "libgc.a lane failed with the known summary shape, but at least one of gc_alloc.c/hello.c's direct compile errors does NOT mention an unresolved etext/end symbol (or exited abnormally) - this looks like a different, unexpected regression:" >&2
+                echo "hello.c: exit=$direct_code_hello: $direct_err_hello" >&2
+                echo "gc_alloc.c: exit=$direct_code_gc_alloc: $direct_err_gc_alloc" >&2
+                exit 1
+              fi
+              ;;
+            *)
+              echo "libgc.a lane failed, but NOT with the known/expected summary (PASS crash, FAIL gc_alloc/hello with compile error) - this looks like a different, unexpected problem and should not be silently treated as the known XFAIL." >&2
+              exit 1
+              ;;
+          esac
