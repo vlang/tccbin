@@ -108,7 +108,11 @@ jobs:
       # (see tccelf.c's tcc_add_linker_symbols), never the plain BSD-
       # style etext/edata/end that BDWGC's FreeBSD data-segment-scanning
       # code references directly - so any GC-dependent program fails
-      # with "undefined symbol 'etext'"/"'end'". Root-caused and a fix
+      # with "undefined symbol 'etext'"/"'end'" (or, on the tcc build
+      # currently on this branch, "unresolved reference to 'etext'"/
+      # "'end'" - same underlying bug, tcc has used both diagnostic
+      # wordings for an unresolved-symbol linker error across versions).
+      # Root-caused and a fix
       # verified against a real FreeBSD VM (patched tcc successfully
       # builds+runs shared/hello.c against this same libgc.a); the fix
       # is being submitted upstream to tinycc-devel but isn't in any
@@ -261,21 +265,30 @@ jobs:
             if [ "$2" -eq 0 ] || [ "$2" -gt 128 ]; then
               return 1
             fi
+            # Run 30421217468 (2026-07-29) is a confirmed matcher false
+            # negative, not a real regression: this branch's tcc now
+            # reports "unresolved reference to 'etext'"/"'end'" instead of
+            # the "undefined symbol '...'" wording this check originally
+            # matched - same known bug, different tcc diagnostic wording
+            # (tcc has used both phrasings for an unresolved-symbol linker
+            # error across versions/builds). Accept either wording rather
+            # than replacing one with the other, so a differently-built
+            # tcc.exe landing here later isn't a second false negative.
             case "$1" in
-              *"undefined symbol 'etext'"*|*"undefined symbol 'end'"*) ;;
+              *"undefined symbol 'etext'"*|*"undefined symbol 'end'"*|*"unresolved reference to 'etext'"*|*"unresolved reference to 'end'"*) ;;
               *) return 1 ;;
             esac
-            # Filtering only "undefined symbol '...'" lines and checking
-            # their NAMES misses a wholly DIFFERENT kind of tcc error
-            # (invalid object, relocation error, etc.) riding alongside
-            # the known one - such a line simply wouldn't match the
-            # "undefined symbol" pattern at extraction, so `other` would
-            # stay empty and this would wrongly accept the XFAIL (Codex
-            # pullrequestreview-4781468264 on vlang/tccbin#75). Match on
-            # tcc's actual error-line prefix instead, so ANY tcc error
-            # line that isn't specifically etext/end gets caught, not
-            # just a differently-named undefined symbol.
-            other=$(printf '%s\n' "$1" | grep -E '^tcc: error:' | grep -v -E "undefined symbol '(etext|end)'")
+            # Filtering only the known-wording lines and checking their
+            # NAMES misses a wholly DIFFERENT kind of tcc error (invalid
+            # object, relocation error, etc.) riding alongside the known
+            # one - such a line simply wouldn't match either wording
+            # pattern at extraction, so `other` would stay empty and this
+            # would wrongly accept the XFAIL (Codex pullrequestreview-
+            # 4781468264 on vlang/tccbin#75). Match on tcc's actual
+            # error-line prefix instead, so ANY tcc error line that isn't
+            # specifically etext/end (under either wording) gets caught,
+            # not just a differently-named undefined symbol.
+            other=$(printf '%s\n' "$1" | grep -E '^tcc: error:' | grep -v -E "undefined symbol '(etext|end)'|unresolved reference to '(etext|end)'")
             [ -z "$other" ]
           }
 
