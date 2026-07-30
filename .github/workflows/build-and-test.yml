@@ -120,8 +120,19 @@ jobs:
       # since `lipo -thin` fails outright on an already-thin input
       # regardless of whether its single architecture matches what was
       # requested.
+      #
+      # `!cancelled()` (matching the same pattern already used below for
+      # the no-GC/static-XFAIL lanes): this validates libgc.a, a file
+      # wholly independent of whatever the libgc.dylib check above found -
+      # a failure there shouldn't hide whether the archive is ALSO fine or
+      # ALSO broken. Confirmed concretely useful the first time this ran:
+      # without this, a genuine libgc.dylib-missing failure (expected pre-
+      # publish) skipped this step entirely, leaving the new fat-or-thin
+      # detection logic here completely unexercised against the real
+      # checked-in archive.
       - name: verify the checked-in libgc.a is a well-formed x86_64 archive (as distributed, before rebuild)
         working-directory: work
+        if: ${{ !cancelled() }}
         run: |
           archs="$(lipo -archs thirdparty/tcc/lib/libgc.a)"
           echo "thirdparty/tcc/lib/libgc.a architectures: $archs"
