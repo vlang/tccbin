@@ -227,19 +227,39 @@ jobs:
           set -eu
           cat > /tmp/boundary_probe.c <<'PROBEEOF'
           #include <stdio.h>
+          #include <stdint.h>
+          #include <inttypes.h>
+
           /* The plain BSD-style names BDWGC's FreeBSD data-segment scan
              references, and that tcc did not provide before 384614a. */
           extern char etext[], edata[], end[];
+
           int main(void) {
-              printf("etext=%p edata=%p end=%p\n",
-                     (void *)etext, (void *)edata, (void *)end);
-              /* Sanity-check the advertised range, not merely the
-                 symbols' existence: 384614a is specifically about
-                 boundary symbols being finalized from the ordered
-                 loadable sections, so provided-but-wrong is a distinct
-                 failure mode from not-provided. */
-              if (!((void *)etext < (void *)end)) {
-                  fprintf(stderr, "bad boundary range: etext is not below end\n");
+              /* Compare as uintptr_t rather than as pointers: relational
+                 comparison of pointers into distinct objects is undefined
+                 behaviour in C, so a pointer-level check is not a check a
+                 compiler is obliged to evaluate the way it reads. Integer
+                 comparison of the converted addresses is well defined and
+                 says exactly what is meant. */
+              uintptr_t text_end = (uintptr_t)etext;
+              uintptr_t data_end = (uintptr_t)edata;
+              uintptr_t bss_end = (uintptr_t)end;
+
+              printf("etext=0x%" PRIxPTR " edata=0x%" PRIxPTR " end=0x%" PRIxPTR "\n",
+                     text_end, data_end, bss_end);
+
+              /* Assert the FULL ordering, not merely that the range is
+                 non-empty: 384614a is specifically about boundary symbols
+                 being finalized from the ordered loadable sections, so
+                 provided-but-mis-ordered is a distinct failure mode from
+                 not-provided, and only a complete etext <= edata <= end
+                 check catches a middle symbol landing out of place.
+                 Non-strict (<=) deliberately: an empty .data or .bss makes
+                 adjacent boundaries legitimately equal, and a strict <
+                 would fail such a build for no good reason. */
+              if (!(text_end <= data_end && data_end <= bss_end)) {
+                  fprintf(stderr,
+                          "bad boundary range: expected etext <= edata <= end\n");
                   return 1;
               }
               return 0;
