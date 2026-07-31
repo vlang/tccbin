@@ -103,25 +103,26 @@ jobs:
 
           chmod +x thirdparty/tcc/tcc.exe
 
-      # tcc on FreeBSD cannot currently link the bundled libgc.a: its
-      # linker only ever defines the glibc-style _etext/_edata/_end
-      # (see tccelf.c's tcc_add_linker_symbols), never the plain BSD-
-      # style etext/edata/end that BDWGC's FreeBSD data-segment-scanning
-      # code references directly - so any GC-dependent program fails
-      # with "undefined symbol 'etext'"/"'end'" (or, on the tcc build
-      # currently on this branch, "unresolved reference to 'etext'"/
-      # "'end'" - same underlying bug, tcc has used both diagnostic
-      # wordings for an unresolved-symbol linker error across versions).
-      # Root-caused and a fix
-      # verified against a real FreeBSD VM (patched tcc successfully
-      # builds+runs shared/hello.c against this same libgc.a); the fix
-      # is being submitted upstream to tinycc-devel but isn't in any
-      # shipped tcc.exe yet, so it can't be relied on here.
+      # HISTORY: tcc on FreeBSD used to be unable to link the bundled
+      # libgc.a at all - its linker only ever defined the glibc-style
+      # _etext/_edata/_end (see tccelf.c's tcc_add_linker_symbols), never
+      # the plain BSD-style etext/edata/end that BDWGC's FreeBSD
+      # data-segment-scanning code references directly, so any
+      # GC-dependent program failed with "undefined symbol 'etext'"/
+      # "'end'" (later builds reworded this to "unresolved reference
+      # to ..."). That is FIXED upstream as of tinycc 384614a, "tccelf:
+      # provide complete ELF boundary symbols", which gives the plain
+      # etext/edata/end names PROVIDE semantics on every ELF target.
+      #
+      # The GC lane below is therefore a normal BLOCKING lane now, not an
+      # XFAIL - see the comment above it.
       #
       # crash.c doesn't touch the GC at all, so it's checked directly
       # (bypassing run.sh, which would otherwise apply the same GC
-      # flags to every test) as the real, blocking regression check for
-      # this platform's tcc/libtcc1.a/crt pairing.
+      # flags to every test) as an independent, blocking regression check
+      # for this platform's tcc/libtcc1.a/crt pairing - it still catches a
+      # broken toolchain even if the GC lane were to fail for its own
+      # unrelated reasons.
       - name: run shared conformance tests (crash only, no GC - blocking)
         shell: cpa.sh {0}
         run: |
@@ -137,8 +138,7 @@ jobs:
           # Any nonzero exit isn't enough: an exec-format error, a
           # missing dynamic loader, or an unrelated miscompilation that
           # just exit(1)s would also satisfy that and silently mask a
-          # real regression, since the GC-backed suite below is
-          # non-blocking. crash.c's null-pointer dereference is
+          # real regression. crash.c's null-pointer dereference is
           # expected to be killed by SIGSEGV specifically, which a
           # POSIX shell reports as exit code 128+11=139 - verify that
           # exact signal-terminated signature, not just "nonzero".
@@ -153,13 +153,15 @@ jobs:
           # segfault immediately (before ever reaching the intentional
           # null-pointer dereference), this check would still see exit
           # 139 and wrongly call it "expected" (Codex pullrequestreview-
-          # 4781468264 on vlang/tccbin#75). The GC-backed lane below
-          # can't provide this positive check either, since it's
-          # expected to fail at link time. Compile and run a trivial,
-          # non-crashing program with the same no-GC flags, requiring it
-          # to actually complete and exit 0 - proving the toolchain can
-          # still produce a genuinely working binary, not just one that
-          # crashes regardless of source.
+          # 4781468264 on vlang/tccbin#75). Keep this positive check
+          # independent of the GC lane below rather than relying on it:
+          # this lane's whole purpose is to stay meaningful on its own,
+          # covering the plain no-GC toolchain path that a GC-linked test
+          # never exercises. Compile and run a trivial, non-crashing
+          # program with the same no-GC flags, requiring it to actually
+          # complete and exit 0 - proving the toolchain can still produce
+          # a genuinely working binary, not just one that crashes
+          # regardless of source.
           cat > /tmp/nogc_trivial.c <<'TRIVIALEOF'
           int main(void) { return 0; }
           TRIVIALEOF
@@ -174,137 +176,75 @@ jobs:
           fi
           echo "trivial no-GC success check passed (exit=0)"
 
-      # continue-on-error alone would also swallow an unrelated failure
-      # (a corrupted libgc.a, a bad checkout, run.sh going missing) as if
-      # it were the known etext/end failure, and the blocking crash-only
-      # step above never references libgc.a at all - so a real
-      # regression in the archive itself could pass CI unnoticed (Codex
-      # pullrequestreview-4780048339 on vlang/tccbin#75, line 107).
-      # Assert the exact known failure signature instead, mirroring
-      # macos-arm64's own libgc.a XFAIL lane: any other failure shape
-      # (or an unexpected full pass, meaning the etext/end fix landed)
-      # fails the job for real.
-      - name: run shared conformance tests (libgc.a - XFAIL until the etext/end tcc fix ships)
+      # BLOCKING as of tinycc 384614a ("tccelf: provide complete ELF
+      # boundary symbols"), which is what this branch's tcc.exe must now
+      # be built from or later. This lane was previously a
+      # signature-checked XFAIL asserting that gc_alloc.c/hello.c MUST
+      # still fail on unresolved etext/end - correct while the bug was
+      # live, but it would hard-fail the moment a fixed tcc.exe is
+      # published here (its own "unexpected full pass" guard fired on
+      # exactly that), breaking CI for the opposite reason.
+      #
+      # This STRENGTHENS the gate rather than relaxing it: a full pass of
+      # all three shared tests is now the required baseline, where before
+      # only a very specific failure was accepted. Nothing here is
+      # downgraded to a warning, and no failure shape is tolerated.
+      #
+      # Verified on a real FreeBSD 15.1 VM before flipping: with this
+      # branch's EXACT libgc.a held byte-identical, the shipped tcc.exe
+      # (85ba3ae8, predating the fix) fails on unresolved etext/end and
+      # nothing else, while a tcc.exe rebuilt from tinycc 2be0218b (which
+      # contains 384614a) reports "3 passed, 0 failed". tcc.exe was the
+      # only variable between the two.
+      - name: run shared conformance tests (libgc.a - blocking)
         shell: cpa.sh {0}
         run: |
-          set +e
-          output=$(bash vsrc/thirdparty/tccbin_tests/run.sh "$PWD/thirdparty/tcc/tcc.exe" freebsd -- \
+          set -eu
+          bash vsrc/thirdparty/tccbin_tests/run.sh "$PWD/thirdparty/tcc/tcc.exe" freebsd -- \
               -DGC_BUILTIN_ATOMIC=1 -DBUS_PAGE_FAULT=T_PAGEFLT -DALL_INTERIOR_POINTERS=1 \
               -I "$PWD/vsrc/thirdparty/libgc/include" \
               "$PWD/thirdparty/tcc/lib/libgc.a" \
-              -lpthread 2>&1)
-          code=$?
-          set -e
-          echo "$output"
+              -lpthread
 
-          if [ "$code" -eq 0 ]; then
-            echo "expected the known etext/end unresolved-symbol failure, but this lane fully passed - the upstream tcc fix must have landed; remove this XFAIL special-casing and fold it back into a single blocking lane." >&2
-            exit 1
-          fi
-
-          # The pinned run.sh only ever prints "(compile error)" with no
-          # detail, so the summary-line match above can't tell "the known
-          # etext/end bug" apart from a DIFFERENT static-link regression
-          # that happens to fail the same two tests - e.g. a PR that
-          # replaces libgc.a with a valid-but-incomplete archive lacking
-          # the GC objects entirely: crash.c still compiles (it never
-          # references GC symbols) while gc_alloc/hello both report
-          # "compile error", matching this same summary shape for an
-          # unrelated reason (Codex pullrequestreview-4780219278 on
-          # vlang/tccbin#75). Compile BOTH failing tests directly to
-          # capture their real tcc stderr and assert each is specifically
-          # the known etext/end unresolved-symbol error - checking only
-          # one of the two (e.g. hello.c) would let an unrelated
-          # regression isolated to the OTHER test (gc_alloc.c) hide
-          # behind this same summary shape and pass unnoticed (Codex
-          # pullrequestreview-4780815399 on vlang/tccbin#75).
-          set +e
-          direct_err_hello=$(thirdparty/tcc/tcc.exe vsrc/thirdparty/tccbin_tests/shared/hello.c \
-              -DGC_BUILTIN_ATOMIC=1 -DBUS_PAGE_FAULT=T_PAGEFLT -DALL_INTERIOR_POINTERS=1 \
-              -I vsrc/thirdparty/libgc/include \
-              thirdparty/tcc/lib/libgc.a \
-              -lpthread \
-              -o /tmp/hello_xfail_probe 2>&1)
-          direct_code_hello=$?
-          direct_err_gc_alloc=$(thirdparty/tcc/tcc.exe vsrc/thirdparty/tccbin_tests/shared/gc_alloc.c \
-              -DGC_BUILTIN_ATOMIC=1 -DBUS_PAGE_FAULT=T_PAGEFLT -DALL_INTERIOR_POINTERS=1 \
-              -I vsrc/thirdparty/libgc/include \
-              thirdparty/tcc/lib/libgc.a \
-              -lpthread \
-              -o /tmp/gc_alloc_xfail_probe 2>&1)
-          direct_code_gc_alloc=$?
-          set -e
-
-          # Unlike macos-amd64's whole-archive-unparseable bug, this
-          # FreeBSD bug is narrow: tcc's linker only ever fails to define
-          # the two plain BSD-style symbols (etext, end) that BDWGC
-          # references directly - nothing else in the archive is
-          # affected. So an exact match here is the correct check: reject
-          # if any unresolved-reference line names a symbol OTHER than
-          # etext/end, since that would mean a genuinely different,
-          # additional regression rode along with the known bug (Codex
-          # pullrequestreview-4780907186 on vlang/tccbin#75).
-          is_known_etext_end() {
-            # $1 = captured stderr text, $2 = the probe's own exit code.
-            # A regression could make tcc print the expected etext/end
-            # diagnostic and then crash/abort rather than exiting
-            # cleanly with its normal compile-error status - the earlier
-            # `|| true` discarded that exit code entirely, so a shell
-            # "Segmentation fault" or similar abnormal termination
-            # alongside the expected text would still pass (Codex
-            # pullrequestreview-4781865117 on vlang/tccbin#75). A POSIX
-            # shell reports a signal-terminated process as exit code
-            # 128+signal; reject those instead of treating any nonzero
-            # exit as "the expected compile-error status". Also reject
-            # exit 0: a changed tcc.exe could start printing this same
-            # diagnostic as noise while still reporting overall success
-            # - the text alone isn't proof the compile actually failed
-            # (Codex pullrequestreview-4783389496 on the sibling
-            # macos-amd64 workflow, vlang/tccbin#74, same class of gap
-            # here).
-            if [ "$2" -eq 0 ] || [ "$2" -gt 128 ]; then
-              return 1
-            fi
-            # Run 30421217468 (2026-07-29) is a confirmed matcher false
-            # negative, not a real regression: this branch's tcc now
-            # reports "unresolved reference to 'etext'"/"'end'" instead of
-            # the "undefined symbol '...'" wording this check originally
-            # matched - same known bug, different tcc diagnostic wording
-            # (tcc has used both phrasings for an unresolved-symbol linker
-            # error across versions/builds). Accept either wording rather
-            # than replacing one with the other, so a differently-built
-            # tcc.exe landing here later isn't a second false negative.
-            case "$1" in
-              *"undefined symbol 'etext'"*|*"undefined symbol 'end'"*|*"unresolved reference to 'etext'"*|*"unresolved reference to 'end'"*) ;;
-              *) return 1 ;;
-            esac
-            # Filtering only the known-wording lines and checking their
-            # NAMES misses a wholly DIFFERENT kind of tcc error (invalid
-            # object, relocation error, etc.) riding alongside the known
-            # one - such a line simply wouldn't match either wording
-            # pattern at extraction, so `other` would stay empty and this
-            # would wrongly accept the XFAIL (Codex pullrequestreview-
-            # 4781468264 on vlang/tccbin#75). Match on tcc's actual
-            # error-line prefix instead, so ANY tcc error line that isn't
-            # specifically etext/end (under either wording) gets caught,
-            # not just a differently-named undefined symbol.
-            other=$(printf '%s\n' "$1" | grep -E '^tcc: error:' | grep -v -E "undefined symbol '(etext|end)'|unresolved reference to '(etext|end)'")
-            [ -z "$other" ]
+      # Positive proof of the MECHANISM, not just the outcome. The lane
+      # above passing means BDWGC linked, but it does not by itself prove
+      # WHY - a future tcc.exe could conceivably satisfy the suite while
+      # regressing the boundary symbols BDWGC's FreeBSD data-segment scan
+      # depends on, or provide them with a nonsensical range. Reference
+      # all three directly from C: if the linker fails to provide them,
+      # this simply does not link, which is precisely the original bug.
+      #
+      # Deliberately NOT an `nm` symbol-table check - that was tried while
+      # validating this flip and is the wrong instrument: tcc emits no
+      # full .symtab by default, and linker-PROVIDEd symbols need not
+      # appear in the output binary's symbol table at all, so `nm`
+      # reported all three "absent" for a binary that had just linked and
+      # run correctly.
+      - name: verify the linker provides etext/edata/end (blocking)
+        shell: cpa.sh {0}
+        if: ${{ !cancelled() }}
+        run: |
+          set -eu
+          cat > /tmp/boundary_probe.c <<'PROBEEOF'
+          #include <stdio.h>
+          /* The plain BSD-style names BDWGC's FreeBSD data-segment scan
+             references, and that tcc did not provide before 384614a. */
+          extern char etext[], edata[], end[];
+          int main(void) {
+              printf("etext=%p edata=%p end=%p\n",
+                     (void *)etext, (void *)edata, (void *)end);
+              /* Sanity-check the advertised range, not merely the
+                 symbols' existence: 384614a is specifically about
+                 boundary symbols being finalized from the ordered
+                 loadable sections, so provided-but-wrong is a distinct
+                 failure mode from not-provided. */
+              if (!((void *)etext < (void *)end)) {
+                  fprintf(stderr, "bad boundary range: etext is not below end\n");
+                  return 1;
+              }
+              return 0;
           }
-
-          case "$output" in
-            *"PASS crash"*"FAIL gc_alloc (compile error)"*"FAIL hello (compile error)"*)
-              if is_known_etext_end "$direct_err_hello" "$direct_code_hello" && is_known_etext_end "$direct_err_gc_alloc" "$direct_code_gc_alloc"; then
-                echo "known XFAIL: etext/end still unresolved on FreeBSD tcc for both gc_alloc.c and hello.c, as expected - not blocking CI"
-              else
-                echo "libgc.a lane failed with the known summary shape, but at least one of gc_alloc.c/hello.c's direct compile errors does NOT mention an unresolved etext/end symbol (or exited abnormally) - this looks like a different, unexpected regression:" >&2
-                echo "hello.c: exit=$direct_code_hello: $direct_err_hello" >&2
-                echo "gc_alloc.c: exit=$direct_code_gc_alloc: $direct_err_gc_alloc" >&2
-                exit 1
-              fi
-              ;;
-            *)
-              echo "libgc.a lane failed, but NOT with the known/expected summary (PASS crash, FAIL gc_alloc/hello with compile error) - this looks like a different, unexpected problem and should not be silently treated as the known XFAIL." >&2
-              exit 1
-              ;;
-          esac
+          PROBEEOF
+          thirdparty/tcc/tcc.exe /tmp/boundary_probe.c -o /tmp/boundary_probe
+          /tmp/boundary_probe
+          echo "confirmed: the linker provides etext/edata/end, and the advertised range is ordered sanely"
