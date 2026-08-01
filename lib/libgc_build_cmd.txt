@@ -1,12 +1,2 @@
-CFLAGS='-Os -mtune=generic -arch x86_64 -arch arm64' LDFLAGS='-Os -arch x86_64 -arch arm64' ./configure \
-    --enable-threads=pthreads \
-    --enable-static \
-    --enable-shared=no \
-    --enable-parallel-mark \
-    --enable-single-obj-compilation \
-    --enable-gc-debug \
-    --with-libatomic-ops=none 
-
-make
-
-cp .libs/libgc.a /path/to/v/thirdparty/tcc/lib/libgc.a
+thirdparty/build_scripts/thirdparty-macos-amd64_bdwgc.sh
+MACOSX_DEPLOYMENT_TARGET="10.13" CC="clang" CFLAGS="-Os -mtune=generic -fPIC" LDFLAGS="-Os -fPIC" ./configure --disable-dependency-tracking --disable-docs --enable-static=yes --enable-shared=yes --enable-single-obj-compilation --enable-gc-debug --enable-thread-local-alloc --enable-large-config --enable-cplusplus --with-libatomic-ops=check --enable-sigrt-signals
