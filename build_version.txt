@@ -1,1 +1,1 @@
-tcc version 0.9.28rc 2026-07-24 HEAD@85ba3ae8 (x86_64 FreeBSD)
+tcc version 0.9.28rc 2026-07-30 HEAD@2be0218b (x86_64 FreeBSD)
