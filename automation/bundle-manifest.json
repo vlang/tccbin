@@ -1,0 +1,793 @@
+{
+  "schema_version": 1,
+  "contract_version": 1,
+  "contract_repository": "vlang/v",
+  "contract_sha": "7545e515b434cd399333d43659238427d72e22e7",
+  "contract_mode": "production",
+  "v_source_sha": "7545e515b434cd399333d43659238427d72e22e7",
+  "target_id": "linux-amd64",
+  "branch": "thirdparty-linux-amd64",
+  "sources": [
+    {
+      "id": "tinycc",
+      "repository": "https://repo.or.cz/tinycc.git",
+      "ref": "mob",
+      "sha": null,
+      "tree": null
+    },
+    {
+      "id": "bdwgc",
+      "repository": "https://github.com/ivmai/bdwgc.git",
+      "ref": "master",
+      "sha": null,
+      "tree": null
+    }
+  ],
+  "recipe": {
+    "path": "build.sh",
+    "version": 1,
+    "sha256": "b9987cb0c9a6901525bae849e44b54d53b9a5d56fb8a98b5c1b38f8e76702ef6"
+  },
+  "toolchain": {
+    "profile_id": null,
+    "profile_sha256": null,
+    "producer_observation": null
+  },
+  "patches": [],
+  "transforms": [],
+  "header_effects": [],
+  "integrations": [],
+  "overlays": [],
+  "inventory": [
+    {
+      "path": "README.md",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "d81176c8cd1000148dd10d1c681e963fad6d06cd75a572af8da9c6245d62a205",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "build_machine_uname.txt",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "2656bb4fa74ca90fe830fdcb58eea0cb1e040cb58c7fb6784b715c8d511c58ec",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "build_on_date.txt",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "f2c7a944b71db29ee2ea01fa6f7bc730459f4b2cb10ee6b9dafa8f003c6c52fa",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "build_source_hash.txt",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "cbc5e7d0a22103555385be4076566b25e22adbe198089ce7404e50d2c75aa97e",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "build_version.txt",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "1348aea2216945f27f8990d3255861868f9a4eb798fc1ed4ff762588b632a01d",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/libtcc.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "42e1fb86b44088850e0e17ec0947b483a2edb586b420d18196d7b9b5dce944e4",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/build_libgc.sh",
+      "kind": "executable",
+      "git_mode": "100755",
+      "sha256": "0b5ef49e84ca694a9b7e392bc76699a97eb0b18d235dd16e88bb5f3b30273e9c",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/libgc.a",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "c06c2131de0eae45642b989b29fd12d11ca0ee8845dbabe86c67eda2e35ee3d6",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/libgc_build_machine_uname.txt",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "114ce3d00cb9cc50a62e847e824edd52488c5c9f3efab83e25d2b932f4ced3f9",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/libgc_build_on_date.txt",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "79b335ccb51863f3aaa0fe6618405c33e14eb0a35d8d100e267e255739205621",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/libgc_build_source_hash.txt",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "bf1ec012e2fb06a5dd5cb23145784ed1461749e54354f9a6edec4984348954e6",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/libtcc.a",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "1005f4b295b6ed9afc6aa02f98e5963f1090d22a31c3ad3b0b72bfd3ed2c42b9",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/tcc/bcheck.o",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "8618decf2639b0ca6a97e67b3911562147ffed16e3785300075c0876c5b4bf82",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/tcc/bt-exe.o",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "17b16ac2ee0d229b1ff0ccb63fe961b94a3982d40129ef2ed2be5e99536bca97",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/tcc/bt-log.o",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "72e1ac001c9b996f03f6de4b8caadf3e0df8933f597f48d6ccb760230103a6c1",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/tcc/include/float.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "484ffee95fcdbc00cdc154b9dc2fe03fed65610bf1a73b610871cc39698e6f8e",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/tcc/include/stdalign.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "7612d46571099ccaa7616a510f78f180cb1e91671e6e5e9223a2e297b84b789d",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/tcc/include/stdarg.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "a38f8d34f5e09658cc3a8892b3a7e80ff566eaeedc194e5a85ece0b675993137",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/tcc/include/stdatomic.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "4fbd9d6ec9add338d41c06f44115121925f087dd91f445b56cca1aacb84360e1",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/tcc/include/stdbool.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "5252824225ddc486b0460677f765e4157af5d3ed7acd65b310a4045eafb56af7",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/tcc/include/stddef.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "c42eaa62f574527b8d0d64f802b20c27ebeb66feb2c3608e9b9659225ad6ed45",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/tcc/include/stdnoreturn.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "ec64d8fbf7fb2e800df9784b2efca0a99fc25a3eb5e8da56e4df098937f787f2",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/tcc/include/tccdefs.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "d1016b6170c45f1b8e7f8d83bf1f00f21e288eb2e446d9f141457f6f821acf7b",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/tcc/include/tcclib.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "2cfbd6b9c5e039721fbfb8e6f95a0a9fc30597bbcb2aefa3dda572c278009429",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/tcc/include/tgmath.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "e60c66ff9017f13ab18ee38824792ca771b9235bcb4df57688fec582739524a5",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/tcc/include/varargs.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "07858857f4eed0a61df94beb1a9d678b53fc3d67a0b0e8936155f85ddbcd1dcc",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/tcc/libtcc1.a",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "7fac7e6c3717e8e82e7b424a69f5ff47f61eea49ea5448e791ebecc208800215",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/tcc/runmain.o",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "c4d28fa3699c6c5f752f25f4a24bb66db73dcaa8a1b8a7496e9b9deecf7d210d",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "share/doc/tcc-doc.html",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "ba6f7856d142ee87b00ca198431e7d1c729d18dc115a422dfd2d629b8d11968c",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "share/info/tcc-doc.info",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "7f4af35cad222b0690d096bd2d28e464ea4e5d0a07c457bf1f324a70551bda23",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "share/man/man1/tcc.1",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "2eccdb931a965462784dc3468a8759da4618a1a6f05d667e90eb0f33489e60c6",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    }
+  ],
+  "outputs": [
+    {
+      "path": "tcc.exe",
+      "kind": "executable",
+      "git_mode": "100755",
+      "sha256": "d30e38192a33f88495f69b54bc7b395e6c3c3b087ce4cb0999e6870c12654461",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "native-compiler",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    }
+  ],
+  "probes": [
+    {
+      "id": "manifest-contract",
+      "required": true,
+      "expected_lanes": [
+        "native"
+      ],
+      "oracle": "strict schema, binding, and semantic validation"
+    },
+    {
+      "id": "source-provenance",
+      "required": true,
+      "expected_lanes": [
+        "native"
+      ],
+      "oracle": "unresolved sources remain explicitly non-publishable"
+    },
+    {
+      "id": "native-build",
+      "required": true,
+      "expected_lanes": [
+        "native"
+      ],
+      "oracle": "native build succeeds"
+    },
+    {
+      "id": "payload-inventory",
+      "required": true,
+      "expected_lanes": [
+        "native"
+      ],
+      "oracle": "manifest inventory is expanded before eligibility"
+    },
+    {
+      "id": "patch-probes",
+      "required": true,
+      "expected_lanes": [],
+      "oracle": "empty patchset materializes one expected-zero result"
+    },
+    {
+      "id": "tccbin-conformance",
+      "required": true,
+      "expected_lanes": [
+        "native"
+      ],
+      "oracle": "shared conformance passes"
+    },
+    {
+      "id": "v-no-fallback-smoke",
+      "required": true,
+      "expected_lanes": [
+        "native"
+      ],
+      "oracle": "V uses the selected compiler without fallback"
+    },
+    {
+      "id": "artifact-digests",
+      "required": true,
+      "expected_lanes": [
+        "native"
+      ],
+      "oracle": "declared output digests match"
+    },
+    {
+      "id": "publish-preflight-dry-run",
+      "required": true,
+      "expected_lanes": [
+        "native"
+      ],
+      "oracle": "publish remains false"
+    }
+  ],
+  "provenance_status": "incomplete",
+  "affected_targets": [
+    "linux-amd64"
+  ]
+}
