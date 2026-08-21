@@ -40,7 +40,7 @@ New-Item -ItemType Directory -Path $Work | Out-Null
 Push-Location $Work
 try {
     # ---- tcc.exe / libtcc.dll / i386-win32-tcc.exe ----
-    git clone git://repo.or.cz/tinycc.git tinycc
+    git clone https://repo.or.cz/tinycc.git tinycc
     Set-Location tinycc
     git checkout $TccBaseCommit
     if ($LASTEXITCODE -ne 0) { throw "git checkout $TccBaseCommit failed" }

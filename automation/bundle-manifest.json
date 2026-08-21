@@ -1,0 +1,4529 @@
+{
+  "schema_version": 1,
+  "contract_version": 1,
+  "contract_repository": "vlang/v",
+  "contract_sha": "7545e515b434cd399333d43659238427d72e22e7",
+  "contract_mode": "production",
+  "v_source_sha": "7545e515b434cd399333d43659238427d72e22e7",
+  "target_id": "windows-amd64",
+  "branch": "thirdparty-windows-amd64",
+  "sources": [
+    {
+      "id": "tinycc",
+      "repository": "https://repo.or.cz/tinycc.git",
+      "ref": "mob",
+      "sha": null,
+      "tree": null
+    },
+    {
+      "id": "v-libgc",
+      "repository": "https://github.com/vlang/v.git",
+      "ref": "master",
+      "sha": null,
+      "tree": null
+    }
+  ],
+  "recipe": {
+    "path": "build.ps1",
+    "version": 1,
+    "sha256": "3b736100e41c77f7951a8c6c74043d19b6a61b919fb2ec174201d498dbafa5f1"
+  },
+  "toolchain": {
+    "profile_id": null,
+    "profile_sha256": null,
+    "producer_observation": null
+  },
+  "patches": [
+    {
+      "id": "patch-0001",
+      "path": "0001-tccpe-strip-quotes-and-default-.dll-extension-in-DEF.patch",
+      "sha256": "a77042ed52bcc1762b6ce02c630f7903fbcde8f3b9ed69d46ed53ceae4cf5e7a",
+      "order": 1,
+      "category": "upstream-candidate",
+      "auto_deprecatable": true,
+      "state": "auto-retirement-candidate",
+      "effects": [
+        {
+          "id": "patch-0001-effect",
+          "owner": "tinycc",
+          "files": [
+            "tccpe.c"
+          ],
+          "functions": [
+            "pe_load_def"
+          ],
+          "required_probe_ids": [
+            "patch-0001"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "patch-0002",
+      "path": "0002-win32-don-t-treat-DBG_PRINTEXCEPTION_C-as-a-fatal-cr.patch",
+      "sha256": "71cf78905e434021fa1af38ccc22a1b9a086b6875a02907c79e670e603645cf9",
+      "order": 2,
+      "category": "upstream-candidate",
+      "auto_deprecatable": false,
+      "state": "active-required",
+      "effects": [
+        {
+          "id": "patch-0002-effect",
+          "owner": "tinycc",
+          "files": [
+            "win32/lib/wincrt1.c"
+          ],
+          "functions": [
+            "win_exception_handler"
+          ],
+          "required_probe_ids": [
+            "patch-0002"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "patch-0003",
+      "path": "0003-win32-declare-CreateSymbolicLink.patch",
+      "sha256": "5e59935de4c58e85fc3bd40fab1c62e86235a0b9a92b72d87b17bb5e0adb36a6",
+      "order": 3,
+      "category": "upstream-candidate",
+      "auto_deprecatable": false,
+      "state": "active-required",
+      "effects": [
+        {
+          "id": "patch-0003-effect",
+          "owner": "tinycc",
+          "files": [
+            "win32/include/winapi/windows.h"
+          ],
+          "functions": [
+            "CreateSymbolicLinkA",
+            "CreateSymbolicLinkW"
+          ],
+          "required_probe_ids": [
+            "patch-0003"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "patch-0004",
+      "path": "0004-win32-declare-WSAConnectBy-family.patch",
+      "sha256": "816b30e9942f61e399871661adb1f77e7405b1a780a3c2a6fec198837419b07e",
+      "order": 4,
+      "category": "upstream-candidate",
+      "auto_deprecatable": false,
+      "state": "active-required",
+      "effects": [
+        {
+          "id": "patch-0004-effect",
+          "owner": "tinycc",
+          "files": [
+            "win32/include/winapi/winsock2.h"
+          ],
+          "functions": [
+            "WSAConnectByNameA",
+            "WSAConnectByNameW"
+          ],
+          "required_probe_ids": [
+            "patch-0004"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "patch-0005",
+      "path": "0005-win32-declare-InetNtop-InetPton-family.patch",
+      "sha256": "ce3fd58dd4485d1930bfad36650ded2d87f9479469d3a4a4dcfb64dacd4f0c53",
+      "order": 5,
+      "category": "upstream-candidate",
+      "auto_deprecatable": false,
+      "state": "active-required",
+      "effects": [
+        {
+          "id": "patch-0005-effect",
+          "owner": "tinycc",
+          "files": [
+            "win32/include/winapi/ws2tcpip.h"
+          ],
+          "functions": [
+            "InetNtopA",
+            "InetPtonA"
+          ],
+          "required_probe_ids": [
+            "patch-0005"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "patch-0006",
+      "path": "0006-win32-declare-shell-drag-drop-family.patch",
+      "sha256": "af127a19d7dc5577ae9b7547095e2d441172174b5f6279f94b3fc8e0f0f737f7",
+      "order": 6,
+      "category": "upstream-candidate",
+      "auto_deprecatable": false,
+      "state": "active-required",
+      "effects": [
+        {
+          "id": "patch-0006-effect",
+          "owner": "tinycc",
+          "files": [
+            "win32/include/winapi/shellapi.h"
+          ],
+          "functions": [
+            "DragQueryFileA",
+            "DragQueryFileW"
+          ],
+          "required_probe_ids": [
+            "patch-0006"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "patch-0007",
+      "path": "0007-win32-declare-secure-narrow-stdio.patch",
+      "sha256": "c16ef7b35c5719bd12dd354adb46b74a432d1ccaeb9db25ecafc7add841e2404",
+      "order": 7,
+      "category": "upstream-candidate",
+      "auto_deprecatable": false,
+      "state": "active-required",
+      "effects": [
+        {
+          "id": "patch-0007-effect",
+          "owner": "tinycc",
+          "files": [
+            "include/stdio.h"
+          ],
+          "functions": [
+            "fopen_s",
+            "freopen_s"
+          ],
+          "required_probe_ids": [
+            "patch-0007"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "patch-0008",
+      "path": "0008-win32-fix-exp2-range-reduction.patch",
+      "sha256": "1ab5f63d7d1c527dad5c3723473b1bbaccb4a5bb5a3c376e60138130bde285a9",
+      "order": 8,
+      "category": "upstream-candidate",
+      "auto_deprecatable": false,
+      "state": "active-required",
+      "effects": [
+        {
+          "id": "patch-0008-effect",
+          "owner": "tinycc",
+          "files": [
+            "lib/libm.c"
+          ],
+          "functions": [
+            "exp2",
+            "exp2l"
+          ],
+          "required_probe_ids": [
+            "patch-0008"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "patch-0009",
+      "path": "0009-win32-declare-CancelIoEx.patch",
+      "sha256": "5b26132e4bc7ab4655b6359bd057833e874a4cbf9b0d4dc9121ad72f6198db04",
+      "order": 9,
+      "category": "upstream-candidate",
+      "auto_deprecatable": false,
+      "state": "active-required",
+      "effects": [
+        {
+          "id": "patch-0009-effect",
+          "owner": "tinycc",
+          "files": [
+            "win32/include/winapi/windows.h"
+          ],
+          "functions": [
+            "CancelIoEx"
+          ],
+          "required_probe_ids": [
+            "patch-0009"
+          ]
+        }
+      ]
+    }
+  ],
+  "transforms": [
+    {
+      "id": "vlang-header-compat",
+      "path": "vlang-header-compat.patch",
+      "sha256": "bc1f63053dedeae665a01ca508b6123f2145c4e1895642ca38e406f8eb7fdf55",
+      "owner": "bundle-overlay",
+      "order": 10,
+      "apply_stage": "bundle-payload-post-copy",
+      "effect_ids": [
+        "header-gmtime-s",
+        "header-condition-variable",
+        "header-faststorefence"
+      ]
+    },
+    {
+      "id": "v-libgc-tinycc-compat",
+      "path": "v-ae88ee5-tinycc-bdwgc.patch",
+      "sha256": "3b42e3fcd1e8a544d31ccdc4a2b12b9da6ac44ce1af7562cd781fdacf6890196",
+      "owner": "v-libgc",
+      "order": 11,
+      "apply_stage": "v-libgc-source-prebuild",
+      "effect_ids": [
+        "bdwgc-v-integration"
+      ]
+    }
+  ],
+  "header_effects": [
+    {
+      "id": "header-gmtime-s",
+      "owner": "bundle-overlay",
+      "files": [
+        "include/time.h"
+      ],
+      "functions": [
+        "gmtime_s"
+      ],
+      "required_probe_ids": [
+        "header-gmtime-s"
+      ]
+    },
+    {
+      "id": "header-condition-variable",
+      "owner": "bundle-overlay",
+      "files": [
+        "include/winapi/synchapi.h"
+      ],
+      "functions": [
+        "CONDITION_VARIABLE"
+      ],
+      "required_probe_ids": [
+        "header-condition-variable"
+      ]
+    },
+    {
+      "id": "header-faststorefence",
+      "owner": "bundle-overlay",
+      "files": [
+        "include/intrin.h"
+      ],
+      "functions": [
+        "__faststorefence"
+      ],
+      "required_probe_ids": [
+        "header-faststorefence"
+      ]
+    }
+  ],
+  "integrations": [
+    {
+      "id": "bdwgc-v-integration",
+      "owner": "v-libgc",
+      "files": [
+        "thirdparty/libgc/gc.c"
+      ],
+      "functions": [
+        "GC_malloc"
+      ],
+      "required_probe_ids": [
+        "bdwgc-v-integration"
+      ]
+    }
+  ],
+  "overlays": [
+    {
+      "path": "include/winapi/synchapi.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "76c1baef1eaea21bf93710bb625d46363d23c5e4601e7450649839eaa57ec3f1",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "windows-header-overlay",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    }
+  ],
+  "inventory": [
+    {
+      "path": "README.md",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "d95e429e2ae5afc900c8659427b07e5be9b673aa6cc6dde98673b529197b8f75",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "i386-win32-tcc.exe",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "2fbb61b3441ea877feb2e1870fd9ee3148eadff4acb5f1c6839e4781a10df8d7",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/_mingw.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "170f1c448ab4362b943ced22b75c6445a856a0a9f3e28c93cb11210de161f8d1",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/_mingw_unicode.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "3663cc841853b4350b9bfcbb5a43eed888ea8fc6dcb0225ef70cb5b19b5cd781",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/assert.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "a0b726d7f82beac0cffb550c33ead8f23186fd941de5216fa48da97a25995650",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/conio.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "de7161f85835d98b38fe6a19ef8973dcaf58ec237b1c91cf05ac535b2ff3845f",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/ctype.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "4cfaaa43b3f7414984126e8b1cdf65f9dac0ef68d9a3396be0b8828376a74a6b",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/dir.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "84064b17e501d691c43d47e45b112c2884db467417910b5fa1482b72342badfb",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/direct.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "179c3204312d7cf8032102773629bcb3e5fff792d1d808931cb6619a431d2435",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/dirent.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "88c1f767fdcd6d51b991ee3234792da48c8576f5f8816f17a42344f9c8bbb1c1",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/dos.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "3afea4ae85c68987fe59f40592ac5ea3ef1049b4fb72612bb185358d628e2dec",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/errno.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "ddacb88c325b09d6c7482e446c877c4d01328a28d803332ca38c54b428d1b8b0",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/excpt.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "0098e51602c94f8a9702f4b776d3630f56eec27ed67b9fc36d9204933b58ac4d",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/fcntl.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "fbd94f945a57165ac897bdbacd2a861b1351e7850fa76752703c0a622e0646fa",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/fenv.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "67a827acf4e09653afb5d18f2ecaa5fcdfb7471d8a5b8197c2f33d06e8462f84",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/float.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "484ffee95fcdbc00cdc154b9dc2fe03fed65610bf1a73b610871cc39698e6f8e",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/inttypes.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "4194c0408cdba330b7cfa1d2091d72a0cfbf2077ff1feb19f436f3f3aa2adf18",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/io.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "5da97c850e8e2ab608c42947a33411f556f6d75b8264e1e5cf29ca7ba7b96256",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/iso646.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "20f5e93cef729d02930d141c23ad9bf94a8f78c42c8d36eb04874d8d1958c6c1",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/limits.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "395d8bf72ed91b83d512234089ae8a96d8a21e72f5fdcbd56af4aef6e1110c62",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/locale.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "882626fa25dbc1b5903e6fd98cc8516f1e54c4e06945026653f05b38125dff2c",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/malloc.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "b79fc39a809ede9a6990e5d61ae21e12473780ab1d9580e74c53b87382a527f6",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/math.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "87d99e5321f499299bb405cfdd162b6fb905c7a2f5ac037f2a2d41ea6e7d2642",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/mem.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "43956946aefee50e01fdd4d54a6c597418abcb02251f9d7695ed7039fd7a5ff6",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/memory.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "b4341e188913a819fa3bf101078a95ca077780219373f424c39ad86c94e04b6f",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/mmreg.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "7813427b514ad7913c1fbae0bfa8de81d08495fb5d6ec39e645adc3d4c8dcecd",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/mmsystem.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "17fa953c770a3770e61c79547c849af94a46219d0df76dc07b6f0cafb0a687cf",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/process.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "6947c954f2af676e66cc38d64b1a165428734000e2e272f883c2d74a85b82020",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/sec_api/conio_s.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "f7375e816739491fbab39531c1d60a77b78ff9a162aba17f817c773bf75f6508",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/sec_api/crtdbg_s.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "03630ee83e7c921446a0790853fcadeb5a308553dd3c4ecddd568cda3167c0f1",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/sec_api/io_s.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "6e02f4ae50d30629af7df34785b6c32642b12d94addd56606f6fc4ab668250ff",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/sec_api/mbstring_s.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "d962ab8070958953f48b24c9ea068b345b158237826fb71b9a76d36cf2e8a32b",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/sec_api/search_s.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "96174e09f1c573c7faea85a6d568225a1b946e133c6c04a7bd6aa865c58896a2",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/sec_api/stdio_s.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "86c8a2300e510c115cfe84fdbe33de2a50fc31989a39d30ab902fb29f5104f27",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/sec_api/stdlib_s.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "8650e34be241c7d837433126878eb6a30ee71c0b759c23671fd8f0715c7cde65",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/sec_api/stralign_s.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "b23f0cf79d5455e232d92792e2b2be38125a02808bc005049367bab68da1300b",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/sec_api/string_s.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "eef32fb505b98a3610923e8ddb3de724c55b44389d25cef7cf50ee3cd14f5d68",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/sec_api/sys/timeb_s.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "d153417ec64eb7b1504749bca6477efd51b4b22de670518f4fdc2701080145c0",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/sec_api/tchar_s.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "a5318cceb241962769169c32a3ce5bfb9a075a52edbac31aad33b0d7b897b544",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/sec_api/time_s.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "9ae9cb7a3164ad0093e3887b0ca09bb67498da51bb44e9be500b60e72a385dc0",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/sec_api/wchar_s.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "5a470ac358b2d951202182f9ec1f945331c23a8d79629ad4edb08b7d73cfaee4",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/setjmp.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "3221bf14aaa44f9c11fb503616c3776598097c0ae288d5f8af5eb18f87f84587",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/share.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "6de922c1bd7eedc33308304785c212945064d763eedfb373c09cbbb5cb933dde",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/signal.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "045a031b376733ed7a685bc01709f5281403729ff7c601b913b2aca2fe1493bb",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/stdalign.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "7612d46571099ccaa7616a510f78f180cb1e91671e6e5e9223a2e297b84b789d",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/stdarg.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "a38f8d34f5e09658cc3a8892b3a7e80ff566eaeedc194e5a85ece0b675993137",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/stdatomic.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "4fbd9d6ec9add338d41c06f44115121925f087dd91f445b56cca1aacb84360e1",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/stdbool.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "5252824225ddc486b0460677f765e4157af5d3ed7acd65b310a4045eafb56af7",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/stddef.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "c42eaa62f574527b8d0d64f802b20c27ebeb66feb2c3608e9b9659225ad6ed45",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/stdint.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "33c6c8da7d564b5702af8c6ff45c00a16842ba3ffe3f95f7f6232752f63c5afd",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/stdio.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "749059834143bcd5bdcea13fc863c8b6587a89d6dfc84cd5017a98df190defbd",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/stdlib.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "53a05eb232a49b1213d4239fef2b1fe73d9cdb1d7ea4979a222bca95eef5545e",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/stdnoreturn.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "ec64d8fbf7fb2e800df9784b2efca0a99fc25a3eb5e8da56e4df098937f787f2",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/string.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "d5c02c22653784792eeff04cc453467ba22c214d9ace876127eab5fcccbca762",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/strings.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "0f6211dd057b93056d96b9a3cb5177d8b03f3427f3421941ec9213056e78879e",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/sys/fcntl.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "2b4f660ffd8994afa0387407051e3ca7ecc8fe44beb2add2d431cd52ce8ad9c4",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/sys/file.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "b6e779c53140c117bc36bd335c64bfcb13ae4c2c486b94783b32149a6eb2d320",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/sys/locking.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "29786145e9af34a1f96e7368855b19e8879fc80d35a172d9ba97d3c7fc2f6311",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/sys/stat.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "d7f9710b0f82f47ca391c3fdb3e3f8768ae4687df2befdf1e3b2fcb932efc065",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/sys/time.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "518741f286545434df676572e53bf8553b0496a7138942dc6b20ff252b4293e4",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/sys/timeb.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "ef43f9f51660ab8282707f7169cc3d977878e623743d23ec565663fe2b4e9782",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/sys/types.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "ce3162458071dfbf3a8eaa4910666c0eac1fb24d26145078ececabaca635a332",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/sys/unistd.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "1f595a85caeeef7385a0bda94af51896b214ee26056484af50353e9393de1929",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/sys/utime.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "524312e3e8a325f7d5afc21ddb8fcbceb85d451175e07ef1beadb7f82fa368b3",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/tcc/tcc_libm.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "c2cf0e6994d73cf497097919861c1fab62cb24bddae865c11305ddc1c92b547c",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/tcc_predefs.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "dae00f9c32a407332af13793202ff9407aa8f52a2286b5c8c97c1922cc5ddb2a",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/tccdefs.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "d1016b6170c45f1b8e7f8d83bf1f00f21e288eb2e446d9f141457f6f821acf7b",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/tcclib.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "2cfbd6b9c5e039721fbfb8e6f95a0a9fc30597bbcb2aefa3dda572c278009429",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/tchar.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "7fe5fde028ff8f69d2bda910664e2c169e7b92c6e7f2cf7915eb72054a9746ff",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/tgmath.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "e60c66ff9017f13ab18ee38824792ca771b9235bcb4df57688fec582739524a5",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/time.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "486c817eb39ee075c3684cd89d93742bd68ae0c22ba61aed18d9eed582711fbf",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/uchar.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "273054a86a661206558b2b859558208b14538762a79793d1cf5de37d0809b7d8",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/unistd.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "068fd747da44c0f8ea72a1299c5611c979cf7f4c1d36f784439b5da6632d273c",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/vadefs.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "2e6ab359559319a11a80f8f52aa0472cd0b141137f3a1eaa18c40d8827dc51d4",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/values.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "fa3758847b33f59abe99b023be00d8a027c391ecd0580a1fe755497c11e0c723",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/varargs.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "07858857f4eed0a61df94beb1a9d678b53fc3d67a0b0e8936155f85ddbcd1dcc",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/wchar.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "c9bf12e02a2ab0783ed1c66dfe43de43c402b33906cada9b1157502a82c7c3e4",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/wctype.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "e12d9c5bcbe4dfb96ea6c75410ea287917b3c24bff9cd2e716d35e00c1d4906c",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/audioclient.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "23ca03e95234778e2f2fef255cfe5f3ae1c22bf16b0fec1cbddd31426ba3ae55",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/basetsd.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "5c9cbaa16abf57400ed31b49aab7ee015788dbe7d3b58f3d53c86db3807dd6f0",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/basetyps.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "34842ee3389cb13a72a2b87ec930aadbffce8906eb31480180cff541c7f44134",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/bcrypt.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "883efcdd88f1e6e28a73fa3d83aaded189b3577cce06f8311d5b3ab344ef0d1f",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/cguid.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "250025d0169c9506b6c6d5b2241837d2e53002f21e9a5d9cfaa3c5c2972d265b",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/driverspecs.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "089b189972cfae3eb1c8e2da6fcf1786aa31d44067ee0af915546dfc6f464a73",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/fileapi.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "3ee09c97dc4497663f811c595718a688429f7353306e5a92c30dd673a4068d14",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/guiddef.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "7db1b1fe46513f578a3c777c3ce300d8403d31fbfb6d00eacff93286d2ed1293",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/mmdeviceapi.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "149476f2ea4f1e6c21dc2b9dfcb0311a6afacf5c651a417cd202e2d2bc026214",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/msxml2.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "c36cffd54c3af770a7d750945963043021b2024a5fc39dedf8bd8c8fa8a5c802",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/ntsecapi.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "14ccaa57981ae6e2989a23ac77519f81037644e6197abd8f0c3c439fb4b6b818",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/oaidl.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "14626e6824f0b436d45e41691ee77a4220a303b9ac08109de1a2bccbf02ddd5f",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/objbase.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "302a85f41c75b6922742e3a9905ccd4b397f37150cc8f7152964dc33f3de6a1b",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/objidl.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "61ebb67bc08376af5fb874a15c6e0d267fb12fbabedd1eac1aca3d966fe09acd",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/ole2.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "55b110806b50d446239fb000eaac05c63da45489ab48c5bd96b7bd26062363a4",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/oleauto.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "4f6b0449416dbb9b5851bb437321ec3399331c2cde4c5fd5efeb7ad740dd7d7c",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/oleidl.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "f08dfe7340c35bb96014d1fff78f860a958cf080bf2c801c021a9f35faa61032",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/poppack.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "81c951e1fb87aa8f6e8871a073277f1cd1ccb9b66f6efa92aff35bcd00a60726",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/propidl.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "74a2d7c82d25dca85f8f10361cabbcb192291a117cab9ebeb49068ece6dc1bd2",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/psapi.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "8d05fb57b45cd6f75ab473cb50db3f1bf4e699b148e2d7b9f1be77a28dc0e061",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/pshpack1.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "8eb67dd233d5a387d6dc1814cb6eb6c6de9a123438faefca7b442691caf23049",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/pshpack2.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "d459cbd546929fd44980d32c1680a8f176d717ce9df162f5c5c443dfdccc9e42",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/pshpack4.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "cd3ba1258a5dd9c714879d3e499b021c85ee9827c06bac2fc2c1e677b5909531",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/pshpack8.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "32fe7b5ff2387c916ad134ef5b5b0ac67447da0e0dccf405c31562aac718d6d8",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/qos.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "36b9c010714e21c749d9d18807187cd497eee3286e3fe9e0f2c7982580de56dd",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/rpc.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "5dd73d046d437fe0fe557624eeb6606d45246f8175cc39bda587d53810cf66c3",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/rpcasync.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "e7a84812c938e2a1854c4480dbbc5af47133a399b1076f61ea8d3f2c1a44e4cb",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/rpcdce.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "2ef58d9bc3cec177c799d7bc48ef786db4e70e91ca09763cbc9d9952775e043c",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/rpcdcep.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "75bb60304b03667c68d0844cd2147d1facab69377fb3f415e2b094bb6c9eaae3",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/rpcndr.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "69f8889b7c4e70d65635758fe1fc73b4e291196e82e84223eaf330fa8c6d5fff",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/rpcnsi.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "c89acab3bc4242779b1a15fea8f9b28f2631c0b0b9dc8f88052ca422df2fa27b",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/rpcnsip.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "5dc854cf0ad6e08e58729827464e1cf3113d6a01cf6483ddbc295f9498864c51",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/rpcnterr.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "042af0314e2a3cda37d7211b3e1595d38f1ac4a071b0089cf3b1472cec66d63c",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/sal.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "fc5efd4845ac693e83bdd3c15393ee28d4b35a8d81e8f5a73240a44a4aa04afa",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/schannel.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "43d97ba2d4d7194d8385079371762f77af94ce845ada201934d3e81ad6183aae",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/secext.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "54ac00afdb29920f92ec8fabb94c3db8e6a357e1ee1761bba86a278ef77c76c2",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/security.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "0f03b86023477a377263cd91da840a53c3a1999113786472ffc61d39c72f89e5",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/servprov.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "c5490611c96b7012bfdeb5fe58734da284155ed6bb06390d6a23d3107b0ed2f2",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/shellapi.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "e8cf667b4f23fcc56d08daf21691143dc7b59d77a7d53cfc0ded036f93140149",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/specstrings.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "a04467b870ac9fabaeeb079aa6ab470aa181316c10127562fe1dfb4308c8e7fa",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/sspi.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "aebd70645d28a4758ee05223626b478b4d098605011fce96015d9e798c8e38d6",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/unknwn.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "7c42db902f1250f6114075bdcc155c18549394ddec2c19212b5e7a122fe512fd",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/urlmon.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "e2fe45d2dc7d2d99225495bbf60e98b25f60338d73f733b4da1c85bb6be17c07",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/winapifamily.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "032684bb38042587a5aa9c4748b33475ee7e7ff90b7b95661e7d92ef441c34b2",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/winbase.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "d8042fe7d4fb73ec0e5b0f7707a57a3bf3ccb26009015747fac847f8ed1db6c5",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/wincon.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "d446a0328765e52f9183d088cdcf98630fb4c8c38c13d6367d09ad5e259cb626",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/wincrypt.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "5667b602903002b3a00c9296bdf08724933b4713091ce6873684d748e35640a8",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/windef.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "8a7318a3f2a2458b2dad2231c8ea9a2661a60aa210acc442bae3a28ef5f5ac58",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/windows.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "7b2bd9dda845c0c3bd8e26abefe09660ce23386bc2a378c185ebdc9dc508193c",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/windowsx.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "eef55029c4f41b0f7ed411544a184919accea751617b7412838a9d9f7753443c",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/winerror.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "590134000b1b5c4fb7afbcc54a445a42228d74164a9e8b24434d1a993f76852e",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/wingdi.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "df5937ac1805b27abba03277d2c34caee8cb4387edb894adcd73e6172a9fbd94",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/winnls.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "49c076029bd862455f3f0d6fe4712be19cbe60c8c25dd81d20a4ccdab2745f50",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/winnt.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "f70c53a135b26d1989620457b51a36f7b8f3a84ea5632cc9fd68891e35b6cc99",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/winreg.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "6dbb969dc21e90d9044dabcd190268c1bb33e445862ce2a4a536e9a7134fa4eb",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/winsock.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "db28ef7174320e2198293435d3e7fe74278b397500f77187232e332cec181e5e",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/winsock2.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "adf82db000b984ddc05231e4005e231d42ab7f19504066394db6754c55dc3a95",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/wintrust.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "564e6def3a16869269e9c0de3561a17b586ca8987ca641e7930053b5082daa8e",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/winuser.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "a23907af6b3c8e970ce6a832859e116450bd0421f8535c8f16520c1403b4a38f",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/winver.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "7d846678ec2a8c70f86308cf6be585d760924c620dfcfb4b048f60d88577b69d",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/ws2ipdef.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "952d63bf8f75e312055119b964ee0bedc689b913959ff586b0c7d91a68457032",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/ws2tcpip.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "478307b854cf6c05741643f78ed194526a9f148196810e663f7de9c01e258863",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "include/winapi/wtypes.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "d2162be3f607b6c7be119cf701b6615b261f5c0157b65328c33a2a87c8b9f66d",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/advapi32.def",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "d0bcc380a827431dbbbcb12ea3224140772eb4c5bbc206aff0ec989bfca094e6",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/bcheck.o",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "b5b9bf2489f002be9e6b3d8f0c42351d24b69fc041fbc37f03c15f9034606516",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/bt-dll.o",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "456eac236ff01b54a60e9a761e53a4d09623edda31874fb7017e58c534f5fb82",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/bt-exe.o",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "8d3365834fcf2b7d759f71aea47fa5aaaf43d4aae40e141b34581ee26414fb62",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/bt-log.o",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "529c128041027457b557c14dc3c48437ee99fb1e02d68812754278ada2ac870a",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/chkstk.S",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "3f8550b78252abd18c21eb8ceb5a90ae544a2457f75741a0d39e930a7d130498",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/crt1.c",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "d827b4c07d2ddf6637215781c03071568259af1006cf713f73db6ae2ff4e9c65",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/crt1w.c",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "d69f3cb49d7510f4f13b30165e085238eeb5198d7894229589af6ec0b80b2346",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/dllcrt1.c",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "63d75d5e03ca3b74be9235d03405e882110137a790162a421d4cc6a05ce4c5b0",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/dllmain.c",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "e0ba761d01370df33908bcff885282b1562e4a903b785bac92c859612523648f",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/gdi32.def",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "35f18d006b6841a3ae06e85e1b49afe00aa58a7bd89bd68f35b4b270250fe740",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/i386-win32-bcheck.o",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "0eaf28c3dfca142bbb0ff48d3cf20d333f55347a43d507139180172bf706762b",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/i386-win32-bt-dll.o",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "b1e557e8922a80f9389b50c0beccdf6ef26eae2d6b15c51d6a6274d546f50030",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/i386-win32-bt-exe.o",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "3c135ddc17afd6c332da1324c1bef1f5ab8aa20485342022f0ac5592a7d79f9e",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/i386-win32-bt-log.o",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "a6f356fc936f3480980bec380e2bff95c73ec2d95b77c206c8a8f9a25e870c52",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/i386-win32-libtcc1.a",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "3e7e41ad5f13c5f71e2fc2cdb217334f7e9abad6c7aa8c4ecda90a39428cfaf8",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/i386-win32-runmain.o",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "8c4d0726c5fe32587798cc8a05f35d17b5957e5bd5e6646d0eb3ea9e349f7ceb",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/kernel32.def",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "e6189f208d986d578bd2418cc8add88fb63e2f46dc76f3e56920bf91abee39c9",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/libgc.a",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "1d7f5ddbd2d1fe3e55a69ae72a4a002a824fb6fdd84f170a4c6518fe8d5e9b0c",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/libgc_build_cmd.txt",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "8f2b264982c26f6be6ed9a52f76ba44c197aaf30e625b535dea7be8aa3b9b4f2",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/libgc_build_on_date.txt",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "a388cbdbfb15dcb189735ad9cce416dfb1c01e8a8b89e2ad92dd2152e3b315fd",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/libgc_build_tcc_commit.txt",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "24c3d9d49341eca640cfe7eae736fa5c08ad4aef43e65117599ee174ae4538cb",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/libgc_build_tcc_exe_sha256.txt",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "b2967ad675cfe6dfb69b3e3a8fd36dcf4a080eefc15fa89d21b1e07de80c3db3",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/libtcc1.a",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "d85382947767a0f3bf889df08cc445fdf1cda01f2a6481ac7dfeda3d5908b57e",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/msvcrt.def",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "a0aa06e40d2d75a684ac7dd0f6d8b170cdfb58f6e145303b36a5b365e0466de7",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/openlibm.o",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "9a11e182e1f6b522030d1b8685666147de0ebb562b9d02cce189690fd07cb7db",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-math-runtime",
+      "opaque": true,
+      "opaque_acceptance_id": "windows-amd64-openlibm-v1",
+      "format": "ELF64 little-endian",
+      "object_type": "ET_REL",
+      "machine": "EM_X86_64",
+      "os_abi": "System V"
+    },
+    {
+      "path": "lib/psapi.def",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "b5bcefb80bd2497ed1805f68809a4c5b4491b19cf7dc0539b30bf84812bffbb3",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/runmain.o",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "bcb696cb639c388cbd6e3d70c92e733429b6590a1811e77f3d253ac724bf63f1",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/shell32.def",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "400219ebf4e7e8f6f1b0f372cf3f37e88aea03c8680718711f34913e0342225d",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/user32.def",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "37b85c8a13a468d593f938cb24e2fc37aa22281742e4b551e2c2f616f3f6283b",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/wincrt1.c",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "5cd1667f736aed1ec4891127ffdbb39b65b753c54d9298452f3bd95fc1346794",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/wincrt1w.c",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "13c138c6692aa0a790f9eb90c71c04c578d42be4d5b02046ecca008390bce020",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/winex.c",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "371f2b368d75182a9805ee1bb663e3acd908dccd3cd4826f3a298292adfd6a1e",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/ws2_32.def",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "5e41c66dc6cf14a5c5a1b8b84d6281a6ccaa0caddce2c6d6ae48e445396e9465",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "libtcc.dll",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "e03a69d3f0dd1b7880ed0a22a6edbba1d689c0d746a7ebb061b004847ec77e49",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "libtcc/libtcc.def",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "e5aaeda2bf3ad03684a10ced0621971dcd6874981ed01f3c1f967528984a55b1",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "libtcc/libtcc.h",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "42e1fb86b44088850e0e17ec0947b483a2edb586b420d18196d7b9b5dce944e4",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "tests/crt_secure_freopen.c",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "cc33ea46432c0c6faf246fc3a8c6006167e7b14daaa609ca7024ed0356084b1d",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "tests/math_exp2_range.c",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "df97e4700fbee9f0bdf3c1b183a88e6b75a0af4a33894a05fd6eb0300cbee96a",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "tests/winapi_cancel_io_ex.c",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "c0b07f4af589de385ce6cd1865c2aa05c58a542811659362d5aca8633c3e6526",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "tests/winapi_create_symbolic_link.c",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "16febe89f2cc46a8c5a0500fff0a5e9200da08001f523318094fbcd2d98d3160",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "tests/winapi_inet_ntop_pton.c",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "0c458d51bd48f75d72712bbe5469cf427e21b25b4f3cda69097810c9ccdbd546",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "tests/winapi_reg_delete_key.c",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "9f46666c690763612585a3e5d05b48d7ae3fd2e664de885a0ef540fd360dbcd9",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "tests/winapi_shell_drag_drop.c",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "2241400c03298eb0a7808c4a533c394787ad28ac3d56877e22294c5970b02e01",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "tests/winapi_synchapi_aliases.c",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "8b4794248a21ec79d30db855805ff349c2d2b3a883942868a88fbb22801883e4",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "tests/winapi_wsa_connect_by_name.c",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "be931b3102f7840d5c855691ec9a8c2ab6e34b2ec3b4181c805a06429a3ee0e6",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    }
+  ],
+  "outputs": [
+    {
+      "path": "tcc.exe",
+      "kind": "executable",
+      "git_mode": "100755",
+      "sha256": "0c5cf5903d944e171a64f54c2b8e6a2b272dc4277dff949602a5d5f57869f75b",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "native-compiler",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    }
+  ],
+  "probes": [
+    {
+      "id": "manifest-contract",
+      "required": true,
+      "expected_lanes": [
+        "x64",
+        "i386"
+      ],
+      "oracle": "strict schema, binding, and semantic validation"
+    },
+    {
+      "id": "source-provenance",
+      "required": true,
+      "expected_lanes": [
+        "x64"
+      ],
+      "oracle": "unresolved sources remain explicitly non-publishable"
+    },
+    {
+      "id": "native-build",
+      "required": true,
+      "expected_lanes": [
+        "x64",
+        "i386"
+      ],
+      "oracle": "native and cross builds succeed"
+    },
+    {
+      "id": "payload-inventory",
+      "required": true,
+      "expected_lanes": [
+        "x64",
+        "i386"
+      ],
+      "oracle": "manifest inventory is expanded before eligibility"
+    },
+    {
+      "id": "patch-probes",
+      "required": true,
+      "expected_lanes": [
+        "x64",
+        "i386"
+      ],
+      "oracle": "all nine declared patch effects are exercised"
+    },
+    {
+      "id": "tccbin-conformance",
+      "required": true,
+      "expected_lanes": [
+        "x64",
+        "i386"
+      ],
+      "oracle": "shared conformance passes"
+    },
+    {
+      "id": "v-no-fallback-smoke",
+      "required": true,
+      "expected_lanes": [
+        "x64"
+      ],
+      "oracle": "V uses the selected compiler without fallback"
+    },
+    {
+      "id": "artifact-digests",
+      "required": true,
+      "expected_lanes": [
+        "x64",
+        "i386"
+      ],
+      "oracle": "declared output digests match"
+    },
+    {
+      "id": "publish-preflight-dry-run",
+      "required": true,
+      "expected_lanes": [
+        "x64"
+      ],
+      "oracle": "publish remains false"
+    },
+    {
+      "id": "patch-0001",
+      "required": true,
+      "expected_lanes": [
+        "x64",
+        "i386"
+      ],
+      "oracle": "quoted and unquoted DEF names load with one dll suffix"
+    },
+    {
+      "id": "patch-0002",
+      "required": true,
+      "expected_lanes": [
+        "x64",
+        "i386"
+      ],
+      "oracle": "debug notification is nonfatal and control crash remains fatal"
+    },
+    {
+      "id": "patch-0003",
+      "required": true,
+      "expected_lanes": [
+        "x64",
+        "i386"
+      ],
+      "oracle": "symbolic-link declarations and imports resolve"
+    },
+    {
+      "id": "patch-0004",
+      "required": true,
+      "expected_lanes": [
+        "x64",
+        "i386"
+      ],
+      "oracle": "WSAConnectBy declarations and imports resolve"
+    },
+    {
+      "id": "patch-0005",
+      "required": true,
+      "expected_lanes": [
+        "x64",
+        "i386"
+      ],
+      "oracle": "IPv4 and IPv6 conversions round trip"
+    },
+    {
+      "id": "patch-0006",
+      "required": true,
+      "expected_lanes": [
+        "x64",
+        "i386"
+      ],
+      "oracle": "shell drag and drop imports resolve"
+    },
+    {
+      "id": "patch-0007",
+      "required": true,
+      "expected_lanes": [
+        "x64",
+        "i386"
+      ],
+      "oracle": "secure stdio success and error contracts hold"
+    },
+    {
+      "id": "patch-0008",
+      "required": true,
+      "expected_lanes": [
+        "x64",
+        "i386"
+      ],
+      "oracle": "exp2 vectors and floating statuses match"
+    },
+    {
+      "id": "patch-0009",
+      "required": true,
+      "expected_lanes": [
+        "x64",
+        "i386"
+      ],
+      "oracle": "CancelIoEx ABI and import resolve"
+    },
+    {
+      "id": "header-gmtime-s",
+      "required": true,
+      "expected_lanes": [
+        "x64",
+        "i386"
+      ],
+      "oracle": "gmtime_s compile, link, and consumers pass"
+    },
+    {
+      "id": "header-condition-variable",
+      "required": true,
+      "expected_lanes": [
+        "x64",
+        "i386"
+      ],
+      "oracle": "condition-variable include order and runtime pass"
+    },
+    {
+      "id": "header-faststorefence",
+      "required": true,
+      "expected_lanes": [
+        "x64",
+        "i386"
+      ],
+      "oracle": "builtin and runtime fence behavior are isolated"
+    },
+    {
+      "id": "bdwgc-v-integration",
+      "required": true,
+      "expected_lanes": [
+        "x64"
+      ],
+      "oracle": "candidate builds libgc and V Boehm without fallback"
+    },
+    {
+      "id": "opaque-openlibm",
+      "required": true,
+      "expected_lanes": [
+        "x64-fontstash",
+        "x64-json",
+        "x64-math",
+        "x64-stbi",
+        "x64-vorbis"
+      ],
+      "oracle": "ELF tuple and five V consumer groups pass without fallback"
+    }
+  ],
+  "provenance_status": "incomplete",
+  "affected_targets": [
+    "windows-amd64"
+  ]
+}
