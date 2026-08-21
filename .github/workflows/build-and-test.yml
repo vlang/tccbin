@@ -5,11 +5,34 @@ on:
     branches: [thirdparty-windows-amd64]
   pull_request:
     branches: [thirdparty-windows-amd64]
-  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+env:
+  CONTRACT_REPOSITORY: vlang/v
+  CONTRACT_SHA: 7545e515b434cd399333d43659238427d72e22e7
+  VC_SHA: dfc458a13ba8923ebc249e262c331f8169aa728b
+  PUBLISH: 'false'
+  TCCBIN_PUBLISH: 'false'
 
 jobs:
   build:
+    if: >-
+      github.repository == 'vlang/tccbin' &&
+      (
+        (github.event_name == 'pull_request' &&
+          github.base_ref == 'thirdparty-windows-amd64') ||
+        (github.event_name == 'push' &&
+          github.ref == 'refs/heads/thirdparty-windows-amd64')
+      )
     runs-on: windows-latest
+    timeout-minutes: 60
+    env:
+      # MSYS2's extensionless /ucrt64/bin/cc shim is translated by V to a
+      # native path without .exe. Select the physical allowlisted compiler
+      # name so both contract bootstrap and the baseline probe resolve gcc.exe.
+      CC: gcc.exe
     steps:
       # windows-latest runners default to core.autocrlf=true, which
       # silently rewrites LF to CRLF on checkout/clone. The patches
@@ -24,30 +47,67 @@ jobs:
       # thirdparty/tccbin_tests (the shared cross-platform conformance
       # suite - see its README) both live in the main v repo, not here.
       - name: checkout v (for thirdparty/libgc and thirdparty/tccbin_tests)
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: vlang/v
-          ref: c82d3f08271e9324d6fb8de3c251e9c0e1a9154b
-          sparse-checkout: |
-            thirdparty/libgc
-            thirdparty/tccbin_tests
-            vlib/v/compiler_errors_test.v
-          sparse-checkout-cone-mode: false
+          ref: ${{ env.CONTRACT_SHA }}
           path: work
+          fetch-depth: 0
+          persist-credentials: false
 
-      # this branch, checked out where build.ps1 expects to find itself
-      # (work/thirdparty/tcc), matching a normal local checkout layout.
-      - name: checkout this branch
-        uses: actions/checkout@v4
+      - name: checkout immutable VC bootstrap snapshot
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          path: work/thirdparty/tcc
+          repository: vlang/vc
+          ref: ${{ env.VC_SHA }}
+          path: .tccbin-bootstrap-vc
+          fetch-depth: 0
+          persist-credentials: false
 
       - name: set up MinGW-w64 gcc
-        uses: msys2/setup-msys2@v2
+        uses: msys2/setup-msys2@66cd2cce69caa17b53920067426061ca1de3a884
         with:
           msystem: UCRT64
           install: mingw-w64-ucrt-x86_64-gcc
           path-type: inherit
+          cache: false
+
+      - name: bootstrap contract-bound validator
+        shell: msys2 {0}
+        run: |
+          set -euo pipefail
+          validator_work="$RUNNER_TEMP/tccbin-validator-work"
+          test ! -e "$validator_work"
+          git -C work config --local core.autocrlf false
+          git -C .tccbin-bootstrap-vc config --local core.autocrlf false
+          bash work/thirdparty/tccbin_automation/bootstrap/bootstrap.sh \
+            "$GITHUB_WORKSPACE/work" "$CONTRACT_REPOSITORY" "$CONTRACT_SHA" \
+            "$GITHUB_WORKSPACE/.tccbin-bootstrap-vc" "$validator_work"
+          {
+            echo "TCCBIN_VALIDATOR_CLI=$validator_work/tccbin-automation.exe"
+            echo "TCCBIN_VALIDATOR_CONTRACT_ROOT=$validator_work/contract-source"
+          } >> "$GITHUB_ENV"
+
+      # this branch, checked out where build.ps1 expects to find itself
+      # (work/thirdparty/tcc), matching a normal local checkout layout.
+      - name: checkout this branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          path: work/thirdparty/tcc
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: 'phase A: physical manifest preflight + committed x64 V no-fallback smoke'
+        shell: msys2 {0}
+        run: |
+          set -euo pipefail
+          git -C work/thirdparty/tcc config --local core.autocrlf false
+          bash work/thirdparty/tcc/automation/probes/baseline-contract.sh \
+            "$TCCBIN_VALIDATOR_CLI" "$TCCBIN_VALIDATOR_CONTRACT_ROOT" \
+            "$GITHUB_WORKSPACE/work/thirdparty/tcc" windows-amd64 \
+            thirdparty-windows-amd64 "$CONTRACT_SHA" "$GITHUB_SHA" \
+            "$GITHUB_WORKSPACE/.tccbin-bootstrap-vc"
 
       - name: build tcc.exe / libtcc.dll / i386-win32-tcc.exe / libgc.a
         shell: pwsh
@@ -466,12 +526,34 @@ jobs:
               work/thirdparty/tcc/lib/libgc.a
           if ($LASTEXITCODE -ne 0) { throw "conformance tests failed" }
 
-      - name: upload built binaries
-        uses: actions/upload-artifact@v4
-        with:
-          name: tccbin-windows-amd64-current
-          path: |
-            work/thirdparty/tcc/tcc.exe
-            work/thirdparty/tcc/libtcc.dll
-            work/thirdparty/tcc/i386-win32-tcc.exe
-            work/thirdparty/tcc/lib/libgc.a
+      - name: report Phase A coverage and unresolved required lanes
+        if: always()
+        shell: pwsh
+        run: |
+          Write-Host "phase-a-scope=production-incomplete-read-only"
+          Write-Host "eligibility=false reason=staged_provenance_incomplete publish_allowed=false"
+          Write-Host "committed-payload-covered=manifest-contract[x64,i386];source-provenance[x64,incomplete/nonpublishable];payload-inventory[x64,i386];artifact-digests[x64,i386];publish-preflight-dry-run[x64];v-no-fallback-smoke[x64,gc=none]"
+          Write-Host "rebuilt-payload-covered=native-build[x64,i386];patch-0003[x64,i386];patch-0004[x64,i386];patch-0005[x64,i386];patch-0006[x64,i386];patch-0007[x64,i386];patch-0008[x64,i386];patch-0009[x64,i386];header-condition-variable[x64,i386];tccbin-conformance[x64]"
+          Write-Host "missing-required-lanes=patch-probes[x64,i386];patch-0001[x64,i386];patch-0002[x64,i386];header-gmtime-s[x64,i386];header-faststorefence[x64,i386];tccbin-conformance[i386];bdwgc-v-integration[x64];opaque-openlibm[x64-fontstash,x64-json,x64-math,x64-stbi,x64-vorbis]"
+          Write-Host "limitation=feature probes after build.ps1 exercise rebuilt artifacts; they do not prove committed-payload feature behavior"
+
+  tccbin-branch-gate:
+    name: tccbin-branch-gate
+    if: >-
+      always() &&
+      github.repository == 'vlang/tccbin' &&
+      (
+        (github.event_name == 'pull_request' &&
+          github.base_ref == 'thirdparty-windows-amd64') ||
+        (github.event_name == 'push' &&
+          github.ref == 'refs/heads/thirdparty-windows-amd64')
+      )
+    needs: [build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: require successful baseline validation
+        shell: bash
+        env:
+          BUILD_RESULT: ${{ needs.build.result }}
+        run: test "$BUILD_RESULT" = success
