@@ -5,103 +5,118 @@ on:
     branches: [thirdparty-freebsd-amd64]
   pull_request:
     branches: [thirdparty-freebsd-amd64]
-  workflow_dispatch: {}
+
+permissions:
+  contents: read
 
 jobs:
   build:
+    name: freebsd-amd64 read-only validation
+    if: >-
+      github.repository == 'vlang/tccbin' &&
+      (
+        (github.event_name == 'pull_request' &&
+          github.base_ref == 'thirdparty-freebsd-amd64') ||
+        (github.event_name == 'push' &&
+          github.ref == 'refs/heads/thirdparty-freebsd-amd64')
+      )
     runs-on: ubuntu-latest
-    # `github.sha` and `github.event.repository.clone_url` are used
-    # uniformly across all 3 trigger event types, and correctly cover
-    # each:
-    # - pull_request: `github.sha` is GitHub's own synthesized MERGE
-    #   commit (what the target branch would actually look like if
-    #   this PR were merged right now), not the PR branch's own head -
-    #   testing only the head tree in isolation could pass a PR whose
-    #   OWN commit works fine, while the actual merge result (combined
-    #   with whatever the target branch has since gained) is broken
-    #   (Codex pullrequestreview-4781865117 on vlang/tccbin#75). That
-    #   merge commit exists ONLY as an object in the base repo
-    #   (vlang/tccbin, exposed via `refs/pull/<n>/merge`) - never in a
-    #   contributor's fork - so this must clone from
-    #   `github.event.repository.clone_url` (the base repo), not the
-    #   fork's URL, regardless of where the PR originated.
-    # - push/workflow_dispatch: `github.sha`/`github.event.repository`
-    #   are simply the pushed/dispatched commit and the repo it lives
-    #   in - already exactly what should be tested.
-    # In every case, `github.sha` is fixed for this run's entire
-    # lifetime once the triggering event fires (a later push creates a
-    # brand new run with its own new `github.sha`, it doesn't mutate
-    # this one) - so this is exactly as race-safe against a
-    # mid-queue push as the earlier head.sha-based approach was (Codex
-    # pullrequestreview-4780048339 on vlang/tccbin#75), while also
-    # testing the actual merge result instead of the head tree alone.
-    # Set at job level (matching update_tccbin.yml's own working BSD
-    # job env, which only ever references github.*/secrets.*, never
-    # steps.* - step-level env on the "Start VM" step was tried first
-    # and empirically did NOT get forwarded into the VM by
-    # environment_variables, unlike this job-level placement).
+    timeout-minutes: 60
     env:
-      TCCBIN_CLONE_URL: ${{ github.event.repository.clone_url }}
+      TARGET_ID: freebsd-amd64
+      CANONICAL_BRANCH: thirdparty-freebsd-amd64
+      TCCBIN_CLONE_URL: https://github.com/vlang/tccbin
       TCCBIN_CLONE_SHA: ${{ github.sha }}
+      CONTRACT_REPOSITORY: vlang/v
+      CONTRACT_CLONE_URL: https://github.com/vlang/v
+      CONTRACT_SHA: 7545e515b434cd399333d43659238427d72e22e7
+      VC_CLONE_URL: https://github.com/vlang/vc
+      VC_SHA: dfc458a13ba8923ebc249e262c331f8169aa728b
+      PUBLISH: 'false'
+      TCCBIN_PUBLISH: 'false'
     steps:
-      # cross-platform-actions/action boots a real FreeBSD VM inside this
-      # Linux runner - the same action vlang/v's own update_tccbin.yml
-      # uses to rebuild this branch's binaries. Cloning both repos
-      # directly inside the VM (rather than actions/checkout on the
-      # runner + sync_files) mirrors that proven-working pattern instead
-      # of relying on an unverified file-permission-preserving sync.
-      # Pinned to the v1.3.0 tag's commit (resolved via the GitHub API)
-      # rather than the mutable tag itself, so a retag upstream can't
-      # silently swap in different third-party code here without a
-      # review-visible diff (Codex pullrequestreview-4780048339 on
-      # vlang/tccbin#75).
       - name: Start freebsd-amd64 VM
-        uses: cross-platform-actions/action@4347c661239bf5dcd0cd77708061488d907343d6 # v1.3.0
+        uses: cross-platform-actions/action@24ef01df165c76df1ed2b9f9e9212e78dc2fc963 # v1.4
         with:
           operating_system: freebsd
           version: '15.1'
           memory: 4G
           shell: sh
           sync_files: runner-to-vm
-          environment_variables: TCCBIN_CLONE_URL TCCBIN_CLONE_SHA
+          environment_variables: >-
+            TARGET_ID CANONICAL_BRANCH
+            TCCBIN_CLONE_URL TCCBIN_CLONE_SHA
+            CONTRACT_REPOSITORY CONTRACT_CLONE_URL CONTRACT_SHA
+            VC_CLONE_URL VC_SHA PUBLISH TCCBIN_PUBLISH
 
-      - name: fetch shared conformance suite and this branch's binaries
-        shell: cpa.sh {0}
+      - name: Bootstrap immutable contract and run baseline probe
+        shell: cpa.sh {0} --sync-files none
         run: |
           set -eu
+          umask 077
           sudo pkg install -y bash git
 
-          # Fetch the exact commit that triggered this run, not a branch
-          # name - `git clone --branch <name>` would resolve whatever
-          # that name points to *at clone time*, which can race a push
-          # that lands after this run started (Codex pullrequestreview-
-          # 4780048339 on vlang/tccbin#75).
-          mkdir -p thirdparty/tcc && cd thirdparty/tcc
-          git init -q
-          git remote add origin "$TCCBIN_CLONE_URL"
-          git fetch --depth=1 origin "$TCCBIN_CLONE_SHA"
-          git checkout -q FETCH_HEAD
-          cd ../..
+          test "$PUBLISH" = false
+          test "$TCCBIN_PUBLISH" = false
+          test "$CONTRACT_REPOSITORY" = vlang/v
+          test "$CONTRACT_CLONE_URL" = "https://github.com/$CONTRACT_REPOSITORY"
+          test "$VC_CLONE_URL" = https://github.com/vlang/vc
 
-          # thirdparty/libgc/include (gc.h) and thirdparty/tccbin_tests
-          # (the shared cross-platform conformance suite) both live in
-          # the main v repo, not here. A plain `git clone --depth=1`
-          # only ever contains the CURRENT tip commit's objects - once
-          # vlang/v advances past this pinned SHA, that historical commit
-          # object won't exist in a fresh shallow clone and this checkout
-          # would fail (Codex P1, pullrequestreview-4780048339 on
-          # vlang/tccbin#75, line 60). Fetch that exact SHA directly
-          # instead of cloning HEAD and hoping it's still there.
-          mkdir -p vsrc && cd vsrc
-          git init -q
-          git remote add origin https://github.com/vlang/v.git
-          git sparse-checkout init --no-cone
-          git sparse-checkout set thirdparty/libgc thirdparty/tccbin_tests
-          git fetch --filter=blob:none --depth=1 origin c82d3f08271e9324d6fb8de3c251e9c0e1a9154b
-          git checkout -q FETCH_HEAD
-          cd ..
+          checkout_exact() {
+            checkout_repository=$1
+            checkout_sha=$2
+            checkout_destination=$3
+            checkout_history=$4
 
-          chmod +x thirdparty/tcc/tcc.exe
+            test "${#checkout_sha}" -eq 40
+            case "$checkout_sha" in
+              *[!0-9a-f]*) exit 1 ;;
+            esac
+            test ! -e "$checkout_destination"
+            mkdir -p "$checkout_destination"
+            git -C "$checkout_destination" init -q
+            git -C "$checkout_destination" config --local core.autocrlf false
+            git -C "$checkout_destination" remote add origin "$checkout_repository"
+            if test "$checkout_history" = shallow; then
+              GIT_TERMINAL_PROMPT=0 git -C "$checkout_destination" \
+                fetch --no-tags --depth=1 origin "$checkout_sha"
+            else
+              GIT_TERMINAL_PROMPT=0 git -C "$checkout_destination" \
+                fetch --no-tags origin "$checkout_sha"
+            fi
+            git -C "$checkout_destination" checkout -q --detach FETCH_HEAD
+            test "$(git -C "$checkout_destination" rev-parse HEAD)" = "$checkout_sha"
+            if test "$checkout_history" = full; then
+              test "$(git -C "$checkout_destination" \
+                rev-parse --is-shallow-repository)" = false
+            fi
+          }
+
+          mkdir -p "$PWD/thirdparty"
+          checkout_exact "$TCCBIN_CLONE_URL" "$TCCBIN_CLONE_SHA" \
+            "$PWD/thirdparty/tcc" shallow
+          checkout_exact "$CONTRACT_CLONE_URL" "$CONTRACT_SHA" \
+            "$PWD/vsrc" full
+
+          contract_work="$(mktemp -d "${TMPDIR:-/tmp}/tccbin-contract.XXXXXX")"
+          vc_root="$contract_work/vc"
+          validator_work="$contract_work/validator"
+          checkout_exact "$VC_CLONE_URL" "$VC_SHA" "$vc_root" full
+
+          bash "$PWD/vsrc/thirdparty/tccbin_automation/bootstrap/bootstrap.sh" \
+            "$PWD/vsrc" "$CONTRACT_REPOSITORY" "$CONTRACT_SHA" \
+            "$vc_root" "$validator_work"
+
+          test -x "$validator_work/tccbin-automation"
+          test -d "$validator_work/contract-source"
+          chmod +x "$PWD/thirdparty/tcc/tcc.exe"
+          PUBLISH=false TCCBIN_PUBLISH=false \
+            bash "$PWD/thirdparty/tcc/automation/probes/baseline-contract.sh" \
+              "$validator_work/tccbin-automation" \
+              "$validator_work/contract-source" \
+              "$PWD/thirdparty/tcc" \
+              "$TARGET_ID" "$CANONICAL_BRANCH" "$CONTRACT_SHA" \
+              "$TCCBIN_CLONE_SHA" "$vc_root"
 
       # HISTORY: tcc on FreeBSD used to be unable to link the bundled
       # libgc.a at all - its linker only ever defined the glibc-style
@@ -124,7 +139,7 @@ jobs:
       # broken toolchain even if the GC lane were to fail for its own
       # unrelated reasons.
       - name: run shared conformance tests (crash only, no GC - blocking)
-        shell: cpa.sh {0}
+        shell: cpa.sh {0} --sync-files none
         run: |
           set -eu
           thirdparty/tcc/tcc.exe vsrc/thirdparty/tccbin_tests/shared/crash.c \
@@ -152,8 +167,7 @@ jobs:
           # broken libtcc1.a/crt or startup path made EVERY program
           # segfault immediately (before ever reaching the intentional
           # null-pointer dereference), this check would still see exit
-          # 139 and wrongly call it "expected" (Codex pullrequestreview-
-          # 4781468264 on vlang/tccbin#75). Keep this positive check
+          # 139 and wrongly call it "expected". Keep this positive check
           # independent of the GC lane below rather than relying on it:
           # this lane's whole purpose is to stay meaningful on its own,
           # covering the plain no-GC toolchain path that a GC-linked test
@@ -197,7 +211,7 @@ jobs:
       # contains 384614a) reports "3 passed, 0 failed". tcc.exe was the
       # only variable between the two.
       - name: run shared conformance tests (libgc.a - blocking)
-        shell: cpa.sh {0}
+        shell: cpa.sh {0} --sync-files none
         run: |
           set -eu
           bash vsrc/thirdparty/tccbin_tests/run.sh "$PWD/thirdparty/tcc/tcc.exe" freebsd -- \
@@ -221,7 +235,7 @@ jobs:
       # reported all three "absent" for a binary that had just linked and
       # run correctly.
       - name: verify the linker provides etext/edata/end (blocking)
-        shell: cpa.sh {0}
+        shell: cpa.sh {0} --sync-files none
         if: ${{ !cancelled() }}
         run: |
           set -eu
@@ -268,3 +282,26 @@ jobs:
           thirdparty/tcc/tcc.exe /tmp/boundary_probe.c -o /tmp/boundary_probe
           /tmp/boundary_probe
           echo "confirmed: the linker provides etext/edata/end, and the advertised range is ordered sanely"
+
+  tccbin-branch-gate:
+    name: tccbin-branch-gate
+    if: >-
+      always() &&
+      github.repository == 'vlang/tccbin' &&
+      (
+        (github.event_name == 'pull_request' &&
+          github.base_ref == 'thirdparty-freebsd-amd64') ||
+        (github.event_name == 'push' &&
+          github.ref == 'refs/heads/thirdparty-freebsd-amd64')
+      )
+    needs: [build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: require successful FreeBSD validation
+        shell: bash
+        env:
+          BUILD_RESULT: ${{ needs.build.result }}
+        run: |
+          set -euo pipefail
+          test "$BUILD_RESULT" = success
