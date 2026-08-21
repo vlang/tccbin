@@ -5,104 +5,148 @@ on:
     branches: [thirdparty-openbsd-amd64]
   pull_request:
     branches: [thirdparty-openbsd-amd64]
-  workflow_dispatch: {}
+
+permissions:
+  contents: read
 
 jobs:
   build:
+    name: openbsd-amd64 read-only validation
+    if: >-
+      github.repository == 'vlang/tccbin' &&
+      (
+        (github.event_name == 'pull_request' &&
+          github.base_ref == 'thirdparty-openbsd-amd64') ||
+        (github.event_name == 'push' &&
+          github.ref == 'refs/heads/thirdparty-openbsd-amd64')
+      )
     runs-on: ubuntu-latest
-    # For a pull_request event, clone the PR's own head repo+commit (so a
-    # PR that updates tcc.exe/libgc.a is actually tested) instead of the
-    # unrelated target branch's current tip - a hardcoded
-    # `git clone --branch thirdparty-openbsd-amd64 .../vlang/tccbin.git`
-    # would silently test only the already-merged target branch
-    # regardless of what the PR proposes. push/workflow_dispatch have no
-    # PR context, so they fall back to the event's own repository/commit
-    # (not a branch *name*, which is mutable: another push landing while
-    # this run is queued/starting would otherwise make TCCBIN_CLONE_SHA's
-    # predecessor, a ref name, silently resolve to a different commit
-    # than the one that triggered this run - Codex pullrequestreview-
-    # 4780049532 on vlang/tccbin#76). Set at job level (matching
-    # update_tccbin.yml's own working BSD job env, which only ever
-    # references github.*/secrets.*, never steps.* - step-level env on
-    # the "Start VM" step was tried first and empirically did NOT get
-    # forwarded into the VM by environment_variables, unlike this
-    # job-level placement).
+    timeout-minutes: 60
     env:
-      TCCBIN_CLONE_URL: ${{ github.event.pull_request.head.repo.clone_url || github.event.repository.clone_url }}
-      TCCBIN_CLONE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      TARGET_ID: openbsd-amd64
+      CANONICAL_BRANCH: thirdparty-openbsd-amd64
+      TCCBIN_CLONE_URL: https://github.com/vlang/tccbin
+      TCCBIN_CLONE_SHA: ${{ github.sha }}
+      CONTRACT_REPOSITORY: vlang/v
+      CONTRACT_CLONE_URL: https://github.com/vlang/v
+      CONTRACT_SHA: 7545e515b434cd399333d43659238427d72e22e7
+      VC_CLONE_URL: https://github.com/vlang/vc
+      VC_SHA: dfc458a13ba8923ebc249e262c331f8169aa728b
+      PUBLISH: 'false'
+      TCCBIN_PUBLISH: 'false'
     steps:
-      # cross-platform-actions/action boots a real OpenBSD VM inside this
-      # Linux runner - the same action vlang/v's own update_tccbin.yml
-      # uses to rebuild this branch's binaries. Pinned to the v1.3.0
-      # tag's commit (resolved via the GitHub API) rather than the
-      # mutable tag itself, so a retag upstream can't silently swap in
-      # different third-party code here without a review-visible diff
-      # (Codex pullrequestreview-4780049532 on vlang/tccbin#76).
       - name: Start openbsd-amd64 VM
-        uses: cross-platform-actions/action@4347c661239bf5dcd0cd77708061488d907343d6 # v1.3.0
+        uses: cross-platform-actions/action@24ef01df165c76df1ed2b9f9e9212e78dc2fc963 # v1.4
         with:
           operating_system: openbsd
           version: '7.8'
           memory: 4G
           shell: sh
           sync_files: runner-to-vm
-          environment_variables: TCCBIN_CLONE_URL TCCBIN_CLONE_SHA
+          environment_variables: >-
+            TARGET_ID CANONICAL_BRANCH
+            TCCBIN_CLONE_URL TCCBIN_CLONE_SHA
+            CONTRACT_REPOSITORY CONTRACT_CLONE_URL CONTRACT_SHA
+            VC_CLONE_URL VC_SHA PUBLISH TCCBIN_PUBLISH
 
-      - name: run shared conformance tests
-        shell: cpa.sh {0}
+      - name: Bootstrap immutable contract and run baseline probe
+        shell: cpa.sh {0} --sync-files none
         run: |
           set -eu
-          sudo pkg_add bash git
+          umask 077
+          sudo pkg_add bash git boehm-gc
 
-          # This branch (unlike linux-amd64/macos-arm64/freebsd-amd64)
-          # ships no libgc.a/.dylib at all - confirmed by inspecting its
-          # tree, and matching V's own builder
-          # (vlib/builtin/builtin_d_gcboehm.c.v's openbsd+tinyc branch),
-          # which only ever references /usr/local/lib/libgc.a, never a
-          # bundled path, for this exact platform+compiler combination.
-          # GC-dependent tests need a system-installed libgc instead.
-          # OpenBSD's port for this is devel/boehm-gc (confirmed via
-          # cvsweb.openbsd.org/ports/devel/) - package name is boehm-gc,
-          # not libgc or gc.
-          sudo pkg_add boehm-gc
+          test "$PUBLISH" = false
+          test "$TCCBIN_PUBLISH" = false
+          test "$CONTRACT_REPOSITORY" = vlang/v
+          test "$CONTRACT_CLONE_URL" = "https://github.com/$CONTRACT_REPOSITORY"
+          test "$VC_CLONE_URL" = https://github.com/vlang/vc
 
-          # Fetch the exact commit that triggered this run, not a branch
-          # name - `git clone --branch <name>` would resolve whatever
-          # that name points to *at clone time*, which can race a push
-          # that lands after this run started (Codex pullrequestreview-
-          # 4780049532 on vlang/tccbin#76).
-          mkdir -p thirdparty/tcc && cd thirdparty/tcc
-          git init -q
-          git remote add origin "$TCCBIN_CLONE_URL"
-          git fetch --depth=1 origin "$TCCBIN_CLONE_SHA"
-          git checkout -q FETCH_HEAD
-          cd ../..
+          checkout_exact() {
+            checkout_repository=$1
+            checkout_sha=$2
+            checkout_destination=$3
+            checkout_history=$4
 
-          # thirdparty/libgc/include (gc.h) and thirdparty/tccbin_tests
-          # (the shared cross-platform conformance suite) both live in
-          # the main v repo, not here. A plain `git clone --depth=1`
-          # only ever contains the CURRENT tip commit's objects - once
-          # vlang/v advances past this pinned SHA, that historical
-          # commit object won't exist in a fresh shallow clone and this
-          # checkout would fail (the same class of bug Codex flagged as
-          # P1 on the sibling freebsd-amd64 workflow, pullrequestreview-
-          # 4780048339 on vlang/tccbin#75 line 60). Fetch that exact SHA
-          # directly instead of cloning HEAD and hoping it's still there.
-          mkdir -p vsrc && cd vsrc
-          git init -q
-          git remote add origin https://github.com/vlang/v.git
-          git sparse-checkout init --no-cone
-          git sparse-checkout set thirdparty/libgc thirdparty/tccbin_tests
-          git fetch --filter=blob:none --depth=1 origin c82d3f08271e9324d6fb8de3c251e9c0e1a9154b
-          git checkout -q FETCH_HEAD
-          cd ..
+            test "${#checkout_sha}" -eq 40
+            case "$checkout_sha" in
+              *[!0-9a-f]*) exit 1 ;;
+            esac
+            test ! -e "$checkout_destination"
+            mkdir -p "$checkout_destination"
+            git -C "$checkout_destination" init -q
+            git -C "$checkout_destination" config --local core.autocrlf false
+            git -C "$checkout_destination" remote add origin "$checkout_repository"
+            if test "$checkout_history" = shallow; then
+              GIT_TERMINAL_PROMPT=0 git -C "$checkout_destination" \
+                fetch --no-tags --depth=1 origin "$checkout_sha"
+            else
+              GIT_TERMINAL_PROMPT=0 git -C "$checkout_destination" \
+                fetch --no-tags origin "$checkout_sha"
+            fi
+            git -C "$checkout_destination" checkout -q --detach FETCH_HEAD
+            test "$(git -C "$checkout_destination" rev-parse HEAD)" = "$checkout_sha"
+            if test "$checkout_history" = full; then
+              test "$(git -C "$checkout_destination" \
+                rev-parse --is-shallow-repository)" = false
+            fi
+          }
 
-          chmod +x thirdparty/tcc/tcc.exe
+          mkdir -p "$PWD/thirdparty"
+          checkout_exact "$TCCBIN_CLONE_URL" "$TCCBIN_CLONE_SHA" \
+            "$PWD/thirdparty/tcc" shallow
+          checkout_exact "$CONTRACT_CLONE_URL" "$CONTRACT_SHA" \
+            "$PWD/vsrc" full
 
-          # The bundled tcc.exe resolves its own crt/libtcc1.a via a path
-          # relative to the process's working directory (confirmed on
-          # linux-amd64/macos-arm64/freebsd-amd64's CI).
-          bash vsrc/thirdparty/tccbin_tests/run.sh "$PWD/thirdparty/tcc/tcc.exe" openbsd -- \
+          contract_work="$(mktemp -d "${TMPDIR:-/tmp}/tccbin-contract.XXXXXX")"
+          vc_root="$contract_work/vc"
+          validator_work="$contract_work/validator"
+          checkout_exact "$VC_CLONE_URL" "$VC_SHA" "$vc_root" full
+
+          bash "$PWD/vsrc/thirdparty/tccbin_automation/bootstrap/bootstrap.sh" \
+            "$PWD/vsrc" "$CONTRACT_REPOSITORY" "$CONTRACT_SHA" \
+            "$vc_root" "$validator_work"
+
+          test -x "$validator_work/tccbin-automation"
+          test -d "$validator_work/contract-source"
+          chmod +x "$PWD/thirdparty/tcc/tcc.exe"
+          PUBLISH=false TCCBIN_PUBLISH=false \
+            bash "$PWD/thirdparty/tcc/automation/probes/baseline-contract.sh" \
+              "$validator_work/tccbin-automation" \
+              "$validator_work/contract-source" \
+              "$PWD/thirdparty/tcc" \
+              "$TARGET_ID" "$CANONICAL_BRANCH" "$CONTRACT_SHA" \
+              "$TCCBIN_CLONE_SHA" "$vc_root"
+
+      - name: run shared conformance tests
+        shell: cpa.sh {0} --sync-files none
+        run: |
+          set -eu
+          bash vsrc/thirdparty/tccbin_tests/run.sh \
+              "$PWD/thirdparty/tcc/tcc.exe" openbsd -- \
               -DGC_BUILTIN_ATOMIC=1 \
               -I "$PWD/vsrc/thirdparty/libgc/include" \
               -L/usr/local/lib -I/usr/local/include -lgc -lpthread
+
+  tccbin-branch-gate:
+    name: tccbin-branch-gate
+    if: >-
+      always() &&
+      github.repository == 'vlang/tccbin' &&
+      (
+        (github.event_name == 'pull_request' &&
+          github.base_ref == 'thirdparty-openbsd-amd64') ||
+        (github.event_name == 'push' &&
+          github.ref == 'refs/heads/thirdparty-openbsd-amd64')
+      )
+    needs: [build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: require successful OpenBSD validation
+        shell: bash
+        env:
+          BUILD_RESULT: ${{ needs.build.result }}
+        run: |
+          set -euo pipefail
+          test "$BUILD_RESULT" = success
