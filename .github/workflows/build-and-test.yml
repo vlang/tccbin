@@ -2,9 +2,7 @@ name: build and test (linux-amd64)
 
 on:
   push:
-    branches: [thirdparty-linux-amd64]
-  pull_request:
-    branches: [thirdparty-linux-amd64]
+    branches: ['harness/tccbin-control-plane-linux-amd64-20260821']
 
 permissions:
   contents: read
@@ -19,13 +17,9 @@ env:
 jobs:
   build:
     if: >-
-      github.repository == 'vlang/tccbin' &&
-      (
-        (github.event_name == 'pull_request' &&
-          github.base_ref == 'thirdparty-linux-amd64') ||
-        (github.event_name == 'push' &&
-          github.ref == 'refs/heads/thirdparty-linux-amd64')
-      )
+      github.repository == 'GGRei/tccbin' &&
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/harness/tccbin-control-plane-linux-amd64-20260821'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -117,13 +111,9 @@ jobs:
     name: tccbin-branch-gate
     if: >-
       always() &&
-      github.repository == 'vlang/tccbin' &&
-      (
-        (github.event_name == 'pull_request' &&
-          github.base_ref == 'thirdparty-linux-amd64') ||
-        (github.event_name == 'push' &&
-          github.ref == 'refs/heads/thirdparty-linux-amd64')
-      )
+      github.repository == 'GGRei/tccbin' &&
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/harness/tccbin-control-plane-linux-amd64-20260821'
     needs: [build]
     runs-on: ubuntu-latest
     timeout-minutes: 5
