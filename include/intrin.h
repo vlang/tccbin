@@ -11,8 +11,10 @@
  *
  * This is an empty stub, not a ported real intrin.h, because this
  * toolchain's own include/_mingw.h unconditionally does
- * `#define __INTRIN_H_` (see its line ~146), which is the real
- * mingw-w64 intrin.h's own header guard. Since <windows.h> (included
+ * `#define __INTRIN_H_` (grep this branch's own _mingw.h for that
+ * macro - the exact line number differs between the amd64 and i386
+ * branches of this bundle), which is the real mingw-w64 intrin.h's
+ * own header guard. Since <windows.h> (included
  * immediately before this header in vc/v_win.c) pulls in _mingw.h first,
  * a real ported intrin.h's body would already be skipped by its own
  * guard in that include order - it would silently do nothing, while

@@ -11,8 +11,10 @@
  * must already come from <windows.h>. Including this header before
  * <windows.h> fails to preprocess. This matches vc/v_win.c's actual order
  * (<windows.h>, then <intrin.h>, then <dbghelp.h>), which this bundle's
- * bootstrap depends on and has been verified to build; any other consumer
- * must include <windows.h> first too.
+ * bootstrap depends on; any other consumer must include <windows.h> first
+ * too. (This ordering was build-verified for the amd64 sibling of this
+ * bundle, not independently re-verified against a real i386 tcc build -
+ * see vlang/tccbin#98.)
  */
 #ifndef _DBGHELP_
 #define _DBGHELP_
