@@ -127,6 +127,7 @@ case "$target_id" in
 			"$staging_root/0007-win32-declare-secure-narrow-stdio.patch" \
 			"$staging_root/0008-win32-fix-exp2-range-reduction.patch" \
 			"$staging_root/0009-win32-declare-CancelIoEx.patch" \
+			"$staging_root/0010-win32-ignore-remaining-benign-debug-exceptions.patch" \
 			"$staging_root/vlang-header-compat.patch" \
 			"$staging_root/v-ae88ee5-tinycc-bdwgc.patch"
 		;;

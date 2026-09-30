@@ -50,6 +50,11 @@ other's counterpart:
   at startup - tcc's own exception handler misclassified the benign
   `DBG_PRINTEXCEPTION_C` exception `OutputDebugString` raises internally
   as a fatal crash. Fixed in tinycc itself (also submitted upstream).
+- **Patch 0010** extends that allowlist: `DBG_PRINTEXCEPTION_WIDE_C`
+  (`OutputDebugStringW`), `DBG_RIPEXCEPTION`, `MS_VC_EXCEPTION`
+  (`SetThreadName`), and Microsoft C++ EH (`0xE06D7363`). Same default
+  still treats access violation and other real faults as fatal. Required
+  after 0002; rebuild `bt-exe.o` then relink `v.exe`.
 - **Patch 0001** (the DEF `LIBRARY` quoting/`.dll`-extension fix) is
   unrelated to the above - found separately, bundled into the same bump
   for convenience.

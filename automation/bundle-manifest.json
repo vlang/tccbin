@@ -26,7 +26,7 @@
   "recipe": {
     "path": "build.ps1",
     "version": 1,
-    "sha256": "3b736100e41c77f7951a8c6c74043d19b6a61b919fb2ec174201d498dbafa5f1"
+    "sha256": "da3b6eb83b3b331d0f48640a3a42957e0f2dfddd0abc48f05a1ee756bfc8f549"
   },
   "toolchain": {
     "profile_id": null,
@@ -252,6 +252,31 @@
           ],
           "required_probe_ids": [
             "patch-0009"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "patch-0010",
+      "path": "0010-win32-ignore-remaining-benign-debug-exceptions.patch",
+      "sha256": "10c550681b93667a571ad5b41f977de2606a1e90a0446f177ebc8c386b54ed9a",
+      "order": 10,
+      "category": "upstream-candidate",
+      "auto_deprecatable": false,
+      "state": "active-required",
+      "effects": [
+        {
+          "id": "patch-0010-effect",
+          "owner": "tinycc",
+          "files": [
+            "tccrun.c",
+            "win32/include/winapi/winnt.h"
+          ],
+          "functions": [
+            "cpu_exception_handler"
+          ],
+          "required_probe_ids": [
+            "patch-0010"
           ]
         }
       ]
@@ -3118,7 +3143,7 @@
       "path": "include/winapi/winnt.h",
       "kind": "file",
       "git_mode": "100644",
-      "sha256": "f70c53a135b26d1989620457b51a36f7b8f3a84ea5632cc9fd68891e35b6cc99",
+      "sha256": "c8f498b70c2be17a5b3f0a4aef06c1127e7368fd9f9ec49cca2537123db9ca6a",
       "symlink_target": null,
       "provenance": {
         "status": "incomplete",
@@ -3391,7 +3416,7 @@
       "path": "lib/bt-exe.o",
       "kind": "file",
       "git_mode": "100644",
-      "sha256": "8d3365834fcf2b7d759f71aea47fa5aaaf43d4aae40e141b34581ee26414fb62",
+      "sha256": "925e16090745428e41cab22952d4a3086fae0921d027066038c3daa6d24a2fd3",
       "symlink_target": null,
       "provenance": {
         "status": "incomplete",
@@ -4473,6 +4498,15 @@
         "i386"
       ],
       "oracle": "CancelIoEx ABI and import resolve"
+    },
+    {
+      "id": "patch-0010",
+      "required": true,
+      "expected_lanes": [
+        "x64",
+        "i386"
+      ],
+      "oracle": "Wide ODS, RIP, SetThreadName, and C++ EH notifications are nonfatal; AV remains fatal"
     },
     {
       "id": "header-gmtime-s",
