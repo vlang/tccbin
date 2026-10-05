@@ -1,0 +1,24 @@
+win32: export batched IOCP completion APIs
+
+Both APIs have been available since Windows Vista. Keep rebuilt distributions
+consistent with the bundled kernel32 import definition. No compiler rebuild is
+needed to use the new exports in an existing distribution.
+
+--- a/win32/lib/kernel32.def
++++ b/win32/lib/kernel32.def
+@@ -341,6 +341,7 @@
+ GetProfileStringA
+ GetProfileStringW
+ GetQueuedCompletionStatus
++GetQueuedCompletionStatusEx
+ GetSLCallbackTarget
+ GetSLCallbackTemplate
+ GetShortPathNameA
+@@ -637,6 +638,7 @@
+ SetFileApisToOEM
+ SetFileAttributesA
+ SetFileAttributesW
++SetFileCompletionNotificationModes
+ SetFilePointer
+ SetFilePointerEx
+ SetFileTime
