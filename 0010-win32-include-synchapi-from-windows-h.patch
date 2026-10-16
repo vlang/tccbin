@@ -1,0 +1,24 @@
+win32: include synchapi.h from windows.h
+
+SRWLOCK and the SRW lock functions are declared in synchapi.h, but windows.h
+never includes that header, so a translation unit that only includes
+<windows.h> cannot name SRWLOCK. SQLite 3.54.0 uses SRWLOCK in its mutex
+implementation, so its amalgamation fails to compile under tcc with
+"';' expected (got 'SRWLOCK')".
+
+Include synchapi.h from windows.h directly after winbase.h, as the other
+kernel32 sub-headers are pulled in. synchapi.h is self-guarded and gates its
+Vista-only prototypes on _WIN32_WINNT, so including it adds no new symbols
+for default builds.
+diff --git a/win32/include/winapi/windows.h b/win32/include/winapi/windows.h
+index ff6454a..d64516e 100644
+--- a/win32/include/winapi/windows.h
++++ b/win32/include/winapi/windows.h
+@@ -65,6 +65,7 @@
+ 
+ #include <windef.h>
+ #include <winbase.h>
++#include <synchapi.h>
+ #include <wingdi.h>
+ #include <winuser.h>
+ #include <winnls.h>
