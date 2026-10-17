@@ -18,7 +18,7 @@
 
 #if __SIZEOF_POINTER__ == 4
     /* 32bit systems. */
-#if defined TARGETOS_OpenBSD
+#if defined  __OpenBSD__
     #define __SIZE_TYPE__ unsigned long
     #define __PTRDIFF_TYPE__ long
 #else
@@ -68,7 +68,7 @@
     #define __WINT_TYPE__ int
 #endif
 
-    #if __STDC_VERSION__ == 201112L
+    #if __STDC_VERSION__ >= 201112L
     # define __STDC_NO_ATOMICS__ 1
     # define __STDC_NO_COMPLEX__ 1
     # define __STDC_NO_THREADS__ 1
@@ -90,8 +90,6 @@
     #define __NO_TLS 1
     #define __RUNETYPE_INTERNAL 1
 # if __SIZEOF_POINTER__ == 8
-    /* FIXME, __int128_t is used by setjump */
-    #define __int128_t struct { unsigned char _dummy[16] __attribute((aligned(16))); }
     #define __SIZEOF_SIZE_T__ 8
     #define __SIZEOF_PTRDIFF_T__ 8
 #else
@@ -124,11 +122,17 @@
     /* avoids usage of GCC/clang specific builtins in libc-headerfiles: */
     #define __FINITE_MATH_ONLY__ 1
     #define _FORTIFY_SOURCE 0
+    //#define __has_builtin(x) 0
+    #define _Float16 short unsigned int /* fake type just for size & alignment (macOS Sequoia) */
+
+#elif defined __ANDROID__
+    #define  BIONIC_IOCTL_NO_SIGNEDNESS_OVERLOAD
 
 #else
     /* Linux */
 
 #endif
+
     /* Some derived integer types needed to get stdint.h to compile correctly on some platforms */
 #ifndef __NetBSD__
     #define __UINTPTR_TYPE__ unsigned __PTRDIFF_TYPE__
@@ -137,10 +141,22 @@
     #define __INT32_TYPE__ int
 
 #if !defined _WIN32
-    /* glibc defines */
+    /* glibc defines. We do not support __USER_NAME_PREFIX__ */
     #define __REDIRECT(name, proto, alias) name proto __asm__ (#alias)
     #define __REDIRECT_NTH(name, proto, alias) name proto __asm__ (#alias) __THROW
+    #define __REDIRECT_NTHNL(name, proto, alias) name proto __asm__ (#alias) __THROWNL
 #endif
+
+    /* not implemented */
+    #define  __PRETTY_FUNCTION__ __FUNCTION__
+    #define __has_builtin(x) 0
+    #define __has_feature(x) 0
+    #define __has_attribute(x) 0
+    /* C23 Keywords */
+    #define _Nonnull
+    #define _Nullable
+    #define _Nullable_result
+    #define _Null_unspecified
 
     /* skip __builtin... with -E */
     #ifndef __TCC_PP__
@@ -153,7 +169,7 @@
     #define __builtin_huge_valf() 1e50f
     #define __builtin_huge_vall() 1e5000L
 # if defined __APPLE__
-    #define __builtin_nanf(ignored_string) __nan()
+    #define __builtin_nanf(ignored_string) (0.0F/0.0F)
     /* used by floats.h to implement FLT_ROUNDS C99 macro. 1 == to nearest */
     #define __builtin_flt_rounds() 1
     /* used by _fd_def.h */
@@ -163,11 +179,17 @@
 # endif
 #endif
 
+    /* GCC's __uint128_t appears in some Linux/OSX header files.
+       Just make it some type with same size and alignment. */
+    struct __uint128__ { char x[16]; } __attribute((__aligned__(16)));
+    #define __int128_t struct __uint128__
+    #define __uint128_t struct __uint128__
+
     /* __builtin_va_list */
 #if defined __x86_64__
 #if !defined _WIN32
     /* GCC compatible definition of va_list. */
-    /* This should be in sync with the declaration in our lib/libtcc1.c */
+    /* This should be in sync with the declaration in our lib/va_list.c */
     typedef struct {
         unsigned gp_offset, fp_offset;
         union {
@@ -200,11 +222,20 @@
                            &~3), *(type *)(ap - ((sizeof(type)+3)&~3)))
 
 #elif defined __aarch64__
+#if defined _WIN32
+    typedef char *__builtin_va_list;
+#elif defined __APPLE__
+    typedef struct {
+        void *__stack;
+    } __builtin_va_list;
+
+#else
     typedef struct {
         void *__stack, *__gr_top, *__vr_top;
         int   __gr_offs, __vr_offs;
     } __builtin_va_list;
 
+#endif
 #elif defined __riscv
     typedef char *__builtin_va_list;
     #define __va_reg_size (__riscv_xlen >> 3)
@@ -230,7 +261,7 @@
     # define __RENAME(X) __asm__(X)
     #endif
 
-    #ifdef __BOUNDS_CHECKING_ON
+    #ifdef __TCC_BCHECK__
     # define __BUILTINBC(ret,name,params) ret __builtin_##name params __RENAME("__bound_"#name);
     # define __BOUND(ret,name,params) ret name params __RENAME("__bound_"#name);
     #else
@@ -255,7 +286,9 @@
     __BOTH(int, strcmp, (const char*, const char*))
     __BOTH(int, strncmp, (const char*, const char*, __SIZE_TYPE__))
     __BOTH(char*, strcat, (char*, const char*))
+    __BOTH(char*, strncat, (char*, const char*, __SIZE_TYPE__))
     __BOTH(char*, strchr, (const char*, int))
+    __BOTH(char*, strrchr, (const char*, int))
     __BOTH(char*, strdup, (const char*))
 #if defined __ARM_EABI__
     __BOUND(void*,__aeabi_memcpy,(void*,const void*,__SIZE_TYPE__))
@@ -275,11 +308,8 @@
     __MAYBE_REDIR(void*, calloc, (__SIZE_TYPE__, __SIZE_TYPE__))
     __MAYBE_REDIR(void*, memalign, (__SIZE_TYPE__, __SIZE_TYPE__))
     __MAYBE_REDIR(void, free, (void*))
-#if defined __i386__ || defined __x86_64__
     __BOTH(void*, alloca, (__SIZE_TYPE__))
-#else
-    __BUILTIN(void*, alloca, (__SIZE_TYPE__))
-#endif
+    void *alloca(__SIZE_TYPE__);
     __BUILTIN(void, abort, (void))
     __BOUND(void, longjmp, ())
 #if !defined _WIN32
@@ -292,5 +322,17 @@
     #undef __BOTH
     #undef __MAYBE_REDIR
     #undef __RENAME
+
+    #define __BUILTIN_EXTERN(name,u) 		\
+        int __builtin_##name(u int);		\
+        int __builtin_##name##l(u long);	\
+        int __builtin_##name##ll(u long long);
+    __BUILTIN_EXTERN(ffs,)
+    __BUILTIN_EXTERN(clz, unsigned)
+    __BUILTIN_EXTERN(ctz, unsigned)
+    __BUILTIN_EXTERN(clrsb,)
+    __BUILTIN_EXTERN(popcount, unsigned)
+    __BUILTIN_EXTERN(parity, unsigned)
+    #undef __BUILTIN_EXTERN
 
     #endif /* ndef __TCC_PP__ */
