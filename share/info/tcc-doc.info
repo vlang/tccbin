@@ -12,7 +12,7 @@ File: tcc-doc.info,  Node: Top,  Next: Introduction,  Prev: (dir),  Up: (dir)
 Tiny C Compiler Reference Documentation
 ***************************************
 
-This manual documents version 0.9.27 of the Tiny C Compiler.
+This manual documents version 0.9.28rc of the Tiny C Compiler.
 
 * Menu:
 
@@ -70,9 +70,9 @@ File: tcc-doc.info,  Node: Invoke,  Next: Clang,  Prev: Introduction,  Up: Top
 
      usage: tcc [options] [INFILE1 INFILE2...] [-run INFILE ARGS...]
 
-TCC options are a very much like gcc options.  The main difference is
-that TCC can also execute directly the resulting program and give it
-runtime arguments.
+TCC options are very much like gcc options.  The main difference is that
+TCC can also execute directly the resulting program and give it runtime
+arguments.
 
    Here are some examples to understand the logic:
 
@@ -170,6 +170,16 @@ General Options:
      'PREFIX/lib/tcc/include'.  ('PREFIX' is usually '/usr' or
      '/usr/local').
 
+'-isystem dir'
+     Specify a system include path to be added to the defaults.
+
+'-nostdinc'
+     Do not search the default system include paths; only search include
+     paths provided on the command line.
+
+'-include file'
+     Include 'file' above each input file.
+
 '-Dsym[=val]'
      Define preprocessor symbol 'sym' to val.  If val is not present,
      its value is '1'.  Function-like macros can also be defined:
@@ -180,6 +190,18 @@ General Options:
 
 '-E'
      Preprocess only, to stdout or file (with -o).
+
+'-P'
+     Do not output '#line' directives.
+
+'-P1'
+     Output alternative '#line' directives.
+
+'-dD, -dM'
+     Output '#define' directives.
+
+'-Wp,-opt'
+     Same as '-opt'.
 
    Compilation flags:
 
@@ -206,6 +228,15 @@ with '-fno-'.
 '-fdollars-in-identifiers'
      Allow dollar signs in identifiers
 
+'-freverse-funcargs'
+     Evaluate function arguments right to left.
+
+'-fgnu89-inline'
+     'extern inline' is like 'static inline'.
+
+'-fasynchronous-unwind-tables'
+     Create eh_frame section [on]
+
 '-ftest-coverage'
      Create code coverage code.  After running the resulting code an
      executable.tcov or sofile.tcov file is generated with code
@@ -220,7 +251,10 @@ with '-fno-'.
 beginning with '-Wno-'.
 
 '-Wimplicit-function-declaration'
-     Warn about implicit function declaration.
+     Warn about implicit function declaration (missing prototype).
+
+'-Wdiscarded-qualifiers'
+     Warn when const is dropped.
 
 '-Wunsupported'
      Warn about unsupported GCC features that are ignored by TCC.
@@ -235,7 +269,8 @@ beginning with '-Wno-'.
      example '-Werror=unsupported'.
 
 '-Wall'
-     Activate some useful warnings.
+     Activate some useful warnings ('-Wimplicit-function-declaration',
+     '-Wdiscard-qualifiers').
 
    Linker options:
 
@@ -269,8 +304,22 @@ beginning with '-Wno-'.
 '-r'
      Generate an object file combining all input files.
 
+'-nostdlib'
+     Don't implicitly link with libc, the C runtime files, and libtcc1.
+
+'-Wl,-nostdlib'
+     Don't search the default paths for libraries ('/usr/local/lib',
+     '/usr/lib' and '/lib').  Only the paths specified with '-L' and
+     'LIBRARY_PATH' are searched.
+
 '-Wl,-rpath=path'
      Put custom search path for dynamic libraries into executable.
+
+'-Wl,-Ipath'
+'-Wl,--dynamic-linker=path'
+     Set the ELF interpreter (dynamic linker).  This defaults to the
+     value of the environment variable 'LD_SO' if set, or a compiled-in
+     default.
 
 '-Wl,--enable-new-dtags'
      When putting a custom search path for dynamic libraries into the
@@ -298,6 +347,14 @@ beginning with '-Wno-'.
 '-Wl,-[Ttext=# | section-alignment=# | file-alignment=# | image-base=# | stack=#]'
      Modify executable layout.
 
+'-Wl,-(no-|disable-)[dynamicbase | nxcompat | high-entropy-va | tsaware]'
+     Set or clear PE (Windows) executable header hardening flags.  The
+     '-Wl,-high-entropy-va' option is supported on x86-64 and ARM64 PE
+     targets and implies '-Wl,-dynamicbase'.  Clearing dynamicbase also
+     clears high-entropy-va.  When '-Wl,-dynamicbase' is used for an
+     executable, TCC also enables base relocation emission for Windows
+     ASLR.
+
 '-Wl,-Bsymbolic'
      Set DT_SYMBOLIC tag.
 
@@ -307,9 +364,14 @@ beginning with '-Wno-'.
    Debugger options:
 
 '-g'
-     Generate run time debug information so that you get clear run time
-     error messages: ' test.c:68: in function 'test5()': dereferencing
-     invalid pointer' instead of the laconic 'Segmentation fault'.
+     Generate run time stab debug information so that you get clear run
+     time error messages: ' test.c:68: in function 'test5()':
+     dereferencing invalid pointer' instead of the laconic 'Segmentation
+     fault'.
+
+'-gdwarf[-x]'
+     Generate run time dwarf debug information instead of stab debug
+     information.
 
 '-b'
      Generate additional support code to check memory allocations and
@@ -317,13 +379,27 @@ beginning with '-Wno-'.
 
 '-bt[N]'
      Display N callers in stack traces.  This is useful with '-g' or
-     '-b'.  With executables, additional support for stack traces is
-     included.
+     '-b'.  When activated, '__TCC_BACKTRACE__' is defined.
 
+     With executables, additional support for stack traces is included.
      A function ' int tcc_backtrace(const char *fmt, ...); ' is provided
      to trigger a stack trace with a message on demand.
 
    Misc options:
+
+'-std=version'
+     Define '__STDC_VERSION__': '201112' if 'version' is c11 or gnu11;
+     '199901' otherwise.
+
+'-x[c|a|b|n]'
+     Specify content of next input file: respectively C, assembly,
+     binary, or none.
+
+'-O[n]'
+     Same as '-D__OPTIMIZE__' except for -O0.
+
+'-pthread'
+     Preprocess with '-D_REENTRANT', link with '-lpthread'.
 
 '-M'
      Just output makefile fragment with dependencies
@@ -342,12 +418,18 @@ beginning with '-Wno-'.
 '-MF depfile'
      Use 'depfile' as output for -MD.
 
+'-MP'
+     Mention all dependencies as targets too.
+
 '-print-search-dirs'
      Print the configured installation directory and a list of library
      and include directories tcc will search.
 
 '-dumpversion'
      Print version.
+
+'-dt'
+     With '-run'/'-E': auto-define 'test_...'  macros
 
    Target specific options:
 
@@ -364,7 +446,7 @@ beginning with '-Wno-'.
 '-m32, -m64'
      Pass command line to the i386/x86_64 cross compiler.
 
-   Note: GCC options '-Ox', '-fx' and '-mx' are ignored.
+   Note: GCC options '-fx' and '-mx' are ignored.
 
    Environment variables that affect how tcc operates.
 
@@ -760,7 +842,7 @@ Double free:
               free(tab);
           }
 
-   TCC defines '__BOUNDS_CHECKING_ON' if activated.
+   TCC defines '__TCC_BCHECK__' if activated.
 
    There are five environment variables that can be used to control the
 behavior:
@@ -803,7 +885,7 @@ bounds checking from usercode (see below).
      The value starts at 0.  If the value is not 0 the code is not
      checked for bounds checking errors.
 
-     #if defined(__TINYC__) && __BOUNDS_CHECKING_ON
+     #ifdef __TCC_BCHECK__
      extern void __bounds_checking (int x);
      # define BOUNDS_CHECKING_OFF __bounds_checking(1)
      # define BOUNDS_CHECKING_ON  __bounds_checking(-1)
@@ -1254,14 +1336,14 @@ Concept Index
 
 Tag Table:
 Node: Top207
-Node: Introduction927
-Node: Invoke2242
-Node: Clang11065
-Node: asm16853
-Node: linker19439
-Node: Bounds21173
-Node: Libtcc24922
-Node: devel25422
+Node: Introduction929
+Node: Invoke2244
+Node: Clang13372
+Node: asm19160
+Node: linker21746
+Node: Bounds23480
+Node: Libtcc27198
+Node: devel27698
 
 End Tag Table
 

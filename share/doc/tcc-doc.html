@@ -54,7 +54,7 @@ Next: <a href="#Introduction" accesskey="n" rel="next">Introduction</a>, Previou
 </div>
 <span id="Tiny-C-Compiler-Reference-Documentation"></span><h1 class="top">Tiny C Compiler Reference Documentation</h1>
 
-<p>This manual documents version 0.9.27 of the Tiny C Compiler.
+<p>This manual documents version 0.9.28rc of the Tiny C Compiler.
 </p>
 
 
@@ -171,7 +171,7 @@ Next: <a href="#Clang" accesskey="n" rel="next">C language support</a>, Previous
 <pre class="example">usage: tcc [options] [<var>infile1</var> <var>infile2</var>&hellip;] [<samp>-run</samp> <var>infile</var> <var>args</var>&hellip;]
 </pre></div>
 
-<p>TCC options are a very much like gcc options. The main difference is that TCC
+<p>TCC options are very much like gcc options. The main difference is that TCC
 can also execute directly the resulting program and give it runtime
 arguments.
 </p>
@@ -299,6 +299,19 @@ and <samp>PREFIX/lib/tcc/include</samp>. (<samp>PREFIX</samp> is usually
 <samp>/usr</samp> or <samp>/usr/local</samp>).
 </p>
 </dd>
+<dt><span><samp>-isystem dir</samp></span></dt>
+<dd><p>Specify a system include path to be added to the defaults.
+</p>
+</dd>
+<dt><span><samp>-nostdinc</samp></span></dt>
+<dd><p>Do not search the default system include paths; only search include paths
+provided on the command line.
+</p>
+</dd>
+<dt><span><samp>-include file</samp></span></dt>
+<dd><p>Include <samp>file</samp> above each input file.
+</p>
+</dd>
 <dt><span><samp>-Dsym[=val]</samp></span></dt>
 <dd><p>Define preprocessor symbol &lsquo;<samp>sym</samp>&rsquo; to
 val. If val is not present, its value is &lsquo;<samp>1</samp>&rsquo;. Function-like macros can
@@ -311,6 +324,22 @@ also be defined: <samp>-DF(a)=a+1</samp>
 </dd>
 <dt><span><samp>-E</samp></span></dt>
 <dd><p>Preprocess only, to stdout or file (with -o).
+</p>
+</dd>
+<dt><span><samp>-P</samp></span></dt>
+<dd><p>Do not output <code>#line</code> directives.
+</p>
+</dd>
+<dt><span><samp>-P1</samp></span></dt>
+<dd><p>Output alternative <code>#line</code> directives.
+</p>
+</dd>
+<dt><span><samp>-dD, -dM</samp></span></dt>
+<dd><p>Output <code>#define</code> directives.
+</p>
+</dd>
+<dt><span><samp>-Wp,-opt</samp></span></dt>
+<dd><p>Same as <samp>-opt</samp>.
 </p>
 </dd>
 </dl>
@@ -347,6 +376,18 @@ behaves like an unnamed one.
 <dd><p>Allow dollar signs in identifiers
 </p>
 </dd>
+<dt><span><samp>-freverse-funcargs</samp></span></dt>
+<dd><p>Evaluate function arguments right to left.
+</p>
+</dd>
+<dt><span><samp>-fgnu89-inline</samp></span></dt>
+<dd><p><code>extern inline</code> is like <code>static inline</code>.
+</p>
+</dd>
+<dt><span><samp>-fasynchronous-unwind-tables</samp></span></dt>
+<dd><p>Create eh_frame section [on]
+</p>
+</dd>
 <dt><span><samp>-ftest-coverage</samp></span></dt>
 <dd><p>Create code coverage code. After running the resulting code an executable.tcov
 or sofile.tcov file is generated with code coverage.
@@ -368,7 +409,11 @@ or sofile.tcov file is generated with code coverage.
 </p>
 <dl compact="compact">
 <dt><span><samp>-Wimplicit-function-declaration</samp></span></dt>
-<dd><p>Warn about implicit function declaration.
+<dd><p>Warn about implicit function declaration (missing prototype).
+</p>
+</dd>
+<dt><span><samp>-Wdiscarded-qualifiers</samp></span></dt>
+<dd><p>Warn when const is dropped.
 </p>
 </dd>
 <dt><span><samp>-Wunsupported</samp></span></dt>
@@ -387,7 +432,8 @@ the specified warning and turn it into an error, for example
 </p>
 </dd>
 <dt><span><samp>-Wall</samp></span></dt>
-<dd><p>Activate some useful warnings.
+<dd><p>Activate some useful warnings (<samp>-Wimplicit-function-declaration</samp>,
+<samp>-Wdiscard-qualifiers</samp>).
 </p>
 </dd>
 </dl>
@@ -433,8 +479,24 @@ opened with <code>dlopen()</code> needs to access executable symbols.
 <dd><p>Generate an object file combining all input files.
 </p>
 </dd>
+<dt><span><samp>-nostdlib</samp></span></dt>
+<dd><p>Don&rsquo;t implicitly link with libc, the C runtime files, and libtcc1.
+</p>
+</dd>
+<dt><span><samp>-Wl,-nostdlib</samp></span></dt>
+<dd><p>Don&rsquo;t search the default paths for libraries (<samp>/usr/local/lib</samp>,
+<samp>/usr/lib</samp> and <samp>/lib</samp>). Only the paths specified with <samp>-L</samp>
+and <code>LIBRARY_PATH</code> are searched.
+</p>
+</dd>
 <dt><span><samp>-Wl,-rpath=path</samp></span></dt>
 <dd><p>Put custom search path for dynamic libraries into executable.
+</p>
+</dd>
+<dt><span><samp>-Wl,-Ipath</samp></span></dt>
+<dt><span><samp>-Wl,--dynamic-linker=path</samp></span></dt>
+<dd><p>Set the ELF interpreter (dynamic linker). This defaults to the value of the
+environment variable <code>LD_SO</code> if set, or a compiled-in default.
 </p>
 </dd>
 <dt><span><samp>-Wl,--enable-new-dtags</samp></span></dt>
@@ -471,6 +533,14 @@ opened with <code>dlopen()</code> needs to access executable symbols.
 <dd><p>Modify executable layout.
 </p>
 </dd>
+<dt><span><samp>-Wl,-(no-|disable-)[dynamicbase | nxcompat | high-entropy-va | tsaware]</samp></span></dt>
+<dd><p>Set or clear PE (Windows) executable header hardening flags.  The
+<samp>-Wl,-high-entropy-va</samp> option is supported on x86-64 and ARM64 PE
+targets and implies <samp>-Wl,-dynamicbase</samp>.  Clearing dynamicbase also
+clears high-entropy-va.  When <samp>-Wl,-dynamicbase</samp> is used for an
+executable, TCC also enables base relocation emission for Windows ASLR.
+</p>
+</dd>
 <dt><span><samp>-Wl,-Bsymbolic</samp></span></dt>
 <dd><p>Set DT_SYMBOLIC tag.
 </p>
@@ -485,10 +555,14 @@ opened with <code>dlopen()</code> needs to access executable symbols.
 </p>
 <dl compact="compact">
 <dt><span><samp>-g</samp></span></dt>
-<dd><p>Generate run time debug information so that you get clear run time
+<dd><p>Generate run time stab debug information so that you get clear run time
 error messages: <code> test.c:68: in function 'test5()': dereferencing
 invalid pointer</code> instead of the laconic <code>Segmentation
 fault</code>.
+</p>
+</dd>
+<dt><span><samp>-gdwarf[-x]</samp></span></dt>
+<dd><p>Generate run time dwarf debug information instead of stab debug information.
 </p>
 </dd>
 <dt><span><samp>-b</samp></span></dt>
@@ -498,10 +572,11 @@ bounds (see <a href="#Bounds">TinyCC Memory and Bound checks</a>). <samp>-g</sam
 </dd>
 <dt><span><samp>-bt[N]</samp></span></dt>
 <dd><p>Display N callers in stack traces. This is useful with <samp>-g</samp> or <samp>-b</samp>.
-With executables, additional support for stack traces is included.
+When activated, <code>__TCC_BACKTRACE__</code> is defined.
 </p>
-<p>A function <code> int tcc_backtrace(const char *fmt, ...); </code> is provided
-to trigger a stack trace with a message on demand.
+<p>With executables, additional support for stack traces is included. A function
+    <code> int tcc_backtrace(const char *fmt, ...); </code>
+is provided to trigger a stack trace with a message on demand.
 </p>
 </dd>
 </dl>
@@ -509,6 +584,23 @@ to trigger a stack trace with a message on demand.
 <p>Misc options:
 </p>
 <dl compact="compact">
+<dt><span><samp>-std=version</samp></span></dt>
+<dd><p>Define <code>__STDC_VERSION__</code>: <code>201112</code> if <samp>version</samp> is c11 or
+gnu11; <code>199901</code> otherwise.
+</p>
+</dd>
+<dt><span><samp>-x[c|a|b|n]</samp></span></dt>
+<dd><p>Specify content of next input file: respectively C, assembly, binary, or none.
+</p>
+</dd>
+<dt><span><samp>-O[n]</samp></span></dt>
+<dd><p>Same as <samp>-D__OPTIMIZE__</samp> except for -O0.
+</p>
+</dd>
+<dt><span><samp>-pthread</samp></span></dt>
+<dd><p>Preprocess with <samp>-D_REENTRANT</samp>, link with <samp>-lpthread</samp>.
+</p>
+</dd>
 <dt><span><samp>-M</samp></span></dt>
 <dd><p>Just output makefile fragment with dependencies
 </p>
@@ -529,6 +621,10 @@ to trigger a stack trace with a message on demand.
 <dd><p>Use <samp>depfile</samp> as output for -MD.
 </p>
 </dd>
+<dt><span><samp>-MP</samp></span></dt>
+<dd><p>Mention all dependencies as targets too.
+</p>
+</dd>
 <dt><span><samp>-print-search-dirs</samp></span></dt>
 <dd><p>Print the configured installation directory and a list of library
 and include directories tcc will search.
@@ -536,6 +632,10 @@ and include directories tcc will search.
 </dd>
 <dt><span><samp>-dumpversion</samp></span></dt>
 <dd><p>Print version.
+</p>
+</dd>
+<dt><span><samp>-dt</samp></span></dt>
+<dd><p>With <samp>-run</samp>/<samp>-E</samp>: auto-define &rsquo;test_...&rsquo; macros
 </p>
 </dd>
 </dl>
@@ -562,8 +662,7 @@ gcc&rsquo;s algorithm.
 </dd>
 </dl>
 
-<p>Note: GCC options <samp>-Ox</samp>, <samp>-fx</samp> and <samp>-mx</samp> are
-ignored.
+<p>Note: GCC options <samp>-fx</samp> and <samp>-mx</samp> are ignored.
 </p>
 <p>Environment variables that affect how tcc operates.
 </p>
@@ -1127,7 +1226,7 @@ Here are some examples of caught errors:
 </dd>
 </dl>
 
-<p>TCC defines <code>__BOUNDS_CHECKING_ON</code> if activated.
+<p>TCC defines <code>__TCC_BCHECK__</code> if activated.
 </p>
 <p>There are five environment variables that can be used to control the behavior:
 </p><ul>
@@ -1174,7 +1273,7 @@ for bounds checking errors.
 </li></ul>
 
 <div class="example">
-<pre class="example">#if defined(__TINYC__) &amp;&amp; __BOUNDS_CHECKING_ON
+<pre class="example">#ifdef __TCC_BCHECK__
 extern void __bounds_checking (int x);
 # define BOUNDS_CHECKING_OFF __bounds_checking(1)
 # define BOUNDS_CHECKING_ON  __bounds_checking(-1)
