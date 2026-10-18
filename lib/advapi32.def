@@ -11,6 +11,8 @@ RegQueryValueExW
 RegSetValueExW
 RegDeleteValueW
 RegEnumValueW
+RegEnumKeyExW
+RegQueryInfoKeyW
 CryptAcquireContextA
 CryptGenRandom
 CryptReleaseContext
