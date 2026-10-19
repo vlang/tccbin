@@ -58,7 +58,7 @@
 .\" ========================================================================
 .\"
 .IX Title "TCC-DOC 1"
-.TH TCC-DOC 1 2026-10-17 0.9.28rc "Tiny C Compiler"
+.TH TCC-DOC 1 2026-10-19 0.9.28rc "Tiny C Compiler"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -125,14 +125,14 @@ need to add \f(CW\*(C`#!/usr/local/bin/tcc \-run\*(C'\fR at the start of your C 
 \&        #!/usr/local/bin/tcc \-run
 \&        #include <stdio.h>
 \&        
-\&        int main() 
+\&        int main()
 \&        {
 \&            printf("Hello World\en");
 \&            return 0;
 \&        }
 .Ve
 .PP
-TCC can read C source code from \fIstandard input\fR when \fB\-\fR is used in 
+TCC can read C source code from \fIstandard input\fR when \fB\-\fR is used in
 place of \fBinfile\fR. Example:
 .PP
 .Vb 1
@@ -140,6 +140,8 @@ place of \fBinfile\fR. Example:
 .Ve
 .SH OPTIONS
 .IX Header "OPTIONS"
+\fIGeneral Options\fR
+.IX Subsection "General Options"
 .IP \fB\-c\fR 4
 .IX Item "-c"
 Generate an object file.
@@ -162,6 +164,11 @@ In a script, it gives the following header:
 .Vb 1
 \&        #!/usr/local/bin/tcc \-run \-L/usr/X11R6/lib \-lX11
 .Ve
+.IP "\fB\-rstdin file\fR" 4
+.IX Item "-rstdin file"
+With \fB\-run\fR: reopen standard input from \fIfile\fR before executing
+the program. This is mainly useful when the C source itself was read from
+standard input (see \fB\-\fR above).
 .IP \fB\-v\fR 4
 .IX Item "-v"
 Display TCC version.
@@ -171,17 +178,27 @@ Show included files.  As sole argument, print search dirs.  \-vvv shows tries to
 .IP \fB\-bench\fR 4
 .IX Item "-bench"
 Display compilation statistics.
+.IP \fB\-dumpmachine\fR 4
+.IX Item "-dumpmachine"
+Print target machine architecture triplet.
+.IP \fB\-dumpversion\fR 4
+.IX Item "-dumpversion"
+Print TCC compiler version.
 .PP
-Preprocessor options:
+\fIPreprocessor Options\fR
+.IX Subsection "Preprocessor Options"
 .IP \fB\-Idir\fR 4
 .IX Item "-Idir"
 Specify an additional include path. Include paths are searched in the
 order they are specified.
 .Sp
-System include paths are always searched after. The default system
-include paths are: \fI/usr/local/include\fR, \fI/usr/include\fR
-and \fIPREFIX/lib/tcc/include\fR. (\fIPREFIX\fR is usually
-\&\fI/usr\fR or \fI/usr/local\fR).
+System include paths are always searched after. The defaults are
+\&\fItccdir/include\fR and then \fI/usr/include\fR, where
+\&\fItccdir\fR is the tcc private directory (\fIPREFIX/lib/tcc\fR, see
+\&\fB\-B\fR; \fIPREFIX\fR is usually \fI/usr\fR or \fI/usr/local\fR).
+On Windows the defaults are \fItccdir/include\fR and
+\&\fItccdir/include/winapi\fR. Use \fB\-vv\fR as sole argument to
+print the paths of the current build.
 .IP "\fB\-isystem dir\fR" 4
 .IX Item "-isystem dir"
 Specify a system include path to be added to the defaults.
@@ -216,7 +233,8 @@ Output \f(CW\*(C`#define\*(C'\fR directives.
 .IX Item "-Wp,-opt"
 Same as \fB\-opt\fR.
 .PP
-Compilation flags:
+\fICompilation Flags\fR
+.IX Subsection "Compilation Flags"
 .PP
 Note: each of the following options has a negative form beginning with
 \&\fB\-fno\-\fR.
@@ -226,9 +244,11 @@ Let the \f(CW\*(C`char\*(C'\fR type be unsigned.
 .IP \fB\-fsigned\-char\fR 4
 .IX Item "-fsigned-char"
 Let the \f(CW\*(C`char\*(C'\fR type be signed.
-.IP \fB\-fno\-common\fR 4
-.IX Item "-fno-common"
-Do not generate common symbols for uninitialized data.
+.IP \fB\-fcommon\fR 4
+.IX Item "-fcommon"
+Generate common symbols for uninitialized data. The default is
+\&\fB\-fno\-common\fR, which puts tentative definitions directly in the
+bss section.
 .IP \fB\-fleading\-underscore\fR 4
 .IX Item "-fleading-underscore"
 Add a leading underscore at the beginning of each C symbol.
@@ -254,7 +274,8 @@ Create eh_frame section [on]
 Create code coverage code. After running the resulting code an executable.tcov
 or sofile.tcov file is generated with code coverage.
 .PP
-Warning options:
+\fIWarning Options\fR
+.IX Subsection "Warning Options"
 .IP \fB\-w\fR 4
 .IX Item "-w"
 Disable all warnings.
@@ -282,13 +303,18 @@ the specified warning and turn it into an error, for example
 .IP \fB\-Wall\fR 4
 .IX Item "-Wall"
 Activate some useful warnings (\fB\-Wimplicit\-function\-declaration\fR,
-\&\fB\-Wdiscard\-qualifiers\fR).
+\&\fB\-Wdiscarded\-qualifiers\fR).
 .PP
-Linker options:
+\fILinker Options\fR
+.IX Subsection "Linker Options"
 .IP \fB\-Ldir\fR 4
 .IX Item "-Ldir"
 Specify an additional static library path for the \fB\-l\fR option. The
-default library paths are \fI/usr/local/lib\fR, \fI/usr/lib\fR and \fI/lib\fR.
+defaults are the tcc private directory (see \fB\-B\fR) and
+\&\fI/usr/lib\fR, which the build may replace by the library directory of
+the host (\fI/usr/lib64\fR or a multiarch triplet directory). On Windows
+the default is \fItccdir/lib\fR. Use \fB\-vv\fR as sole argument
+to print the paths of the current build.
 .IP \fB\-lxxx\fR 4
 .IX Item "-lxxx"
 Link your program with dynamic library libxxx.so or static library
@@ -312,6 +338,9 @@ executable).
 .IX Item "-rdynamic"
 Export global symbols to the dynamic linker. It is useful when a library
 opened with \f(CWdlopen()\fR needs to access executable symbols.
+.IP \fB\-pthread\fR 4
+.IX Item "-pthread"
+Preprocess with \fB\-D_REENTRANT\fR and link with \fB\-lpthread\fR.
 .IP \fB\-r\fR 4
 .IX Item "-r"
 Generate an object file combining all input files.
@@ -320,9 +349,8 @@ Generate an object file combining all input files.
 Don\*(Aqt implicitly link with libc, the C runtime files, and libtcc1.
 .IP \fB\-Wl,\-nostdlib\fR 4
 .IX Item "-Wl,-nostdlib"
-Don\*(Aqt search the default paths for libraries (\fI/usr/local/lib\fR,
-\&\fI/usr/lib\fR and \fI/lib\fR). Only the paths specified with \fB\-L\fR
-and \fBLIBRARY_PATH\fR are searched.
+Don\*(Aqt search the default library paths (see \fB\-L\fR). Only the paths
+specified with \fB\-L\fR and \fBLIBRARY_PATH\fR are searched.
 .IP \fB\-Wl,\-rpath=path\fR 4
 .IX Item "-Wl,-rpath=path"
 Put custom search path for dynamic libraries into executable.
@@ -385,7 +413,8 @@ Set DT_SYMBOLIC tag.
 .IX Item "-Wl,-(no-)whole-archive"
 Turn on/off linking of all objects in archives.
 .PP
-Debugger options:
+\fIDebugger Options\fR
+.IX Subsection "Debugger Options"
 .IP \fB\-g\fR 4
 .IX Item "-g"
 Generate run time stab debug information so that you get clear run time
@@ -408,20 +437,19 @@ With executables, additional support for stack traces is included. A function
     \f(CW\*(C` int tcc_backtrace(const char *fmt, ...); \*(C'\fR
 is provided to trigger a stack trace with a message on demand.
 .PP
-Misc options:
+\fIMisc Options\fR
+.IX Subsection "Misc Options"
 .IP \fB\-std=version\fR 4
 .IX Item "-std=version"
-Define \f(CW\*(C`_\|_STDC_VERSION_\|_\*(C'\fR: \f(CW201112\fR if \fBversion\fR is c11 or
-gnu11; \f(CW199901\fR otherwise.
+Define \f(CW\*(C`_\|_STDC_VERSION_\|_\*(C'\fR to \f(CW201112\fR if \fBversion\fR is
+c11 or gnu11; \f(CW199901\fR otherwise.
 .IP \fB\-x[c|a|b|n]\fR 4
 .IX Item "-x[c|a|b|n]"
 Specify content of next input file: respectively C, assembly, binary, or none.
 .IP \fB\-O[n]\fR 4
 .IX Item "-O[n]"
-Same as \fB\-D_\|_OPTIMIZE_\|_\fR except for \-O0.
-.IP \fB\-pthread\fR 4
-.IX Item "-pthread"
-Preprocess with \fB\-D_REENTRANT\fR, link with \fB\-lpthread\fR.
+Same as \fB\-D_\|_OPTIMIZE_\|_\fR except for \-O0.  \fB\-Os\fR is treated
+the same as \fB\-O1\fR.
 .IP \fB\-M\fR 4
 .IX Item "-M"
 Just output makefile fragment with dependencies
@@ -444,14 +472,12 @@ Mention all dependencies as targets too.
 .IX Item "-print-search-dirs"
 Print the configured installation directory and a list of library
 and include directories tcc will search.
-.IP \fB\-dumpversion\fR 4
-.IX Item "-dumpversion"
-Print version.
 .IP \fB\-dt\fR 4
 .IX Item "-dt"
 With \fB\-run\fR/\fB\-E\fR: auto\-define \*(Aqtest_...\*(Aq macros
 .PP
-Target specific options:
+\fITarget Specific Options\fR
+.IX Subsection "Target Specific Options"
 .IP \fB\-mms\-bitfields\fR 4
 .IX Item "-mms-bitfields"
 Use an algorithm for bitfield alignment consistent with MSVC. Default is
@@ -466,7 +492,45 @@ Do not use sse registers on x86_64
 .IX Item "-m32, -m64"
 Pass command line to the i386/x86_64 cross compiler.
 .PP
-Note: GCC options \fB\-fx\fR and \fB\-mx\fR are ignored.
+\fImacOS Specific Options (Mach\-O Targets Only)\fR
+.IX Subsection "macOS Specific Options (Mach-O Targets Only)"
+.IP \fB\-dynamiclib\fR 4
+.IX Item "-dynamiclib"
+Generate a dynamic library instead of an executable.
+.IP "\fB\-install_name name\fR" 4
+.IX Item "-install_name name"
+Set the install name for a dynamic library.
+.IP \fB\-flat_namespace\fR 4
+.IX Item "-flat_namespace"
+Use a flat namespace (ignored, accepted for compatibility).
+.IP \fB\-two_levelnamespace\fR 4
+.IX Item "-two_levelnamespace"
+Use a two\-level namespace (default, accepted for compatibility).
+.IP "\fB\-undefined\fR \fItreatment\fR" 4
+.IX Item "-undefined treatment"
+Specify how undefined symbols are treated (accepted for compatibility).
+.IP "\fB\-compatibility_version version\fR" 4
+.IX Item "-compatibility_version version"
+Set the compatibility version for a dynamic library.
+.IP "\fB\-current_version version\fR" 4
+.IX Item "-current_version version"
+Set the current version for a dynamic library.
+.PP
+\fITool Modes\fR
+.IX Subsection "Tool Modes"
+.IP "\fBtcc \-ar [crstvx] lib [files]\fR" 4
+.IX Item "tcc -ar [crstvx] lib [files]"
+Create a static library archive.  TCC can function as an \fBar\fR
+replacement without requiring an external archiver tool.  The
+\&\f(CW\*(C`[abdiopN]\*(C'\fR keys are not supported.
+.IP "\fBtcc \-impdef lib.dll [\-v] [\-o lib.def] (Windows only)\fR" 4
+.IX Item "tcc -impdef lib.dll [-v] [-o lib.def] (Windows only)"
+Create a \fI.def\fR definition file from a DLL.
+.PP
+Note: GCC options \fB\-fx\fR, \fB\-mx\fR, \fB\-arch\fR, \fB\-C\fR,
+\&\fB\-\-param\fR, \fB\-pedantic\fR, \fB\-pie\fR, \fB\-no\-pie\fR,
+\&\fB\-pipe\fR, \fB\-s\fR, and \fB\-traditional\fR are ignored.
+\&\fB\-Wunsupported\fR makes TCC warn about them.
 .SH ENVIRONMENT
 .IX Header "ENVIRONMENT"
 Environment variables that affect how tcc operates.

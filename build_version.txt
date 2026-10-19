@@ -1,1 +1,1 @@
-tcc version 0.9.28rc 2026-07-24 HEAD@85ba3ae8* (AArch64 Linux)
+tcc version 0.9.28rc 2026-10-16 HEAD@e23dabed* (AArch64 Linux)

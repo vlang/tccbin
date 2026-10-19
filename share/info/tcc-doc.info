@@ -38,8 +38,9 @@ assembler or linker because TCC does that for you.
    TCC compiles so _fast_ that even for big projects ‘Makefile’s may not
 be necessary.
 
-   TCC not only supports ANSI C, but also most of the new ISO C99
-standard and many GNUC extensions including inline assembly.
+   TCC not only supports ANSI C, but also most of the ISO C99 standard,
+many ISO C11 features, and many GNUC extensions including inline
+assembly.
 
    TCC can also be used to make _C scripts_, i.e.  pieces of C source
 that you run as a Perl or Python script.  Compilation is so fast that
@@ -52,10 +53,21 @@ checks even if non patched libraries are used.
    With ‘libtcc’, you can use TCC as a backend for dynamic code
 generation (*note Libtcc::).
 
-   TCC mainly supports the i386 target on Linux and Windows.  There are
-alpha ports for the ARM (‘arm-tcc’) and the TMS320C67xx targets
-(‘c67-tcc’).  More information about the ARM port is available at
-<http://lists.gnu.org/archive/html/tinycc-devel/2003-10/msg00044.html>.
+   TCC supports the following target and platform combinations:
+
+*OS*        *i386*  *x86-64*  *ARM*    *ARM64*  *RISC-V 64*   *C67*
+Linux       yes     yes       yes      yes      yes           yes
+macOS               yes                yes
+Windows     yes     yes       WinCE    yes
+Android     yes     yes       yes      yes
+FreeBSD             yes                yes
+NetBSD              yes       yes      yes
+OpenBSD     yes     yes                yes      yes
+DragonFly           yes
+
+   The TMS320C67xx (C67) target is a cross compiler for the digital
+signal processors of that family.  It outputs COFF instead of ELF and
+has neither ‘libtcc1.a’ nor bound checking.
 
    For usage on Windows, see also <tcc-win32.txt>.
 
@@ -132,7 +144,8 @@ place of ‘infile’.  Example:
 2.2 Option summary
 ==================
 
-General Options:
+General Options
+---------------
 
 ‘-c’
      Generate an object file.
@@ -149,6 +162,11 @@ General Options:
      In a script, it gives the following header:
           #!/usr/local/bin/tcc -run -L/usr/X11R6/lib -lX11
 
+‘-rstdin file’
+     With ‘-run’: reopen standard input from ‘file’ before executing the
+     program.  This is mainly useful when the C source itself was read
+     from standard input (see ‘-’ above).
+
 ‘-v’
      Display TCC version.
 
@@ -159,16 +177,25 @@ General Options:
 ‘-bench’
      Display compilation statistics.
 
-   Preprocessor options:
+‘-dumpmachine’
+     Print target machine architecture triplet.
+
+‘-dumpversion’
+     Print TCC compiler version.
+
+Preprocessor Options
+--------------------
 
 ‘-Idir’
      Specify an additional include path.  Include paths are searched in
      the order they are specified.
 
-     System include paths are always searched after.  The default system
-     include paths are: ‘/usr/local/include’, ‘/usr/include’ and
-     ‘PREFIX/lib/tcc/include’.  (‘PREFIX’ is usually ‘/usr’ or
-     ‘/usr/local’).
+     System include paths are always searched after.  The defaults are
+     ‘TCCDIR/include’ and then ‘/usr/include’, where TCCDIR is the tcc
+     private directory (‘PREFIX/lib/tcc’, see ‘-B’; ‘PREFIX’ is usually
+     ‘/usr’ or ‘/usr/local’).  On Windows the defaults are
+     ‘TCCDIR/include’ and ‘TCCDIR/include/winapi’.  Use ‘-vv’ as sole
+     argument to print the paths of the current build.
 
 ‘-isystem dir’
      Specify a system include path to be added to the defaults.
@@ -203,10 +230,11 @@ General Options:
 ‘-Wp,-opt’
      Same as ‘-opt’.
 
-   Compilation flags:
+Compilation Flags
+-----------------
 
-   Note: each of the following options has a negative form beginning
-with ‘-fno-’.
+Note: each of the following options has a negative form beginning with
+‘-fno-’.
 
 ‘-funsigned-char’
      Let the ‘char’ type be unsigned.
@@ -214,8 +242,10 @@ with ‘-fno-’.
 ‘-fsigned-char’
      Let the ‘char’ type be signed.
 
-‘-fno-common’
-     Do not generate common symbols for uninitialized data.
+‘-fcommon’
+     Generate common symbols for uninitialized data.  The default is
+     ‘-fno-common’, which puts tentative definitions directly in the bss
+     section.
 
 ‘-fleading-underscore’
      Add a leading underscore at the beginning of each C symbol.
@@ -242,7 +272,8 @@ with ‘-fno-’.
      executable.tcov or sofile.tcov file is generated with code
      coverage.
 
-   Warning options:
+Warning Options
+---------------
 
 ‘-w’
      Disable all warnings.
@@ -270,13 +301,18 @@ beginning with ‘-Wno-’.
 
 ‘-Wall’
      Activate some useful warnings (‘-Wimplicit-function-declaration’,
-     ‘-Wdiscard-qualifiers’).
+     ‘-Wdiscarded-qualifiers’).
 
-   Linker options:
+Linker Options
+--------------
 
 ‘-Ldir’
      Specify an additional static library path for the ‘-l’ option.  The
-     default library paths are ‘/usr/local/lib’, ‘/usr/lib’ and ‘/lib’.
+     defaults are the tcc private directory (see ‘-B’) and ‘/usr/lib’,
+     which the build may replace by the library directory of the host
+     (‘/usr/lib64’ or a multiarch triplet directory).  On Windows the
+     default is ‘TCCDIR/lib’.  Use ‘-vv’ as sole argument to print the
+     paths of the current build.
 
 ‘-lxxx’
      Link your program with dynamic library libxxx.so or static library
@@ -301,6 +337,9 @@ beginning with ‘-Wno-’.
      Export global symbols to the dynamic linker.  It is useful when a
      library opened with ‘dlopen()’ needs to access executable symbols.
 
+‘-pthread’
+     Preprocess with ‘-D_REENTRANT’ and link with ‘-lpthread’.
+
 ‘-r’
      Generate an object file combining all input files.
 
@@ -308,9 +347,8 @@ beginning with ‘-Wno-’.
      Don't implicitly link with libc, the C runtime files, and libtcc1.
 
 ‘-Wl,-nostdlib’
-     Don't search the default paths for libraries (‘/usr/local/lib’,
-     ‘/usr/lib’ and ‘/lib’).  Only the paths specified with ‘-L’ and
-     ‘LIBRARY_PATH’ are searched.
+     Don't search the default library paths (see ‘-L’).  Only the paths
+     specified with ‘-L’ and ‘LIBRARY_PATH’ are searched.
 
 ‘-Wl,-rpath=path’
      Put custom search path for dynamic libraries into executable.
@@ -361,7 +399,8 @@ beginning with ‘-Wno-’.
 ‘-Wl,-(no-)whole-archive’
      Turn on/off linking of all objects in archives.
 
-   Debugger options:
+Debugger Options
+----------------
 
 ‘-g’
      Generate run time stab debug information so that you get clear run
@@ -385,10 +424,11 @@ beginning with ‘-Wno-’.
      A function ‘ int tcc_backtrace(const char *fmt, ...); ’ is provided
      to trigger a stack trace with a message on demand.
 
-   Misc options:
+Misc Options
+------------
 
 ‘-std=version’
-     Define ‘__STDC_VERSION__’: ‘201112’ if ‘version’ is c11 or gnu11;
+     Define ‘__STDC_VERSION__’ to ‘201112’ if ‘version’ is c11 or gnu11;
      ‘199901’ otherwise.
 
 ‘-x[c|a|b|n]’
@@ -396,10 +436,8 @@ beginning with ‘-Wno-’.
      binary, or none.
 
 ‘-O[n]’
-     Same as ‘-D__OPTIMIZE__’ except for -O0.
-
-‘-pthread’
-     Preprocess with ‘-D_REENTRANT’, link with ‘-lpthread’.
+     Same as ‘-D__OPTIMIZE__’ except for -O0.  ‘-Os’ is treated the same
+     as ‘-O1’.
 
 ‘-M’
      Just output makefile fragment with dependencies
@@ -425,13 +463,11 @@ beginning with ‘-Wno-’.
      Print the configured installation directory and a list of library
      and include directories tcc will search.
 
-‘-dumpversion’
-     Print version.
-
 ‘-dt’
      With ‘-run’/‘-E’: auto-define 'test_...'  macros
 
-   Target specific options:
+Target Specific Options
+-----------------------
 
 ‘-mms-bitfields’
      Use an algorithm for bitfield alignment consistent with MSVC.
@@ -446,7 +482,45 @@ beginning with ‘-Wno-’.
 ‘-m32, -m64’
      Pass command line to the i386/x86_64 cross compiler.
 
-   Note: GCC options ‘-fx’ and ‘-mx’ are ignored.
+macOS Specific Options (Mach-O Targets Only)
+--------------------------------------------
+
+‘-dynamiclib’
+     Generate a dynamic library instead of an executable.
+
+‘-install_name name’
+     Set the install name for a dynamic library.
+
+‘-flat_namespace’
+     Use a flat namespace (ignored, accepted for compatibility).
+
+‘-two_levelnamespace’
+     Use a two-level namespace (default, accepted for compatibility).
+
+‘-undefined TREATMENT’
+     Specify how undefined symbols are treated (accepted for
+     compatibility).
+
+‘-compatibility_version version’
+     Set the compatibility version for a dynamic library.
+
+‘-current_version version’
+     Set the current version for a dynamic library.
+
+Tool Modes
+----------
+
+‘tcc -ar [crstvx] lib [files]’
+     Create a static library archive.  TCC can function as an ‘ar’
+     replacement without requiring an external archiver tool.  The
+     ‘[abdiopN]’ keys are not supported.
+
+‘tcc -impdef lib.dll [-v] [-o lib.def] (Windows only)’
+     Create a ‘.def’ definition file from a DLL.
+
+   Note: GCC options ‘-fx’, ‘-mx’, ‘-arch’, ‘-C’, ‘--param’,
+‘-pedantic’, ‘-pie’, ‘-no-pie’, ‘-pipe’, ‘-s’, and ‘-traditional’ are
+ignored.  ‘-Wunsupported’ makes TCC warn about them.
 
    Environment variables that affect how tcc operates.
 
@@ -514,11 +588,43 @@ missing items are: complex and imaginary numbers.
      is the same as writing
                     double d = 4771840.0;
 
-   • ‘inline’ keyword is ignored.
+   • ‘inline’ keyword is supported.  Static inline functions are emitted
+     at the end of the compilation unit only if used.  The behavior of
+     ‘extern inline’ depends on ‘-fgnu89-inline’ (*note Invoke::).
 
-   • ‘restrict’ keyword is ignored.
+   • ‘restrict’ type qualifier.  TCC retains the qualifier and checks
+     that it is applied only to pointers to object or incomplete types.
+     It is not currently used for alias analysis or optimization.
 
-3.3 GNU C extensions
+3.3 ISO C11 extensions
+======================
+
+TCC implements several features of the ISO C11 standard:
+
+   • ‘_Generic’ keyword for type-generic expressions:
+              #define print_type(x) _Generic((x), \
+                  int: "int", \
+                  float: "float", \
+                  default: "other")
+
+   • ‘_Static_assert(expr, msg)’ for compile-time assertions.  The
+     single-argument form ‘_Static_assert(expr)’ (C23) is also
+     supported.
+
+   • ‘_Atomic’ type qualifier for atomic types.
+
+   • ‘_Thread_local’ storage-class specifier for thread-local storage.
+     The GCC extension ‘__thread’ is also supported.
+
+   • ‘_Noreturn’ function specifier (equivalent to the
+     ‘__attribute__((noreturn))’ GNU extension).
+
+   • ‘_Alignas(n)’ specifier to request alignment of a variable or
+     structure field.
+
+   • ‘_Alignof’ operator to query the alignment of a type or expression.
+
+3.4 GNU C extensions
 ====================
 
 TCC implements some GNU C extensions:
@@ -557,20 +663,69 @@ TCC implements some GNU C extensions:
           the default section.
 
         • ‘unused’: specify that the variable or the function is unused.
+          Accepted but currently ignored.
+
+        • ‘cleanup(func)’: specify a function to be called automatically
+          when the variable goes out of scope.  The cleanup function
+          must take one parameter, a pointer to a type compatible with
+          the variable, and return ‘void’.
+
+        • ‘constructor’: specify that the function is to be executed
+          automatically before ‘main()’ is called.
+
+        • ‘destructor’: specify that the function is to be executed
+          automatically after ‘main()’ returns or ‘exit()’ is called.
+
+        • ‘always_inline’: force inline expansion of the function.
+
+        • ‘alias("target")’: declare the function or variable as an
+          alias for symbol ‘target’ (a string containing the target
+          symbol name).
+
+        • ‘visibility("mode")’: set symbol visibility.  Supported modes
+          are ‘"default"’, ‘"hidden"’, ‘"internal"’, and ‘"protected"’.
+
+        • ‘weak’: declare the symbol as a weak symbol.
+
+        • ‘noreturn’: specify that the function does not return to its
+          caller.
 
         • ‘cdecl’: use standard C calling convention (default).
 
         • ‘stdcall’: use Pascal-like calling convention.
 
+        • ‘fastcall’: use fastcall calling convention (i386 only).
+
+        • ‘thiscall’: use C++-style thiscall calling convention (i386
+          only).
+
         • ‘regparm(n)’: use fast i386 calling convention.  N must be
           between 1 and 3.  The first N function parameters are
           respectively put in registers ‘%eax’, ‘%edx’ and ‘%ecx’.
 
-        • ‘dllexport’: export function from dll/executable (win32 only)
+        • ‘__mode__(mode)’: specify the data type size mode for integer
+          variables or typedefs (supported modes: ‘__QI__’, ‘__HI__’,
+          ‘__SI__’, ‘__DI__’, ‘__word__’).  The attribute is only taken
+          into account when it is given with the declaration specifiers,
+          that is before the declarator:
+                   typedef __attribute__ ((__mode__(__QI__))) int int8_type;
+
+        • ‘dllexport’: export function from dll/executable (win32 only).
+
+        • ‘dllimport’: import function from dll/executable (win32 only).
 
         • ‘nodecorate’: do not apply any decorations that would
           otherwise be applied when exporting function from
-          dll/executable (win32 only)
+          dll/executable (win32 only).
+
+        • ‘nodebug’: suppress debug information for the symbol.
+
+        • ‘format(archetype, fmt_idx, chk_idx)’: marks functions that
+          take ‘printf’- or ‘scanf’-style format strings.  Accepted but
+          currently ignored (not checked by TCC).
+
+        • ‘used’: indicates that the symbol must be retained even if it
+          appears unreferenced.  Accepted but currently ignored.
 
      Here are some examples:
               int a __attribute__ ((aligned(8), section(".mysection")));
@@ -583,6 +738,15 @@ TCC implements some GNU C extensions:
               }
 
      generate function ‘my_add’ in section ‘.mycodesection’.
+
+              void free_ptr(void *p) { free(*(void **)p); }
+              void foo(void) {
+                  char *buf __attribute__((cleanup(free_ptr))) = malloc(1024);
+                  /* buf is freed automatically when leaving foo */
+              }
+
+     automatically call ‘free_ptr(&buf)’ when variable ‘buf’ goes out of
+     scope.
 
    • GNU style variadic macros:
               #define dprintf(fmt, args...) printf(fmt, ## args)
@@ -603,6 +767,17 @@ TCC implements some GNU C extensions:
    • Computed gotos: ‘&&label’ returns a pointer of type ‘void *’ on the
      goto label ‘label’.  ‘goto *expr’ can be used to jump on the
      pointer resulting from ‘expr’.
+
+   • Statement expressions: a compound statement enclosed in parentheses
+     may appear as an expression.  The value of the expression is the
+     value of the last statement.  This is commonly used in macros:
+              #define max(a,b) ({ int _a = (a), _b = (b); _a > _b ? _a : _b; })
+
+   • The ‘__label__’ keyword declares local labels within a block:
+              { __label__ done; /* ... */ done: ; }
+
+   • The ‘__extension__’ keyword suppresses warnings for GNU extensions
+     in strict compilation modes.
 
    • Inline assembly with asm instruction:
           static inline void * my_memcpy(void * to, const void * from, size_t n)
@@ -625,14 +800,74 @@ TCC implements some GNU C extensions:
 
      TCC includes its own x86 inline assembler with a ‘gas’-like (GNU
      assembler) syntax.  No intermediate files are generated.  GCC 3.x
-     named operands are supported.
+     named operands are supported.  ‘asm goto’ is also supported for
+     control-flow transfer to C labels:
+            asm goto ("jmp %l[label]" : : : : label);
 
-   • ‘__builtin_types_compatible_p()’ and ‘__builtin_constant_p()’ are
-     supported.
+   • The following GCC built-in functions are supported:
+        • ‘__builtin_types_compatible_p(type1, type2)’: returns 1 if
+          ‘type1’ is compatible with ‘type2’, 0 otherwise.
+        • ‘__builtin_constant_p(exp)’: returns 1 if ‘exp’ evaluates to a
+          compile-time constant, 0 otherwise.
+        • ‘__builtin_choose_expr(const_expr, exp1, exp2)’: evaluates to
+          ‘exp1’ if ‘const_expr’ is non-zero, otherwise ‘exp2’.
+        • ‘__builtin_expect(expr, expected)’: branch prediction hint
+          (evaluates to ‘expr’).
+        • ‘__builtin_unreachable()’: informs the compiler that the code
+          location cannot be reached.
+        • ‘__builtin_frame_address(level)’: returns the frame pointer
+          address for stack level ‘level’.
+        • ‘__builtin_return_address(level)’: returns the return address
+          for stack level ‘level’.
+        • ‘__builtin_offsetof(type, field)’: returns the byte offset of
+          ‘field’ within structure ‘type’.
+        • Bit manipulation built-ins: ‘__builtin_clz’, ‘__builtin_ctz’,
+          ‘__builtin_ffs’, ‘__builtin_popcount’, ‘__builtin_parity’,
+          ‘__builtin_clrsb’ (and their ‘l’ / ‘ll’ type variants).
+        • Variadic argument handling built-ins: ‘__builtin_va_start’,
+          ‘__builtin_va_arg’, ‘__builtin_va_copy’, ‘__builtin_va_end’.
+        • Memory and string built-ins (mapped to libc):
+          ‘__builtin_memcpy’, ‘__builtin_memmove’, ‘__builtin_memset’,
+          ‘__builtin_memcmp’, ‘__builtin_strlen’, ‘__builtin_strcpy’,
+          ‘__builtin_strncpy’, ‘__builtin_strcmp’, ‘__builtin_strncmp’,
+          ‘__builtin_strcat’, ‘__builtin_strncat’, ‘__builtin_strchr’,
+          ‘__builtin_strrchr’, ‘__builtin_strdup’, ‘__builtin_malloc’,
+          ‘__builtin_realloc’, ‘__builtin_calloc’, ‘__builtin_memalign’,
+          ‘__builtin_free’, ‘__builtin_alloca’, ‘__builtin_abort’.
+        • Atomic built-ins: ‘__atomic_store’, ‘__atomic_load’,
+          ‘__atomic_exchange’, ‘__atomic_compare_exchange’,
+          ‘__atomic_fetch_add’, ‘__atomic_fetch_sub’,
+          ‘__atomic_fetch_or’, ‘__atomic_fetch_xor’,
+          ‘__atomic_fetch_and’, ‘__atomic_fetch_nand’, and their reverse
+          ‘__atomic_add_fetch’ variants.
 
-   • ‘#pragma pack’ is supported for win32 compatibility.
+   • Pragmas supported by TinyCC:
+        • ‘#pragma pack(n)’, ‘#pragma pack()’, ‘#pragma pack(push)’,
+          ‘#pragma pack(push, n)’, ‘#pragma pack(pop)’: set structure
+          alignment or manipulate the packing alignment stack.
+        • ‘#pragma push_macro("MACRO")’ and ‘#pragma
+          pop_macro("MACRO")’: push and pop macro definitions to/from a
+          macro stack.
+        • ‘#pragma once’: ensure the header file is included only once
+          during compilation.
+        • ‘#pragma comment(lib, "libname")’: specify a library to link
+          automatically.
+        • ‘#pragma comment(option, "flags")’: pass command line options
+          directly within source code.
 
-3.4 TinyCC extensions
+   • Preprocessor features:
+        • ‘#include_next <file>’: include the next file of the same name
+          in the header search path order.
+        • ‘#warning "message"’: emit a preprocessor warning message.
+        • GNU empty variadic macro argument pasting: ‘, ##__VA_ARGS__’
+          strips the leading comma when ‘__VA_ARGS__’ is empty.
+        • ‘__has_include(<file>)’ and ‘__has_include("file")’: test
+          whether a header file exists.  Can be used in ‘#if’ / ‘#elif’
+          preprocessor conditions.
+        • ‘__has_include_next(<file>)’: like ‘__has_include’ but
+          searches in the next include path, for use in wrapper headers.
+
+3.5 TinyCC extensions
 =====================
 
    • ‘__TINYC__’ is a predefined macro to indicate that you use TCC.
@@ -664,9 +899,12 @@ same as C.
 
    • C and C++ comments are supported.
 
-   • Identifiers are the same as C, so you cannot use '.'  or '$'.
+   • Identifiers are mostly the same as C. The dot (‘.’) is accepted as
+     an identifier character in assembler code.  The dollar sign (‘$’)
+     is accepted with ‘-fdollars-in-identifiers’, except in inline
+     assembly on targets other than x86-64 and RISC-V 64.
 
-   • Only 32 bit integer numbers are supported.
+   • 64-bit integer numbers are supported.
 
 4.2 Expressions
 ===============
@@ -677,15 +915,15 @@ same as C.
 
    • Binary operators in decreasing priority order:
 
-       1. *, /, %
+       1. *, /, %, <<, >>
        2. &, |, ^
        3. +, -
 
    • A value is either an absolute number or a label plus an offset.
-     All operators accept absolute values except '+' and '-'.  '+' or
-     '-' can be used to add an offset to a label.  '-' supports two
-     labels only if they are the same or if they are both defined and in
-     the same section.
+     Only the ‘+’ and ‘-’ operators can be used with labels (to add or
+     subtract an offset).  All other operators require absolute values.
+     ‘-’ supports two labels only if they are the same or if they are
+     both defined and in the same section.
 
 4.3 Labels
 ==========
@@ -728,21 +966,45 @@ supported:
    • .string string[,...]
    • .asciz string[,...]
    • .ascii string[,...]
+   • .p2align n
+   • .balign n[,value]
+   • .pushsection section
+   • .popsection
+   • .set symbol, expr
+   • .weak symbol
+   • .hidden symbol
+   • .type symbol, type
 
 4.5 X86 Assembler
 =================
 
-All X86 opcodes are supported.  Only ATT syntax is supported (source
-then destination operand order).  If no size suffix is given, TinyCC
-tries to guess it from the operand sizes.
+All i386 opcodes are supported.  Most common x86_64 opcodes are
+supported, including MMX and a subset of the SSE instruction set; SSE2
+support is limited to a couple of instructions.  Only AT&T syntax is
+supported (source then destination operand order).  If no size suffix is
+given, TinyCC tries to guess it from the operand sizes.  Note that more
+recent extensions such as AVX, AVX2, and AVX-512 are _not_ supported.
 
-   Currently, MMX opcodes are supported but not SSE ones.
+   x86_64 adds 64-bit operand support (the ‘q’ suffix), additional
+registers (‘%r8’-‘%r15’), and instructions such as ‘cqto’, ‘pushfq’,
+‘popfq’, ‘bswapq’, ‘cmpxchg16b’, ‘movnti’, ‘prefetch*’, ‘lfence’,
+‘mfence’, ‘sfence’, and ‘endbr64’ (Control-Flow Enforcement).
+
+4.6 ARM, ARM64 and RISC-V Assemblers
+====================================
+
+TCC also includes assemblers for the ARM (32-bit), ARM64 (AArch64) and
+RISC-V 64 targets.  These handle the same ‘.S’ and ‘.s’ file extensions
+and support the same inline assembly mechanism as the x86 assemblers.
 
 
 File: tcc-doc.info,  Node: linker,  Next: Bounds,  Prev: asm,  Up: Top
 
 5 TinyCC Linker
 ***************
+
+TCC includes its own linker and can directly output executables, shared
+libraries, and object files without relying on an external linker.
 
 5.1 ELF file generation
 =======================
@@ -761,21 +1023,67 @@ which object files and libraries are specified is important (same
 constraint as GNU ld).  No grouping options (‘--start-group’ and
 ‘--end-group’) are supported.
 
+   TCC generates standard ELF sections including ‘.text’, ‘.data’,
+‘.data.ro’ (read only data), ‘.bss’, ‘.plt’, ‘.got’, and ‘.eh_frame’.
+Shared libraries additionally get ‘.gnu.hash’, ‘.gnu.version’,
+‘.dynamic’, and relocation sections (‘.rela.got’, ‘.rela.plt’).
+
+   TCC automatically defines _section boundary symbols_ ‘__start_SEC’
+and ‘__stop_SEC’ for every allocated section whose name, without the
+leading dot, is a valid C identifier.  These are useful for iterating
+over section contents from C code:
+
+     extern char __start_text[], __stop_text[];
+     size_t text_size = __stop_text - __start_text;
+
 5.2 ELF file loader
 ===================
 
-TCC can load ELF object files, archives (.a files) and dynamic libraries
-(.so).
+TCC can load ELF object files, archives (‘.a’ files) and dynamic
+libraries (‘.so’).
 
-5.3 PE-i386 file generation
-===========================
+5.3 PE file generation
+======================
 
 TCC for Windows supports the native Win32 executable file format
-(PE-i386).  It generates EXE files (console and gui) and DLL files.
+(PE-i386).  It generates PE32 (i386) and PE32+ (x86-64) executables, as
+well as DLL files.  TCC also supports PE with ARM64 machine type,
+including ‘.pdata’ unwind information for structured exception handling.
 
-   For usage on Windows, see also tcc-win32.txt.
+   PE executables can target several subsystems (see *note the
+‘-Wl,-subsystem’ option: Invoke.); which ones are available depends on
+the target.  Standard PE sections are emitted (‘.text’, ‘.data’,
+‘.rdata’, ‘.bss’, ‘.rsrc’, ‘.pdata’, ‘.idata’, ‘.reloc’); the export
+directory goes to ‘.rdata’.
 
-5.4 GNU Linker Scripts
+5.4 Mach-O file generation
+==========================
+
+TCC on macOS produces Mach-O executables and dynamic libraries
+(‘.dylib’) for x86-64 and ARM64 (AArch64).  The files TCC writes always
+contain a single architecture.
+
+   TCC can load Mach-O dynamic libraries and text-based stub files
+(‘.tbd’) for linking against system frameworks.  Fat (universal)
+libraries are accepted, the slice matching the target being selected.
+
+   Mach-O output uses dyld chained fixups on both x86-64 and ARM64.
+
+5.5 Binary and COFF output
+==========================
+
+In addition to the platform-native container formats, TCC supports:
+
+‘Binary image’
+     Raw binary output with no container headers.  Selected via
+     ‘-Wl,--oformat=binary’ (*note Invoke::).  Useful for bootloaders,
+     kernels, and embedded targets.  Only valid for executable output.
+
+‘COFF’
+     The TMS320C67xx (C67) target outputs COFF executables.  Object
+     files are always written as ELF.
+
+5.6 GNU Linker Scripts
 ======================
 
 Because on many Linux systems some dynamic libraries (such as
@@ -824,6 +1132,20 @@ Out of bounds-error in malloc'ed data:
               free(tab);
           }
 
+Out of bounds-error in alloca'ed data:
+          {
+              char *p = alloca(10);
+              memset(p, 'a', 11);
+          }
+
+Out of bounds-error in variable length arrays:
+          {
+              int tab[n];
+              for(i=0;i<n+1;i++) {
+                  sum += tab[i];
+              }
+          }
+
 Access of freed memory:
           {
               int *tab;
@@ -841,6 +1163,23 @@ Double free:
               free(tab);
               free(tab);
           }
+
+Overlapping regions in memory and string functions:
+          {
+              char tab[10];
+              memcpy(tab, tab + 1, 5);
+          }
+
+   The checks are not limited to the code generated by TCC: the bound
+checking runtime also replaces the memory allocation functions
+(‘malloc’, ‘calloc’, ‘realloc’, ‘memalign’, ‘free’) and the most common
+memory and string functions (‘memcpy’, ‘memmove’, ‘memset’, ‘memcmp’,
+‘strlen’, ‘strcpy’, ‘strncpy’, ‘strcmp’, ‘strncmp’, ‘strcat’, ‘strncat’,
+‘strchr’, ‘strrchr’, ‘strdup’) by versions checking their arguments.
+Regions created by ‘alloca’, by variable length arrays and (except on
+Windows) by ‘mmap’ are tracked as well.  ‘setjmp’ and ‘longjmp’ (and
+‘sigsetjmp’ and ‘siglongjmp’) are handled so that the regions of the
+abandoned stack frames are released.
 
    TCC defines ‘__TCC_BCHECK__’ if activated.
 
@@ -861,8 +1200,10 @@ behavior:
 bounds checking from usercode (see below).
 
    Notes:
-   • Only available on i386 (linux and windows), x86_64 (linux and
-     windows), arm, arm64 and riscv64 for the moment.
+   • Available for all targets and platforms supported by TCC, except
+     the TMS320C67xx target.  The checking code is only built for the
+     native compiler, and can be left out with ‘--config-bcheck=no’ at
+     configure time.
    • The generated code is slower and bigger.
    • The bound checking code is not included in shared libraries.  The
      main executable should always be compiled with the ‘-b’.
@@ -907,11 +1248,30 @@ The ‘libtcc’ library enables you to use TCC as a backend for dynamic
 code generation.
 
    Read the ‘libtcc.h’ to have an overview of the API. Read
-‘libtcc_test.c’ to have a very simple example.
+‘tests/libtcc_test.c’ to have a very simple example.
 
    The idea consists in giving a C string containing the program you
 want to compile directly to ‘libtcc’.  Then you can access to any global
 symbol (function or variable) defined.
+
+   A typical session creates a compilation state with ‘tcc_new()’,
+selects the output type with ‘tcc_set_output_type()’ (this must be done
+before any compilation), passes command line options with
+‘tcc_set_options()’ and adds input with ‘tcc_compile_string()’ or
+‘tcc_add_file()’.  The result is then either written to a file with
+‘tcc_output_file()’, run with ‘tcc_run()’, or relocated in memory with
+‘tcc_relocate()’ so that the compiled functions and variables can be
+retrieved with ‘tcc_get_symbol()’.  ‘tcc_output_file()’ and ‘tcc_run()’
+do the relocation themselves, so ‘tcc_relocate()’ must not be called
+before them.  Symbols of the host program are made visible to the
+compiled code with ‘tcc_add_symbol()’.  The state and everything it
+allocated is released by ‘tcc_delete()’.
+
+   Errors and warnings go to ‘stderr’ unless a callback is installed
+with ‘tcc_set_error_func()’.  Several states may be used at the same
+time from different threads; see ‘tests/libtcc_test_mt.c’, which also
+shows how ‘tcc_setjmp()’ catches the runtime exceptions of code compiled
+with ‘-b’ or ‘-bt’.
 
 
 File: tcc-doc.info,  Node: devel,  Prev: Libtcc,  Up: Top
@@ -927,7 +1287,14 @@ it if you do not intend to modify the TCC code.
 
 The ‘BufferedFile’ structure contains the context needed to read a file,
 including the current line number.  ‘tcc_open()’ opens a new file and
-‘tcc_close()’ closes it.  ‘inp()’ returns the next character.
+‘tcc_close()’ closes it.  ‘tcc_open_bf()’ builds the same context for a
+memory buffer instead of a file; it is used for the ‘-D’ options of the
+command line and for token pasting.
+
+   The contexts are stacked through the ‘BufferedFile.prev’ field, so
+the current file is always the innermost ‘#include’.  ‘next_c()’ returns
+the next character and calls ‘handle_eob()’ to refill the buffer when it
+is exhausted.
 
 8.2 Lexer
 =========
@@ -935,10 +1302,11 @@ including the current line number.  ‘tcc_open()’ opens a new file and
 ‘next()’ reads the next token in the current file.  ‘next_nomacro()’
 reads the next token without macro expansion.
 
-   ‘tok’ contains the current token (see ‘TOK_xxx’) constants.
-Identifiers and keywords are also keywords.  ‘tokc’ contains additional
-infos about the token (for example a constant value if number or string
-token).
+   ‘tok’ contains the current token (see ‘TOK_xxx’ constants).
+Identifiers and keywords are also tokens: they are entered in the
+‘table_ident’ array of ‘TokenSym’ structures, so a string is never
+needed to designate them.  ‘tokc’ contains additional infos about the
+token (for example a constant value if number or string token).
 
 8.3 Parser
 ==========
@@ -952,84 +1320,101 @@ except:
    • For architectures where arguments are evaluated in reverse order, a
      first pass is done to reverse the argument order.
 
+   • For inline functions, the body is recorded as a token string and
+     parsed again where the function is really needed.
+
 8.4 Types
 =========
 
-The types are stored in a single 'int' variable.  It was chosen in the
-first stages of development when tcc was much simpler.  Now, it may not
-be the best solution.
+The types are stored in a ‘CType’ structure.  ‘CType.t’ is a single
+'int' holding the basic type, the type modifiers and, during parsing,
+the storage class.  ‘CType.ref’ points to the ‘Sym’ describing the
+referenced type: the pointed type for pointers, the element type for
+arrays, the return type and the parameters for functions, and the fields
+for structures and unions.
 
-     #define VT_INT        0  /* integer type */
-     #define VT_BYTE       1  /* signed byte type */
-     #define VT_SHORT      2  /* short type */
-     #define VT_VOID       3  /* void type */
-     #define VT_PTR        4  /* pointer */
-     #define VT_ENUM       5  /* enum definition */
-     #define VT_FUNC       6  /* function type */
-     #define VT_STRUCT     7  /* struct/union definition */
-     #define VT_FLOAT      8  /* IEEE float */
-     #define VT_DOUBLE     9  /* IEEE double */
-     #define VT_LDOUBLE   10  /* IEEE long double */
-     #define VT_BOOL      11  /* ISOC99 boolean type */
-     #define VT_LLONG     12  /* 64 bit integer */
-     #define VT_LONG      13  /* long integer (NEVER USED as type, only
-                                 during parsing) */
-     #define VT_BTYPE      0x000f /* mask for basic type */
-     #define VT_UNSIGNED   0x0010  /* unsigned type */
-     #define VT_ARRAY      0x0020  /* array type (also has VT_PTR) */
-     #define VT_VLA        0x20000 /* VLA type (also has VT_PTR and VT_ARRAY) */
-     #define VT_BITFIELD   0x0040  /* bitfield modifier */
-     #define VT_CONSTANT   0x0800  /* const modifier */
-     #define VT_VOLATILE   0x1000  /* volatile modifier */
-     #define VT_DEFSIGN    0x2000  /* signed type */
+     #define VT_BTYPE       0x000f  /* mask for basic type */
+     #define VT_VOID             0  /* void type */
+     #define VT_BYTE             1  /* signed byte type */
+     #define VT_SHORT            2  /* short type */
+     #define VT_INT              3  /* integer type */
+     #define VT_LLONG            4  /* 64 bit integer */
+     #define VT_PTR              5  /* pointer */
+     #define VT_FUNC             6  /* function type */
+     #define VT_STRUCT           7  /* struct/union definition */
+     #define VT_FLOAT            8  /* IEEE float */
+     #define VT_DOUBLE           9  /* IEEE double */
+     #define VT_LDOUBLE         10  /* IEEE long double */
+     #define VT_BOOL            11  /* ISOC99 boolean type */
+     #define VT_QLONG           13  /* 128-bit integer, only for the x86-64 ABI */
+     #define VT_QFLOAT          14  /* 128-bit float, only for the x86-64 ABI */
 
-     #define VT_STRUCT_SHIFT 18   /* structure/enum name shift (14 bits left) */
+     #define VT_UNSIGNED    0x0010  /* unsigned type */
+     #define VT_DEFSIGN     0x0020  /* explicitly signed or unsigned */
+     #define VT_ARRAY       0x0040  /* array type (also has VT_PTR) */
+     #define VT_BITFIELD    0x0080  /* bitfield modifier */
+     #define VT_CONSTANT    0x0100  /* const modifier */
+     #define VT_VOLATILE    0x0200  /* volatile modifier */
+     #define VT_VLA         0x0400  /* VLA type (also has VT_PTR and VT_ARRAY) */
+     #define VT_LONG        0x0800  /* long type (also has VT_INT rsp. VT_LLONG) */
 
-   When a reference to another type is needed (for pointers, functions
-and structures), the ‘32 - VT_STRUCT_SHIFT’ high order bits are used to
-store an identifier reference.
+     #define VT_STRUCT_SHIFT 20     /* shift for bitfield shift values */
 
    The ‘VT_UNSIGNED’ flag can be set for chars, shorts, ints and long
-longs.
+longs.  ‘VT_DEFSIGN’ tells whether the signedness was written
+explicitly; ‘compare_types()’ only looks at it for ‘char’, the one type
+whose default signedness differs from an explicit one.
 
    Arrays are considered as pointers ‘VT_PTR’ with the flag ‘VT_ARRAY’
-set.  Variable length arrays are considered as special arrays and have
-flag ‘VT_VLA’ set instead of ‘VT_ARRAY’.
+set.  Variable length arrays have ‘VT_VLA’ set in addition to ‘VT_PTR’
+and ‘VT_ARRAY’.
 
-   The ‘VT_BITFIELD’ flag can be set for chars, shorts, ints and long
-longs.  If it is set, then the bitfield position is stored from bits
-VT_STRUCT_SHIFT to VT_STRUCT_SHIFT + 5 and the bit field size is stored
-from bits VT_STRUCT_SHIFT + 6 to VT_STRUCT_SHIFT + 11.
+   ‘VT_LONG’ is a modifier, not a basic type: ‘long’ is ‘VT_LONG |
+VT_INT’ or ‘VT_LONG | VT_LLONG’ depending on the target.  It does not
+change the generated code, but it is part of the type so that ‘long’
+stays distinct from ‘int’ rsp.  ‘long long’ for type compatibility, for
+‘_Generic’ and in diagnostics.
 
-   ‘VT_LONG’ is never used except during parsing.
+   If ‘VT_BITFIELD’ is set, then the bitfield position is stored in the
+6 bits starting at ‘VT_STRUCT_SHIFT’ and the bitfield size in the 6 bits
+above it (macros ‘BIT_POS()’ and ‘BIT_SIZE()’).
+
+   The same high order bits also distinguish types which share a basic
+type: ‘VT_UNION’ is a ‘VT_STRUCT’ with 1 there, ‘VT_ENUM’ and
+‘VT_ENUM_VAL’ mark an integral type which is really an enum or an enum
+constant, and ‘VT_ASM’ marks a symbol which was created by the
+assembler.
 
    During parsing, the storage of an object is also stored in the type
 integer:
 
-     #define VT_EXTERN  0x00000080  /* extern definition */
-     #define VT_STATIC  0x00000100  /* static variable */
-     #define VT_TYPEDEF 0x00000200  /* typedef definition */
-     #define VT_INLINE  0x00000400  /* inline definition */
-     #define VT_IMPORT  0x00004000  /* win32: extern data imported from dll */
-     #define VT_EXPORT  0x00008000  /* win32: data exported from dll */
-     #define VT_WEAK    0x00010000  /* win32: data exported from dll */
+     #define VT_EXTERN  0x00001000  /* extern definition */
+     #define VT_STATIC  0x00002000  /* static variable */
+     #define VT_TYPEDEF 0x00004000  /* typedef definition */
+     #define VT_INLINE  0x00008000  /* inline definition */
+     #define VT_TLS     0x00010000  /* thread-local storage */
+
+   The declaration properties which do not fit in the type integer
+(alignment, packing, visibility, weak, dllimport/dllexport, calling
+convention, ...) are kept in the ‘SymAttr’ and ‘FuncAttr’ bitfields of
+the ‘Sym’ structure.
 
 8.5 Symbols
 ===========
 
-All symbols are stored in hashed symbol stacks.  Each symbol stack
-contains ‘Sym’ structures.
+All symbols are stored in symbol stacks, chained through the ‘Sym.prev’
+field.  Each symbol stack contains ‘Sym’ structures.
 
    ‘Sym.v’ contains the symbol name (remember an identifier is also a
-token, so a string is never necessary to store it).  ‘Sym.t’ gives the
-type of the symbol.  ‘Sym.r’ is usually the register in which the
+token, so a string is never necessary to store it).  ‘Sym.type’ gives
+the type of the symbol.  ‘Sym.r’ is usually the register in which the
 corresponding variable is stored.  ‘Sym.c’ is usually a constant
 associated to the symbol like its address for normal symbols, and the
 number of entries for symbols representing arrays.  Variable length
 array types use ‘Sym.c’ as a location on the stack which holds the
 runtime sizeof for the type.
 
-   Four main symbol stacks are defined:
+   Five main symbol stacks are defined:
 
 ‘define_stack’
      for the macros (‘#define’s).
@@ -1041,20 +1426,27 @@ runtime sizeof for the type.
      for the local variables, functions and types.
 
 ‘global_label_stack’
-     for the local labels (for ‘goto’).
+     for the function local labels (for ‘goto’).
 
-‘label_stack’
+‘local_label_stack’
      for GCC block local labels (see the ‘__label__’ keyword).
 
    ‘sym_push()’ is used to add a new symbol in the local symbol stack.
 If no local symbol stack is active, it is added in the global symbol
 stack.
 
-   ‘sym_pop(st,b)’ pops symbols from the symbol stack ST until the
+   ‘sym_pop(st,b,keep)’ pops symbols from the symbol stack ST until the
 symbol B is on the top of stack.  If B is NULL, the stack is emptied.
+The symbols are always made invisible to the parser, but if KEEP is non
+zero they are not freed, which is needed as long as the recorded body of
+an inline function may still refer to them.
 
-   ‘sym_find(v)’ return the symbol associated to the identifier V.  The
-local stack is searched first from top to bottom, then the global stack.
+   ‘sym_find(v)’ returns the symbol associated to the identifier V.  No
+stack is searched: each ‘TokenSym’ of ‘table_ident’ directly holds the
+innermost visible ‘Sym’ for its identifier, and ‘sym_pop()’ restores the
+previous one.  Tags of structures, unions and enums live in their own
+namespace and are looked up with ‘struct_find()’, labels with
+‘label_find()’.
 
 8.6 Sections
 ============
@@ -1068,13 +1460,26 @@ for each section.
 
 ‘text_section’
      is the section containing the generated code.  IND contains the
-     current position in the code section.
+     current position in the code section.  CUR_TEXT_SECTION is the
+     section the code of the current function goes to, which is another
+     section when the function has a ‘section’ attribute.
 
 ‘data_section’
      contains initialized data
 
+‘rodata_section’
+     contains read only data: the literal strings and the objects
+     declared ‘const’
+
 ‘bss_section’
      contains uninitialized data
+
+‘common_section’
+     receives the tentative definitions when ‘-fcommon’ is given.  Its
+     symbols are ‘SHN_COMMON’, with the alignment in the symbol value,
+     and ‘resolve_common_syms()’ allocates them in ‘bss_section’ at link
+     time.  By default TCC does not use common symbols and puts
+     tentative definitions directly in ‘bss_section’
 
 ‘bounds_section’
 ‘lbounds_section’
@@ -1082,11 +1487,25 @@ for each section.
 
 ‘stab_section’
 ‘stabstr_section’
-     are used when debugging is active to store debug information
+     are used when debugging is active and stabs debug information is
+     selected
+
+‘dwarf_info_section’
+‘dwarf_abbrev_section’
+‘dwarf_line_section’
+‘dwarf_aranges_section’
+‘dwarf_str_section’
+‘dwarf_line_str_section’
+     are used when debugging is active and dwarf debug information is
+     selected, which is the default on macOS and Android and can be
+     enabled elsewhere with the ‘--config-dwarf’ option of ‘configure’
+
+‘tcov_section’
+     contains the counters used by ‘-ftest-coverage’
 
 ‘symtab_section’
-‘strtab_section’
-     contain the exported symbols (currently only used for debugging).
+     contains the symbols and their names (in ‘symtab_section->link’).
+     It is needed for linking, not only for debugging.
 
 8.7 Code generation
 ===================
@@ -1103,8 +1522,11 @@ little complicated.
 at the expression level.  No intermediate representation of expression
 is kept except the current values stored in the _value stack_.
 
-   On x86, three temporary registers are used.  When more registers are
-needed, one register is spilled into a new temporary variable on the
+   Each target declares the registers the code generator may use in
+‘reg_classes[]’, and ‘NB_REGS’ gives their number: five on i386 (‘eax’,
+‘ecx’, ‘edx’, ‘ebx’, which is only usable when ‘USE_EBX’ is set, and the
+top of the x87 stack), 25 on x86-64, 28 on arm64.  When more registers
+are needed, one register is spilled into a new temporary variable on the
 stack.
 
 8.7.2 The value stack
@@ -1114,26 +1536,30 @@ When an expression is parsed, its value is pushed on the value stack
 (VSTACK).  The top of the value stack is VTOP.  Each value stack entry
 is the structure ‘SValue’.
 
-   ‘SValue.t’ is the type.  ‘SValue.r’ indicates how the value is
+   ‘SValue.type’ is the type.  ‘SValue.r’ indicates how the value is
 currently stored in the generated code.  It is usually a CPU register
 index (‘REG_xxx’ constants), but additional values and flags are
 defined:
 
-     #define VT_CONST     0x00f0
-     #define VT_LLOCAL    0x00f1
-     #define VT_LOCAL     0x00f2
-     #define VT_CMP       0x00f3
-     #define VT_JMP       0x00f4
-     #define VT_JMPI      0x00f5
-     #define VT_LVAL      0x0100
-     #define VT_SYM       0x0200
-     #define VT_MUSTCAST  0x0400
-     #define VT_MUSTBOUND 0x0800
-     #define VT_BOUNDED   0x8000
-     #define VT_LVAL_BYTE     0x1000
-     #define VT_LVAL_SHORT    0x2000
-     #define VT_LVAL_UNSIGNED 0x4000
-     #define VT_LVAL_TYPE     (VT_LVAL_BYTE | VT_LVAL_SHORT | VT_LVAL_UNSIGNED)
+     #define VT_VALMASK   0x003f  /* mask for value location, register or: */
+     #define VT_CONST     0x0030  /* constant in vc */
+     #define VT_LLOCAL    0x0031  /* lvalue, offset on stack */
+     #define VT_LOCAL     0x0032  /* offset on stack */
+     #define VT_CMP       0x0033  /* the value is stored in processor flags */
+     #define VT_JMP       0x0034  /* value is the consequence of jmp true (even) */
+     #define VT_JMPI      0x0035  /* value is the consequence of jmp false (odd) */
+     #define VT_LVAL      0x0100  /* var is an lvalue */
+     #define VT_SYM       0x0200  /* a symbol value is added */
+     #define VT_MUSTCAST  0x0C00  /* value must be casted to be correct */
+     #define VT_NONCONST  0x1000  /* VT_CONST, but not an (C standard) integer
+                                     constant expression */
+     #define VT_MUSTBOUND 0x4000  /* bound checking must be done before
+                                     dereferencing value */
+     #define VT_BOUNDED   0x8000  /* value is bounded */
+
+   ‘SValue.r2’ holds the second register when a value needs two of them,
+as for a ‘long long’ on a 32 bit target.  It is set to ‘VT_CONST’ when
+it is not used.
 
 ‘VT_CONST’
      indicates that the value is a constant.  It is stored in the union
@@ -1146,10 +1572,15 @@ defined:
 ‘VT_CMP’
      indicates that the value is actually stored in the CPU flags (i.e.
      the value is the consequence of a test).  The value is either 0 or
-     1.  The actual CPU flags used is indicated in ‘SValue.c.i’.
+     1.  The comparison which set the flags is kept in ‘SValue.cmp_op’;
+     ‘SValue.cmp_r’ is left to the code generator, which uses it to
+     remember where the compared values are on the targets that have no
+     flags register.
 
      If any code is generated which destroys the CPU flags, this value
-     MUST be put in a normal register.
+     MUST be put in a normal register.  ‘vcheck_cmp()’ does it, and the
+     functions which manipulate the value stack call it before
+     generating code.
 
 ‘VT_JMP’
 ‘VT_JMPI’
@@ -1158,7 +1589,9 @@ defined:
      it is inverted.
 
      These values are used to compile the ‘||’ and ‘&&’ logical
-     operators.
+     operators.  The jumps which still have to be resolved are chained
+     in ‘SValue.jtrue’ and ‘SValue.jfalse’; ‘gvtst()’ adds to these
+     lists and generates the final test.
 
      If any code is generated, this value MUST be put in a normal
      register.  Otherwise, the generated code won't be executed if the
@@ -1172,12 +1605,6 @@ defined:
      Understanding the use ‘VT_LVAL’ is very important if you want to
      understand how TCC works.
 
-‘VT_LVAL_BYTE’
-‘VT_LVAL_SHORT’
-‘VT_LVAL_UNSIGNED’
-     if the lvalue has an integer type, then these flags give its real
-     type.  The type alone is not enough in case of cast optimisations.
-
 ‘VT_LLOCAL’
      is a saved lvalue on the stack.  ‘VT_LVAL’ must also be set with
      ‘VT_LLOCAL’.  ‘VT_LLOCAL’ can arise when a ‘VT_LVAL’ in a register
@@ -1186,11 +1613,21 @@ defined:
 
 ‘VT_MUSTCAST’
      indicates that a cast to the value type must be performed if the
-     value is used (lazy casting).
+     value is used (lazy casting), as for a ‘char’ or a ‘short’ kept in
+     an integer register.  It is a two bit field, so that the width the
+     value has to be casted from (‘int’ or ‘long long’) is remembered
+     too.
 
 ‘VT_SYM’
      indicates that the symbol ‘SValue.sym’ must be added to the
      constant.
+
+‘VT_NONCONST’
+     marks a ‘VT_CONST’ value which only became constant through
+     optimization.  Such a value is folded like any other constant, but
+     it is not a constant expression in the sense of the C standard: it
+     is rejected where the language requires one (‘expr_const64()’) and
+     it is not a null pointer constant.
 
 ‘VT_MUSTBOUND’
 ‘VT_BOUNDED’
@@ -1207,12 +1644,23 @@ storage.
    ‘vpop()’ pops VTOP.  In some cases, it also generates cleanup code
 (for example if stacked floating point registers are used as on x86).
 
+   ‘vdup()’, ‘vswap()’, ‘vrotb()’ and ‘vrott()’ duplicate, exchange and
+rotate the topmost entries.  They all go through ‘vcheck_cmp()’ first,
+because a ‘VT_CMP’ value may only stay on top of the stack.
+
    The ‘gv(rc)’ function generates code to evaluate VTOP (the top value
 of the stack) into registers.  RC selects in which register class the
 value should be put.  ‘gv()’ is the _most important function_ of the
 code generator.
 
    ‘gv2()’ is the same as ‘gv()’ but for the top two stack entries.
+
+   ‘get_reg(rc)’ returns a free register of the class RC.  When they are
+all busy it spills the one held by the oldest value stack entry,
+starting from the bottom of the stack so that the registers of the
+operation being generated are never taken away.  The spill itself is
+done by ‘save_reg()’, which copies to the stack every value living in a
+given register.
 
 8.7.4 CPU dependent code generation
 -----------------------------------
@@ -1227,10 +1675,11 @@ See the ‘i386-gen.c’ file to have an example.
      must generate the code needed to store a register into a stack
      value lvalue.
 
-‘gfunc_start()’
-‘gfunc_param()’
-‘gfunc_call()’
-     should generate a function call
+‘gfunc_call(nb_args)’
+     should generate a function call, the arguments and the function
+     address being the ‘nb_args + 1’ topmost entries of the value stack.
+     ‘gfunc_sret()’ tells the parser how a structure return value is
+     passed for the target ABI.
 
 ‘gfunc_prolog()’
 ‘gfunc_epilog()’
@@ -1256,15 +1705,35 @@ See the ‘i386-gen.c’ file to have an example.
 ‘gen_cvt_ftof()’
      floating point to floating point of different size conversion.
 
+‘gen_cvt_csti()’
+     performs the delayed cast of a ‘char’ or a ‘short’ held in an
+     integer register (see ‘VT_MUSTCAST’).
+
+‘gjmp()’
+‘gjmp_addr()’
+‘gjmp_cond()’
+‘gsym_addr()’
+     generate unconditional and conditional jumps, and patch the jumps
+     whose target was not known yet.
+
+‘gen_vla_alloc()’
+‘gen_vla_sp_save()’
+‘gen_vla_sp_restore()’
+     allocate a variable length array on the stack, and save and restore
+     the stack pointer around it.
+
 8.8 Optimizations done
 ======================
 
 Constant propagation is done for all operations.  Multiplications and
-divisions are optimized to shifts when appropriate.  Comparison
-operators are optimized by maintaining a special cache for the processor
-flags.  &&, || and !  are optimized by maintaining a special 'jump
-target' value.  No other jump optimization is currently performed
-because it would require to store the code in a more abstract fashion.
+divisions by a power of two are optimized to shifts, and operations
+which are a no-operation for the given constant (‘x*1’, ‘x-0’, ‘x&-1’,
+...) are dropped.  Constants added to a symbol or to a local variable
+address are folded into the address.  Comparison operators are optimized
+by maintaining a special cache for the processor flags.  &&, || and !
+are optimized by maintaining a special 'jump target' value.  No other
+jump optimization is currently performed because it would require to
+store the code in a more abstract fashion.
 
 Concept Index
 *************
@@ -1272,77 +1741,111 @@ Concept Index
  [index ]
 * Menu:
 
-* __asm__:                               Clang.               (line 145)
-* align directive:                       asm.                 (line  63)
-* aligned attribute:                     Clang.               (line  84)
-* ascii directive:                       asm.                 (line  63)
-* asciz directive:                       asm.                 (line  63)
-* assembler:                             asm.                 (line  91)
-* assembler directives:                  asm.                 (line  63)
-* assembly, inline:                      Clang.               (line 145)
+* __asm__:                               Clang.               (line 246)
+* __start_SEC:                           linker.              (line  31)
+* __stop_SEC:                            linker.              (line  31)
+* alias attribute:                       Clang.               (line 116)
+* align directive:                       asm.                 (line  66)
+* aligned attribute:                     Clang.               (line 116)
+* always_inline attribute:               Clang.               (line 116)
+* ascii directive:                       asm.                 (line  66)
+* asciz directive:                       asm.                 (line  66)
+* assembler:                             asm.                 (line 102)
+* assembler <1>:                         asm.                 (line 117)
+* assembler directives:                  asm.                 (line  66)
+* assembly, inline:                      Clang.               (line 246)
+* balign directive:                      asm.                 (line  66)
+* binary output:                         linker.              (line  75)
 * bound checks:                          Bounds.              (line   6)
-* bss directive:                         asm.                 (line  63)
-* byte directive:                        asm.                 (line  63)
-* caching processor flags:               devel.               (line 346)
-* cdecl attribute:                       Clang.               (line  84)
-* code generation:                       devel.               (line 178)
-* comparison operators:                  devel.               (line 346)
-* constant propagation:                  devel.               (line 346)
-* CPU dependent:                         devel.               (line 304)
-* data directive:                        asm.                 (line  63)
-* directives, assembler:                 asm.                 (line  63)
-* dllexport attribute:                   Clang.               (line  84)
-* ELF:                                   linker.              (line   9)
-* FILE, linker command:                  linker.              (line  40)
-* fill directive:                        asm.                 (line  63)
-* flags, caching:                        devel.               (line 346)
-* gas:                                   Clang.               (line 164)
-* global directive:                      asm.                 (line  63)
-* globl directive:                       asm.                 (line  63)
-* GROUP, linker command:                 linker.              (line  40)
-* inline assembly:                       Clang.               (line 145)
-* int directive:                         asm.                 (line  63)
-* jump optimization:                     devel.               (line 346)
+* bss directive:                         asm.                 (line  66)
+* byte directive:                        asm.                 (line  66)
+* caching processor flags:               devel.               (line 452)
+* cdecl attribute:                       Clang.               (line 116)
+* cleanup attribute:                     Clang.               (line 116)
+* code generation:                       devel.               (line 237)
+* COFF:                                  linker.              (line  75)
+* comparison operators:                  devel.               (line 452)
+* constant propagation:                  devel.               (line 452)
+* constructor attribute:                 Clang.               (line 116)
+* CPU dependent:                         devel.               (line 392)
+* data directive:                        asm.                 (line  66)
+* destructor attribute:                  Clang.               (line 116)
+* directives, assembler:                 asm.                 (line  66)
+* dllexport attribute:                   Clang.               (line 116)
+* dllimport attribute:                   Clang.               (line 116)
+* ELF:                                   linker.              (line  12)
+* ELF loader:                            linker.              (line  42)
+* fastcall attribute:                    Clang.               (line 116)
+* FILE, linker command:                  linker.              (line  89)
+* fill directive:                        asm.                 (line  66)
+* flags, caching:                        devel.               (line 452)
+* format attribute:                      Clang.               (line 116)
+* gas:                                   Clang.               (line 265)
+* global directive:                      asm.                 (line  66)
+* globl directive:                       asm.                 (line  66)
+* GROUP, linker command:                 linker.              (line  89)
+* hidden directive:                      asm.                 (line  66)
+* inline assembly:                       Clang.               (line 246)
+* int directive:                         asm.                 (line  66)
+* jump optimization:                     devel.               (line 452)
 * linker:                                linker.              (line   6)
-* linker scripts:                        linker.              (line  40)
-* long directive:                        asm.                 (line  63)
+* linker scripts:                        linker.              (line  89)
+* long directive:                        asm.                 (line  66)
+* Mach-O:                                linker.              (line  62)
+* macOS:                                 linker.              (line  62)
 * memory checks:                         Bounds.              (line   6)
-* nodecorate attribute:                  Clang.               (line  84)
-* optimizations:                         devel.               (line 346)
-* org directive:                         asm.                 (line  63)
-* OUTPUT_FORMAT, linker command:         linker.              (line  40)
-* packed attribute:                      Clang.               (line  84)
-* PE-i386:                               linker.              (line  32)
-* previous directive:                    asm.                 (line  63)
-* quad directive:                        asm.                 (line  63)
-* regparm attribute:                     Clang.               (line  84)
-* scripts, linker:                       linker.              (line  40)
-* section attribute:                     Clang.               (line  84)
-* section directive:                     asm.                 (line  63)
-* short directive:                       asm.                 (line  63)
-* skip directive:                        asm.                 (line  63)
-* space directive:                       asm.                 (line  63)
-* stdcall attribute:                     Clang.               (line  84)
-* strength reduction:                    devel.               (line 346)
-* string directive:                      asm.                 (line  63)
-* TARGET, linker command:                linker.              (line  40)
-* text directive:                        asm.                 (line  63)
-* unused attribute:                      Clang.               (line  84)
-* value stack:                           devel.               (line 286)
-* value stack, introduction:             devel.               (line 197)
-* word directive:                        asm.                 (line  63)
+* mode attribute:                        Clang.               (line 116)
+* nodebug attribute:                     Clang.               (line 116)
+* nodecorate attribute:                  Clang.               (line 116)
+* noreturn attribute:                    Clang.               (line 116)
+* optimizations:                         devel.               (line 452)
+* org directive:                         asm.                 (line  66)
+* OUTPUT_FORMAT, linker command:         linker.              (line  89)
+* p2align directive:                     asm.                 (line  66)
+* packed attribute:                      Clang.               (line 116)
+* PE:                                    linker.              (line  48)
+* PE-i386:                               linker.              (line  48)
+* PE32+:                                 linker.              (line  48)
+* popsection directive:                  asm.                 (line  66)
+* previous directive:                    asm.                 (line  66)
+* pushsection directive:                 asm.                 (line  66)
+* quad directive:                        asm.                 (line  66)
+* regparm attribute:                     Clang.               (line 116)
+* scripts, linker:                       linker.              (line  89)
+* section attribute:                     Clang.               (line 116)
+* section boundary symbols:              linker.              (line  31)
+* section directive:                     asm.                 (line  66)
+* set directive:                         asm.                 (line  66)
+* short directive:                       asm.                 (line  66)
+* skip directive:                        asm.                 (line  66)
+* space directive:                       asm.                 (line  66)
+* stdcall attribute:                     Clang.               (line 116)
+* strength reduction:                    devel.               (line 452)
+* string directive:                      asm.                 (line  66)
+* TARGET, linker command:                linker.              (line  89)
+* text directive:                        asm.                 (line  66)
+* thiscall attribute:                    Clang.               (line 116)
+* type directive:                        asm.                 (line  66)
+* unused attribute:                      Clang.               (line 116)
+* used attribute:                        Clang.               (line 116)
+* value stack:                           devel.               (line 363)
+* value stack, introduction:             devel.               (line 259)
+* visibility attribute:                  Clang.               (line 116)
+* weak attribute:                        Clang.               (line 116)
+* weak directive:                        asm.                 (line  66)
+* word directive:                        asm.                 (line  66)
 
 
 Tag Table:
 Node: Top207
 Node: Introduction929
-Node: Invoke2260
-Node: Clang14164
-Node: asm20220
-Node: linker22882
-Node: Bounds24648
-Node: Libtcc28408
-Node: devel28928
+Node: Invoke2675
+Node: Clang16781
+Node: asm31240
+Node: linker35133
+Node: Bounds39116
+Node: Libtcc44214
+Node: devel45910
 
 End Tag Table
 
