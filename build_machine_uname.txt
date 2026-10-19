@@ -1,0 +1,1 @@
+Linux lima-fastc-linux-loom2v 6.8.0-147-generic #147-Ubuntu SMP PREEMPT_DYNAMIC Thu Sep 24 11:39:52 UTC 2026 armv7l GNU/Linux
