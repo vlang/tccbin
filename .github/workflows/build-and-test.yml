@@ -11,7 +11,7 @@ permissions:
 
 env:
   CONTRACT_REPOSITORY: vlang/v
-  CONTRACT_SHA: cac944a59d80cf3e7bd6277efb40e57cc03995df
+  CONTRACT_SHA: 614db074f6acb9a6afc11d660addc257402d82c9
   VC_SHA: c3063f8ca58150f6c6d98d86dc95bd3543e620f3
   PUBLISH: 'false'
   TCCBIN_PUBLISH: 'false'
