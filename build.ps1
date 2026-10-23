@@ -91,6 +91,7 @@ try {
     Copy-Item lib\libtcc1.a           (Join-Path $OutDir "lib\libtcc1.a") -Force
     Copy-Item lib\i386-win32-libtcc1.a (Join-Path $OutDir "lib\i386-win32-libtcc1.a") -Force
     Copy-Item lib\shell32.def          (Join-Path $OutDir "lib\shell32.def") -Force
+    Copy-Item lib\kernel32.def         (Join-Path $OutDir "lib\kernel32.def") -Force
     foreach ($f in @("bcheck.o","bt-exe.o","bt-log.o","bt-dll.o","runmain.o",
                       "i386-win32-bcheck.o","i386-win32-bt-exe.o","i386-win32-bt-log.o",
                       "i386-win32-bt-dll.o","i386-win32-runmain.o",
