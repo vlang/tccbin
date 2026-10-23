@@ -1,0 +1,92 @@
+win32: export the kernel32 functions the bundled kernel32.def already carried
+
+The committed lib/kernel32.def was extended by hand over the years with
+exports that V's own library calls and that the pinned tinycc base does
+not export: CreateHardLinkW and GetFinalPathNameByHandleW (os),
+GetNativeSystemInfo (builtin), K32GetProcessMemoryInfo (runtime), and the
+condition-variable trio InitializeConditionVariable,
+SleepConditionVariableSRW and WakeConditionVariable (sync), plus
+GetConsoleWindow, GetCurrentProcessorNumber and the narrow
+GetFinalPathNameByHandle.
+
+build.ps1 now copies tinycc's win32/lib/kernel32.def over the bundled copy,
+so without this patch a rebuild silently drops those ten exports and a
+program that imports os or sync fails to link under tcc with "unresolved
+reference". Add them to the source definition file in sorted order, so the
+rebuilt and the committed kernel32.def are the same file.
+diff --git a/win32/lib/kernel32.def b/win32/lib/kernel32.def
+index a53c0f66..206967b6 100644
+--- a/win32/lib/kernel32.def
++++ b/win32/lib/kernel32.def
+@@ -75,6 +75,7 @@ CreateFileA
+ CreateFileMappingA
+ CreateFileMappingW
+ CreateFileW
++CreateHardLinkW
+ CreateIoCompletionPort
+ CreateKernelThread
+ CreateMailslotA
+@@ -237,12 +238,14 @@ GetConsoleOutputCP
+ GetConsoleScreenBufferInfo
+ GetConsoleTitleA
+ GetConsoleTitleW
++GetConsoleWindow
+ GetCurrencyFormatA
+ GetCurrencyFormatW
+ GetCurrentDirectoryA
+ GetCurrentDirectoryW
+ GetCurrentProcess
+ GetCurrentProcessId
++GetCurrentProcessorNumber
+ GetCurrentThread
+ GetCurrentThreadId
+ GetDateFormatA
+@@ -275,6 +278,8 @@ GetFileSize
+ GetFileSizeEx
+ GetFileTime
+ GetFileType
++GetFinalPathNameByHandle
++GetFinalPathNameByHandleW
+ GetFullPathNameA
+ GetFullPathNameW
+ GetGeoInfoA
+@@ -303,6 +308,7 @@ GetModuleHandleW
+ GetNamedPipeHandleStateA
+ GetNamedPipeHandleStateW
+ GetNamedPipeInfo
++GetNativeSystemInfo
+ GetNumberFormatA
+ GetNumberFormatW
+ GetNumberOfConsoleInputEvents
+@@ -428,6 +434,7 @@ HeapUnlock
+ HeapValidate
+ HeapWalk
+ InitAtomTable
++InitializeConditionVariable
+ InitializeCriticalSection
+ InitializeCriticalSectionAndSpinCount
+ InitializeSRWLock
+@@ -454,6 +461,7 @@ IsSystemResumeAutomatic
+ IsValidCodePage
+ IsValidLanguageGroup
+ IsValidLocale
++K32GetProcessMemoryInfo
+ K32Thk1632Epilog
+ K32Thk1632Prolog
+ K32_NtCreateFile
+@@ -677,6 +685,7 @@ SignalObjectAndWait
+ SignalSysMsgHandlers
+ SizeofResource
+ Sleep
++SleepConditionVariableSRW
+ SleepEx
+ SuspendThread
+ SwitchToFiber
+@@ -734,6 +743,7 @@ WaitForSingleObject
+ WaitForSingleObjectEx
+ WaitNamedPipeA
+ WaitNamedPipeW
++WakeConditionVariable
+ WideCharToMultiByte
+ WinExec
+ WriteConsoleA

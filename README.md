@@ -75,3 +75,11 @@ updated definition file; rebuilding `tcc.exe` is unnecessary. Patch 0010 keeps
 these exports when `build.ps1` rebuilds the distribution. The optional
 `OVERLAPPED_ENTRY` type and function declarations can still be supplied by the
 calling program when its bundled Windows headers do not declare them.
+
+Since `build.ps1` copies tinycc's patched `win32/lib/kernel32.def` over
+`lib/kernel32.def`, every export the bundle needs has to come from a patch.
+Patches 0012-0015 add the Vista-era file, tick and SRW lock exports, and patch
+0016 carries the exports that were previously hand-added only to the bundled
+copy (`CreateHardLinkW`, `GetFinalPathNameByHandleW`, `GetNativeSystemInfo`,
+`K32GetProcessMemoryInfo`, the condition-variable functions, and others). The
+committed `lib/kernel32.def` is the file those patches produce.
