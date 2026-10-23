@@ -10,18 +10,18 @@ Add both kernel32 exports. The declarations are unchanged, so this patch only
 affects linking. InitializeSRWLock, AcquireSRWLockExclusive and
 ReleaseSRWLockExclusive are already exported.
 diff --git a/win32/lib/kernel32.def b/win32/lib/kernel32.def
-index 3bbb41d..c9828ae 100644
+index f768b601..dd105965 100644
 --- a/win32/lib/kernel32.def
 +++ b/win32/lib/kernel32.def
-@@ -273,6 +273,7 @@ GetFileAttributesExW
+@@ -269,6 +269,7 @@ GetFileAttributesExW
  GetFileAttributesW
  GetFileInformationByHandle
  GetFileSize
 +GetFileSizeEx
  GetFileTime
  GetFileType
- GetFinalPathNameByHandle
-@@ -701,6 +702,7 @@ TlsSetValue
+ GetFullPathNameA
+@@ -688,6 +689,7 @@ TlsSetValue
  Toolhelp32ReadProcessMemory
  TransactNamedPipe
  TransmitCommChar

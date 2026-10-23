@@ -32,6 +32,10 @@ $TccPatch7 = Join-Path $PSScriptRoot "0007-win32-declare-secure-narrow-stdio.pat
 $TccPatch8 = Join-Path $PSScriptRoot "0008-win32-fix-exp2-range-reduction.patch"
 $TccPatch9 = Join-Path $PSScriptRoot "0009-win32-declare-CancelIoEx.patch"
 $TccPatch10 = Join-Path $PSScriptRoot "0010-win32-export-batched-iocp.patch"
+$TccPatch11 = Join-Path $PSScriptRoot "0011-win32-include-synchapi-from-windows-h.patch"
+$TccPatch12 = Join-Path $PSScriptRoot "0012-win32-declare-and-export-GetTickCount64.patch"
+$TccPatch13 = Join-Path $PSScriptRoot "0013-win32-export-GetFileSizeEx-and-TryAcquireSRWLockExclusive.patch"
+$TccPatch14 = Join-Path $PSScriptRoot "0014-win32-declare-and-export-GetFileInformationByHandleEx.patch"
 $GcPatch = Join-Path $PSScriptRoot "v-ae88ee5-tinycc-bdwgc.patch"
 $OutDir = $PSScriptRoot
 
@@ -65,6 +69,14 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "$TccPatch9 failed to apply" }
     git apply $TccPatch10
     if ($LASTEXITCODE -ne 0) { throw "$TccPatch10 failed to apply" }
+    git apply $TccPatch11
+    if ($LASTEXITCODE -ne 0) { throw "$TccPatch11 failed to apply" }
+    git apply $TccPatch12
+    if ($LASTEXITCODE -ne 0) { throw "$TccPatch12 failed to apply" }
+    git apply $TccPatch13
+    if ($LASTEXITCODE -ne 0) { throw "$TccPatch13 failed to apply" }
+    git apply $TccPatch14
+    if ($LASTEXITCODE -ne 0) { throw "$TccPatch14 failed to apply" }
 
     Set-Location win32
     & .\build-tcc.bat -clean
