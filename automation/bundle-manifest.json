@@ -3328,7 +3328,7 @@
       "path": "lib/advapi32.def",
       "kind": "file",
       "git_mode": "100644",
-      "sha256": "d0bcc380a827431dbbbcb12ea3224140772eb4c5bbc206aff0ec989bfca094e6",
+      "sha256": "2adb75c592636e7de977d5d506d1ff350ab27fd9ae3fd4ce3e8b523dc6a38deb",
       "symlink_target": null,
       "provenance": {
         "status": "incomplete",
