@@ -7,8 +7,7 @@ in kernel32.def, so a program that calls either one, or links an object such
 as SQLite 3.54.0 that references them, fails with "unresolved reference".
 
 Add both kernel32 exports. The declarations are unchanged, so this patch only
-affects linking. InitializeSRWLock, AcquireSRWLockExclusive and
-ReleaseSRWLockExclusive are already exported.
+affects linking. Patch 0015 exports the other SRW lock functions.
 diff --git a/win32/lib/kernel32.def b/win32/lib/kernel32.def
 index f768b601..dd105965 100644
 --- a/win32/lib/kernel32.def
