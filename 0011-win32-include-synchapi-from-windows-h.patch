@@ -6,17 +6,18 @@ A translation unit that only includes <windows.h> could not name SRWLOCK, and
 SQLite 3.54.0 uses it in its mutex implementation, so its amalgamation fails to
 compile under tcc with "';' expected (got 'SRWLOCK')".
 
-Add a synchapi.h to the win32 include tree. It declares SRWLOCK and
-RTL_SRWLOCK unconditionally, and declares the SRW lock functions only when
-_WIN32_WINNT is at least 0x0600, so default builds add no new prototypes.
-windows.h includes it directly after winbase.h.
+Add a synchapi.h to the win32 include tree, as the Windows SDK does. It declares
+SRWLOCK and SRWLOCK_INIT unconditionally, and declares the SRW lock functions
+only when _WIN32_WINNT is at least 0x0600, so default builds add no new
+prototypes. RTL_SRWLOCK and RTL_SRWLOCK_INIT live in winnt.h, as in the SDK.
+windows.h includes synchapi.h directly after winbase.h.
 
 diff --git a/win32/include/winapi/synchapi.h b/win32/include/winapi/synchapi.h
 new file mode 100644
-index 00000000..29feb3a5
+index 00000000..5f878382
 --- /dev/null
 +++ b/win32/include/winapi/synchapi.h
-@@ -0,0 +1,35 @@
+@@ -0,0 +1,31 @@
 +/* synchapi.h: the Vista-era synchronization API for the tcc Windows headers.
 + * SRWLOCK is declared unconditionally, because SQLite 3.54.0 names the type in
 + * its mutex code. The functions are declared only when _WIN32_WINNT is at least
@@ -28,13 +29,9 @@ index 00000000..29feb3a5
 +extern "C" {
 +#endif
 +
-+typedef struct _RTL_SRWLOCK {
-+  PVOID Ptr;
-+} RTL_SRWLOCK, *PRTL_SRWLOCK;
 +
 +typedef RTL_SRWLOCK SRWLOCK, *PSRWLOCK;
 +
-+#define RTL_SRWLOCK_INIT {0}
 +#define SRWLOCK_INIT RTL_SRWLOCK_INIT
 +
 +#if _WIN32_WINNT >= 0x0600
@@ -64,3 +61,18 @@ index ff6454a9..d64516e9 100644
  #include <wingdi.h>
  #include <winuser.h>
  #include <winnls.h>
+diff --git a/win32/include/winapi/winnt.h b/win32/include/winapi/winnt.h
+index 1e9876a8..88a0cc96 100644
+--- a/win32/include/winapi/winnt.h
++++ b/win32/include/winapi/winnt.h
+@@ -5989,6 +5989,10 @@ typedef DWORD LCID;
+ #define ACTIVATION_CONTEXT_SECTION_GLOBAL_OBJECT_RENAME_TABLE (8)
+ #define ACTIVATION_CONTEXT_SECTION_CLR_SURROGATES (9)
+ #define ACTIVATION_CONTEXT_SECTION_APPLICATION_SETTINGS (10)
++typedef struct _RTL_SRWLOCK {
++  PVOID Ptr;
++} RTL_SRWLOCK, *PRTL_SRWLOCK;
++#define RTL_SRWLOCK_INIT {0}
+ 
+ #ifdef __cplusplus
+   }
