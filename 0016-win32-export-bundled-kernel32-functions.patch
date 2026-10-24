@@ -12,10 +12,13 @@ GetFinalPathNameByHandle.
 build.ps1 now copies tinycc's win32/lib/kernel32.def over the bundled copy,
 so without this patch a rebuild silently drops those ten exports and a
 program that imports os or sync fails to link under tcc with "unresolved
-reference". Add them to the source definition file in sorted order, so the
-rebuilt and the committed kernel32.def are the same file.
+reference". The time module also requires GetDynamicTimeZoneInformation and
+GetTimeZoneInformationForYear for historical timezone rules. Add these
+imports to the source definition file too, so rebuilding preserves them.
+The definition file is consumed at link time; no compiler rebuild is
+needed to update an existing distribution.
 diff --git a/win32/lib/kernel32.def b/win32/lib/kernel32.def
-index a53c0f66..206967b6 100644
+index a53c0f6..04c8747 100644
 --- a/win32/lib/kernel32.def
 +++ b/win32/lib/kernel32.def
 @@ -75,6 +75,7 @@ CreateFileA
@@ -41,7 +44,15 @@ index a53c0f66..206967b6 100644
  GetCurrentThread
  GetCurrentThreadId
  GetDateFormatA
-@@ -275,6 +278,8 @@ GetFileSize
+@@ -257,6 +260,7 @@ GetDiskFreeSpaceExW
+ GetDiskFreeSpaceW
+ GetDriveTypeA
+ GetDriveTypeW
++GetDynamicTimeZoneInformation
+ GetEnvironmentStrings
+ GetEnvironmentStringsA
+ GetEnvironmentStringsW
+@@ -275,6 +279,8 @@ GetFileSize
  GetFileSizeEx
  GetFileTime
  GetFileType
@@ -50,7 +61,7 @@ index a53c0f66..206967b6 100644
  GetFullPathNameA
  GetFullPathNameW
  GetGeoInfoA
-@@ -303,6 +308,7 @@ GetModuleHandleW
+@@ -303,6 +309,7 @@ GetModuleHandleW
  GetNamedPipeHandleStateA
  GetNamedPipeHandleStateW
  GetNamedPipeInfo
@@ -58,7 +69,15 @@ index a53c0f66..206967b6 100644
  GetNumberFormatA
  GetNumberFormatW
  GetNumberOfConsoleInputEvents
-@@ -428,6 +434,7 @@ HeapUnlock
+@@ -378,6 +385,7 @@ GetTickCount64
+ GetTimeFormatA
+ GetTimeFormatW
+ GetTimeZoneInformation
++GetTimeZoneInformationForYear
+ GetUserDefaultLCID
+ GetUserDefaultLangID
+ GetUserDefaultUILanguage
+@@ -428,6 +436,7 @@ HeapUnlock
  HeapValidate
  HeapWalk
  InitAtomTable
@@ -66,7 +85,7 @@ index a53c0f66..206967b6 100644
  InitializeCriticalSection
  InitializeCriticalSectionAndSpinCount
  InitializeSRWLock
-@@ -454,6 +461,7 @@ IsSystemResumeAutomatic
+@@ -454,6 +463,7 @@ IsSystemResumeAutomatic
  IsValidCodePage
  IsValidLanguageGroup
  IsValidLocale
@@ -74,7 +93,7 @@ index a53c0f66..206967b6 100644
  K32Thk1632Epilog
  K32Thk1632Prolog
  K32_NtCreateFile
-@@ -677,6 +685,7 @@ SignalObjectAndWait
+@@ -677,6 +687,7 @@ SignalObjectAndWait
  SignalSysMsgHandlers
  SizeofResource
  Sleep
@@ -82,7 +101,7 @@ index a53c0f66..206967b6 100644
  SleepEx
  SuspendThread
  SwitchToFiber
-@@ -734,6 +743,7 @@ WaitForSingleObject
+@@ -734,6 +745,7 @@ WaitForSingleObject
  WaitForSingleObjectEx
  WaitNamedPipeA
  WaitNamedPipeW
