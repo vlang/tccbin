@@ -1,0 +1,56 @@
+From: Wang Yongzhi <wangyongzhi@yuweitek.com>
+Date: Thu, 17 Sep 2026 11:00:00 +0800
+Subject: [PATCH] win32: ignore remaining benign debug/EH notifications under -bt
+
+0002 already passes DBG_PRINTEXCEPTION_C (0x40010006). The same
+cpu_exception_handler default still treats these first-chance
+notifications as fatal and calls rt_error():
+
+  - DBG_PRINTEXCEPTION_WIDE_C (0x4001000A): OutputDebugStringW
+  - DBG_RIPEXCEPTION (0x40010007): debugger RIP
+  - 0x406D1388: MS_VC_EXCEPTION / SetThreadName
+  - 0xE06D7363: Microsoft C++ EH
+
+V's builtin Windows handler already continue-search on the
+ODS / thread-name / C++ EH codes. Align TCC -bt with that
+allowlist. Real faults (AV, stack overflow, divide-by-zero)
+stay in the default fatal path.
+
+Applies after 0002.
+---
+ tccrun.c                     | 9 +++++++++
+ win32/include/winapi/winnt.h | 1 +
+ 2 files changed, 10 insertions(+)
+
+diff --git a/tccrun.c b/tccrun.c
+--- a/tccrun.c
++++ b/tccrun.c
+@@ -1412,6 +1412,15 @@ static long __stdcall cpu_exception_handler(EXCEPTION_POINTERS *ex_info)
+     case DBG_PRINTEXCEPTION_C:
+         /* raised by OutputDebugString(); benign and expected to be
+            ignored when no debugger is attached - do not treat it as
+            a fatal crash. */
+         return EXCEPTION_CONTINUE_SEARCH;
++    case DBG_PRINTEXCEPTION_WIDE_C:
++        /* OutputDebugStringW(); same protocol, Unicode path. */
++        return EXCEPTION_CONTINUE_SEARCH;
++    case DBG_RIPEXCEPTION:
++        return EXCEPTION_CONTINUE_SEARCH;
++    case 0x406D1388: /* MS_VC_EXCEPTION / SetThreadName */
++        return EXCEPTION_CONTINUE_SEARCH;
++    case 0xE06D7363: /* Microsoft C++ EH first-chance */
++        return EXCEPTION_CONTINUE_SEARCH;
+     default:
+         rt_error(&f, "caught exception %08x", code);
+         break;
+diff --git a/win32/include/winapi/winnt.h b/win32/include/winapi/winnt.h
+--- a/win32/include/winapi/winnt.h
++++ b/win32/include/winapi/winnt.h
+@@ -792,6 +792,7 @@ typedef DWORD LCID;
+ #define DBG_PRINTEXCEPTION_C ((DWORD)0x40010006L)
+ #define DBG_RIPEXCEPTION ((DWORD)0x40010007L)
+ #define DBG_CONTROL_BREAK ((DWORD)0x40010008L)
+ #define DBG_COMMAND_EXCEPTION ((DWORD)0x40010009L)
++#define DBG_PRINTEXCEPTION_WIDE_C ((DWORD)0x4001000AL)
+ #define STATUS_GUARD_PAGE_VIOLATION ((DWORD)0x80000001L)
+ #define STATUS_DATATYPE_MISALIGNMENT ((DWORD)0x80000002L)

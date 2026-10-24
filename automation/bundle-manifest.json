@@ -26,7 +26,7 @@
   "recipe": {
     "path": "build.ps1",
     "version": 1,
-    "sha256": "553e45bb7338b5dc2630b3d716f0aed4e85c2640395dd56f72c60137481b1230"
+    "sha256": "d4320815942084a53d60f5b3e37ec07208d9adb79ec9ca9c0b9abb4ad651be17"
   },
   "toolchain": {
     "profile_id": null,
@@ -443,6 +443,31 @@
           ]
         }
       ]
+    },
+    {
+      "id": "patch-0017",
+      "path": "0017-win32-ignore-remaining-benign-debug-exceptions.patch",
+      "sha256": "10c550681b93667a571ad5b41f977de2606a1e90a0446f177ebc8c386b54ed9a",
+      "order": 17,
+      "category": "upstream-candidate",
+      "auto_deprecatable": false,
+      "state": "active-required",
+      "effects": [
+        {
+          "id": "patch-0017-effect",
+          "owner": "tinycc",
+          "files": [
+            "tccrun.c",
+            "win32/include/winapi/winnt.h"
+          ],
+          "functions": [
+            "cpu_exception_handler"
+          ],
+          "required_probe_ids": [
+            "patch-0017"
+          ]
+        }
+      ]
     }
   ],
   "transforms": [
@@ -451,7 +476,7 @@
       "path": "vlang-header-compat.patch",
       "sha256": "bc1f63053dedeae665a01ca508b6123f2145c4e1895642ca38e406f8eb7fdf55",
       "owner": "bundle-overlay",
-      "order": 17,
+      "order": 18,
       "apply_stage": "bundle-payload-post-copy",
       "effect_ids": [
         "header-gmtime-s",
@@ -464,7 +489,7 @@
       "path": "v-ae88ee5-tinycc-bdwgc.patch",
       "sha256": "3b42e3fcd1e8a544d31ccdc4a2b12b9da6ac44ce1af7562cd781fdacf6890196",
       "owner": "v-libgc",
-      "order": 18,
+      "order": 19,
       "apply_stage": "v-libgc-source-prebuild",
       "effect_ids": [
         "bdwgc-v-integration"
@@ -555,7 +580,7 @@
       "path": "README.md",
       "kind": "file",
       "git_mode": "100644",
-      "sha256": "ecc995fe2195d8b0539a826bdeb5a385933e7e7755a443c09ae7256c0e160167",
+      "sha256": "337b9e37dd0b4150ceb4d365d7bb3bdb6f45804631e4bb184eafbbe457d8fa1c",
       "symlink_target": null,
       "provenance": {
         "status": "incomplete",
@@ -3432,7 +3457,7 @@
       "path": "include/winapi/winnt.h",
       "kind": "file",
       "git_mode": "100644",
-      "sha256": "f70c53a135b26d1989620457b51a36f7b8f3a84ea5632cc9fd68891e35b6cc99",
+      "sha256": "c8f498b70c2be17a5b3f0a4aef06c1127e7368fd9f9ec49cca2537123db9ca6a",
       "symlink_target": null,
       "provenance": {
         "status": "incomplete",
@@ -3705,7 +3730,7 @@
       "path": "lib/bt-exe.o",
       "kind": "file",
       "git_mode": "100644",
-      "sha256": "8d3365834fcf2b7d759f71aea47fa5aaaf43d4aae40e141b34581ee26414fb62",
+      "sha256": "925e16090745428e41cab22952d4a3086fae0921d027066038c3daa6d24a2fd3",
       "symlink_target": null,
       "provenance": {
         "status": "incomplete",
@@ -3915,7 +3940,7 @@
       "path": "lib/i386-win32-bt-exe.o",
       "kind": "file",
       "git_mode": "100644",
-      "sha256": "3c135ddc17afd6c332da1324c1bef1f5ab8aa20485342022f0ac5592a7d79f9e",
+      "sha256": "6fbd254cd9e5e13302732d1d685cf47cb9e4781c5c8ad45b7a1b35759635ae28",
       "symlink_target": null,
       "provenance": {
         "status": "incomplete",
@@ -4850,6 +4875,15 @@
         "i386"
       ],
       "oracle": "os, sync and runtime kernel32 imports resolve without the hand-edited kernel32.def"
+    },
+    {
+      "id": "patch-0017",
+      "required": true,
+      "expected_lanes": [
+        "x64",
+        "i386"
+      ],
+      "oracle": "Wide ODS, RIP, SetThreadName, and C++ EH notifications are nonfatal; AV remains fatal"
     },
     {
       "id": "header-gmtime-s",
