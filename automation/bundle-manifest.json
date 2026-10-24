@@ -414,7 +414,7 @@
     {
       "id": "patch-0016",
       "path": "0016-win32-export-bundled-kernel32-functions.patch",
-      "sha256": "b722ed4e9e28eadc28b0bb6fb8c803c5bb46328b65dde2d414e58eb5ec8a9d45",
+      "sha256": "ef7c80161791b9d7cd4ebd3a4307d86c8bb26effdb396e04561a852188faaa2d",
       "order": 16,
       "category": "upstream-candidate",
       "auto_deprecatable": false,
@@ -430,9 +430,11 @@
             "CreateHardLinkW",
             "GetConsoleWindow",
             "GetCurrentProcessorNumber",
+            "GetDynamicTimeZoneInformation",
             "GetFinalPathNameByHandle",
             "GetFinalPathNameByHandleW",
             "GetNativeSystemInfo",
+            "GetTimeZoneInformationForYear",
             "InitializeConditionVariable",
             "K32GetProcessMemoryInfo",
             "SleepConditionVariableSRW",
@@ -555,7 +557,7 @@
       "path": "README.md",
       "kind": "file",
       "git_mode": "100644",
-      "sha256": "ecc995fe2195d8b0539a826bdeb5a385933e7e7755a443c09ae7256c0e160167",
+      "sha256": "4ac2e383d6e3becf601edd7bc3febba61a979ed01a6621d3943669ae1c7b5603",
       "symlink_target": null,
       "provenance": {
         "status": "incomplete",
@@ -3999,7 +4001,7 @@
       "path": "lib/kernel32.def",
       "kind": "file",
       "git_mode": "100644",
-      "sha256": "18479886378a8195557c82e43ed02154bd41fa7836d5aaa70bcd22bac16977de",
+      "sha256": "c1a2979af5c772b997bad23601b14d400afaab48dea35eb490413dd0f4f538ad",
       "symlink_target": null,
       "provenance": {
         "status": "incomplete",
@@ -4500,6 +4502,27 @@
       "os_abi": null
     },
     {
+      "path": "tests/winapi_dynamic_timezone.c",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "c5ab1c29996b09c74f868518089a425d1f53eb6301e4feb314411b620e4af957",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
       "path": "tests/winapi_inet_ntop_pton.c",
       "kind": "file",
       "git_mode": "100644",
@@ -4849,7 +4872,7 @@
         "x64",
         "i386"
       ],
-      "oracle": "os, sync and runtime kernel32 imports resolve without the hand-edited kernel32.def"
+      "oracle": "os, sync, time and runtime kernel32 imports resolve without the hand-edited kernel32.def"
     },
     {
       "id": "header-gmtime-s",
