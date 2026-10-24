@@ -1,0 +1,47 @@
+win32: export the SRW lock functions from kernel32
+
+The synchapi.h declarations added by patch 0011 cover InitializeSRWLock,
+AcquireSRWLockExclusive, ReleaseSRWLockExclusive, AcquireSRWLockShared,
+ReleaseSRWLockShared and TryAcquireSRWLockShared, but the pinned tinycc base
+exports none of them from kernel32.def. A program that calls one of them
+compiles and then fails to link with "unresolved reference". Add all six
+exports. Patch 0013 exports TryAcquireSRWLockExclusive.
+
+diff --git a/win32/lib/kernel32.def b/win32/lib/kernel32.def
+index abbeec75..a53c0f66 100644
+--- a/win32/lib/kernel32.def
++++ b/win32/lib/kernel32.def
+@@ -1,6 +1,8 @@
+ LIBRARY kernel32.dll
+ 
+ EXPORTS
++AcquireSRWLockExclusive
++AcquireSRWLockShared
+ AddAtomA
+ AddAtomW
+ AddVectoredContinueHandler
+@@ -428,6 +430,7 @@ HeapWalk
+ InitAtomTable
+ InitializeCriticalSection
+ InitializeCriticalSectionAndSpinCount
++InitializeSRWLock
+ InterlockedCompareExchange
+ InterlockedDecrement
+ InterlockedExchange
+@@ -552,6 +555,8 @@ RegisterServiceProcess
+ RegisterSysMsgHandler
+ ReinitializeCriticalSection
+ ReleaseMutex
++ReleaseSRWLockExclusive
++ReleaseSRWLockShared
+ ReleaseSemaphore
+ RemoveDirectoryA
+ RemoveDirectoryW
+@@ -693,6 +698,7 @@ Toolhelp32ReadProcessMemory
+ TransactNamedPipe
+ TransmitCommChar
+ TryAcquireSRWLockExclusive
++TryAcquireSRWLockShared
+ TryEnterCriticalSection
+ UTRegister
+ UTUnRegister

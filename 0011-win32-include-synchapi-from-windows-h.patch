@@ -1,0 +1,78 @@
+win32: add synchapi.h and include it from windows.h
+
+SRWLOCK and the SRW lock functions were meant to come from synchapi.h, but
+tcc's win32 include tree has no synchapi.h, and windows.h did not include one.
+A translation unit that only includes <windows.h> could not name SRWLOCK, and
+SQLite 3.54.0 uses it in its mutex implementation, so its amalgamation fails to
+compile under tcc with "';' expected (got 'SRWLOCK')".
+
+Add a synchapi.h to the win32 include tree, as the Windows SDK does. It declares
+SRWLOCK and SRWLOCK_INIT unconditionally, and declares the SRW lock functions
+only when _WIN32_WINNT is at least 0x0600, so default builds add no new
+prototypes. RTL_SRWLOCK and RTL_SRWLOCK_INIT live in winnt.h, as in the SDK.
+windows.h includes synchapi.h directly after winbase.h.
+
+diff --git a/win32/include/winapi/synchapi.h b/win32/include/winapi/synchapi.h
+new file mode 100644
+index 00000000..5f878382
+--- /dev/null
++++ b/win32/include/winapi/synchapi.h
+@@ -0,0 +1,31 @@
++/* synchapi.h: the Vista-era synchronization API for the tcc Windows headers.
++ * SRWLOCK is declared unconditionally, because SQLite 3.54.0 names the type in
++ * its mutex code. The functions are declared only when _WIN32_WINNT is at least
++ * 0x0600, so default builds add no new prototypes. */
++#ifndef _SYNCHAPI_H
++#define _SYNCHAPI_H
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++
++typedef RTL_SRWLOCK SRWLOCK, *PSRWLOCK;
++
++#define SRWLOCK_INIT RTL_SRWLOCK_INIT
++
++#if _WIN32_WINNT >= 0x0600
++  WINBASEAPI VOID WINAPI InitializeSRWLock(PSRWLOCK SRWLock);
++  WINBASEAPI VOID WINAPI ReleaseSRWLockExclusive(PSRWLOCK SRWLock);
++  WINBASEAPI VOID WINAPI ReleaseSRWLockShared(PSRWLOCK SRWLock);
++  WINBASEAPI VOID WINAPI AcquireSRWLockExclusive(PSRWLOCK SRWLock);
++  WINBASEAPI VOID WINAPI AcquireSRWLockShared(PSRWLOCK SRWLock);
++  WINBASEAPI BOOLEAN WINAPI TryAcquireSRWLockExclusive(PSRWLOCK SRWLock);
++  WINBASEAPI BOOLEAN WINAPI TryAcquireSRWLockShared(PSRWLOCK SRWLock);
++#endif
++
++#ifdef __cplusplus
++}
++#endif
++
++#endif /* _SYNCHAPI_H */
+diff --git a/win32/include/winapi/windows.h b/win32/include/winapi/windows.h
+index ff6454a9..d64516e9 100644
+--- a/win32/include/winapi/windows.h
++++ b/win32/include/winapi/windows.h
+@@ -65,6 +65,7 @@
+ 
+ #include <windef.h>
+ #include <winbase.h>
++#include <synchapi.h>
+ #include <wingdi.h>
+ #include <winuser.h>
+ #include <winnls.h>
+diff --git a/win32/include/winapi/winnt.h b/win32/include/winapi/winnt.h
+index 1e9876a8..88a0cc96 100644
+--- a/win32/include/winapi/winnt.h
++++ b/win32/include/winapi/winnt.h
+@@ -5989,6 +5989,10 @@ typedef DWORD LCID;
+ #define ACTIVATION_CONTEXT_SECTION_GLOBAL_OBJECT_RENAME_TABLE (8)
+ #define ACTIVATION_CONTEXT_SECTION_CLR_SURROGATES (9)
+ #define ACTIVATION_CONTEXT_SECTION_APPLICATION_SETTINGS (10)
++typedef struct _RTL_SRWLOCK {
++  PVOID Ptr;
++} RTL_SRWLOCK, *PRTL_SRWLOCK;
++#define RTL_SRWLOCK_INIT {0}
+ 
+ #ifdef __cplusplus
+   }

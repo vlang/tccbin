@@ -1,0 +1,30 @@
+win32: export GetFileSizeEx and TryAcquireSRWLockExclusive
+
+GetFileSizeEx is declared in fileapi.h and winbase.h, and
+TryAcquireSRWLockExclusive is declared in synchapi.h behind the same
+_WIN32_WINNT 0x0600 gate as the other SRW lock functions. Neither symbol is
+in kernel32.def, so a program that calls either one, or links an object such
+as SQLite 3.54.0 that references them, fails with "unresolved reference".
+
+Add both kernel32 exports. The declarations are unchanged, so this patch only
+affects linking. Patch 0015 exports the other SRW lock functions.
+diff --git a/win32/lib/kernel32.def b/win32/lib/kernel32.def
+index f768b601..dd105965 100644
+--- a/win32/lib/kernel32.def
++++ b/win32/lib/kernel32.def
+@@ -269,6 +269,7 @@ GetFileAttributesExW
+ GetFileAttributesW
+ GetFileInformationByHandle
+ GetFileSize
++GetFileSizeEx
+ GetFileTime
+ GetFileType
+ GetFullPathNameA
+@@ -688,6 +689,7 @@ TlsSetValue
+ Toolhelp32ReadProcessMemory
+ TransactNamedPipe
+ TransmitCommChar
++TryAcquireSRWLockExclusive
+ TryEnterCriticalSection
+ UTRegister
+ UTUnRegister

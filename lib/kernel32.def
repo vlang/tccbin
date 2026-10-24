@@ -5,6 +5,7 @@ AcquireSRWLockExclusive
 AcquireSRWLockShared
 AddAtomA
 AddAtomW
+AddVectoredContinueHandler
 AddVectoredExceptionHandler
 AllocConsole
 AllocLSCallback
@@ -272,7 +273,9 @@ GetFileAttributesExA
 GetFileAttributesExW
 GetFileAttributesW
 GetFileInformationByHandle
+GetFileInformationByHandleEx
 GetFileSize
+GetFileSizeEx
 GetFileTime
 GetFileType
 GetFinalPathNameByHandle
@@ -299,9 +302,9 @@ GetMailslotInfo
 GetModuleFileNameA
 GetModuleFileNameW
 GetModuleHandleA
-GetModuleHandleW
 GetModuleHandleExA
 GetModuleHandleExW
+GetModuleHandleW
 GetNamedPipeHandleStateA
 GetNamedPipeHandleStateW
 GetNamedPipeInfo
@@ -341,6 +344,7 @@ GetProfileSectionW
 GetProfileStringA
 GetProfileStringW
 GetQueuedCompletionStatus
+GetQueuedCompletionStatusEx
 GetSLCallbackTarget
 GetSLCallbackTemplate
 GetShortPathNameA
@@ -376,6 +380,7 @@ GetThreadPriorityBoost
 GetThreadSelectorEntry
 GetThreadTimes
 GetTickCount
+GetTickCount64
 GetTimeFormatA
 GetTimeFormatW
 GetTimeZoneInformation
@@ -558,9 +563,9 @@ RegisterServiceProcess
 RegisterSysMsgHandler
 ReinitializeCriticalSection
 ReleaseMutex
-ReleaseSemaphore
 ReleaseSRWLockExclusive
 ReleaseSRWLockShared
+ReleaseSemaphore
 RemoveDirectoryA
 RemoveDirectoryW
 RequestDeviceWakeup
@@ -637,6 +642,7 @@ SetFileApisToANSI
 SetFileApisToOEM
 SetFileAttributesA
 SetFileAttributesW
+SetFileCompletionNotificationModes
 SetFilePointer
 SetFilePointerEx
 SetFileTime
@@ -700,6 +706,8 @@ TlsSetValue
 Toolhelp32ReadProcessMemory
 TransactNamedPipe
 TransmitCommChar
+TryAcquireSRWLockExclusive
+TryAcquireSRWLockShared
 TryEnterCriticalSection
 UTRegister
 UTUnRegister
@@ -714,6 +722,9 @@ UpdateResourceA
 UpdateResourceW
 VerLanguageNameA
 VerLanguageNameW
+VerSetConditionMask
+VerifyVersionInfoA
+VerifyVersionInfoW
 VirtualAlloc
 VirtualAllocEx
 VirtualFree

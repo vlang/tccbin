@@ -1,0 +1,38 @@
+win32: declare and export GetTickCount64
+
+GetTickCount64 is available from Windows Vista onward. tcc's winbase.h
+declares GetTickCount but nothing declares GetTickCount64, so SQLite 3.54.0,
+which takes its address in the aSyscall table, fails to compile with
+"'GetTickCount64' undeclared".
+
+Add its gated declaration beside GetTickCount with the WINAPI calling
+convention, following the _WIN32_WINNT 0x0600 pattern used by the
+CancelIoEx and CreateSymbolicLink patches. Add the matching kernel32 export
+so a link against this tcc resolves the symbol. Without the export, tcc
+reports "unresolved reference to 'GetTickCount64'".
+diff --git a/win32/include/winapi/winbase.h b/win32/include/winapi/winbase.h
+index ca50474..728a2fa 100644
+--- a/win32/include/winapi/winbase.h
++++ b/win32/include/winapi/winbase.h
+@@ -1498,6 +1498,9 @@ extern "C" {
+   WINBASEAPI WINBOOL WINAPI FileTimeToDosDateTime(CONST FILETIME *lpFileTime,LPWORD lpFatDate,LPWORD lpFatTime);
+   WINBASEAPI WINBOOL WINAPI DosDateTimeToFileTime(WORD wFatDate,WORD wFatTime,LPFILETIME lpFileTime);
+   WINBASEAPI DWORD WINAPI GetTickCount(VOID);
++#if _WIN32_WINNT >= 0x0600
++  WINBASEAPI ULONGLONG WINAPI GetTickCount64(VOID);
++#endif
+   WINBASEAPI WINBOOL WINAPI SetSystemTimeAdjustment(DWORD dwTimeAdjustment,WINBOOL bTimeAdjustmentDisabled);
+   WINBASEAPI WINBOOL WINAPI GetSystemTimeAdjustment(PDWORD lpTimeAdjustment,PDWORD lpTimeIncrement,PBOOL lpTimeAdjustmentDisabled);
+   WINBASEAPI DWORD WINAPI FormatMessageA(DWORD dwFlags,LPCVOID lpSource,DWORD dwMessageId,DWORD dwLanguageId,LPSTR lpBuffer,DWORD nSize,va_list *Arguments);
+diff --git a/win32/lib/kernel32.def b/win32/lib/kernel32.def
+index 611fc6d..3bbb41d 100644
+--- a/win32/lib/kernel32.def
++++ b/win32/lib/kernel32.def
+@@ -376,6 +376,7 @@ GetThreadPriorityBoost
+ GetThreadSelectorEntry
+ GetThreadTimes
+ GetTickCount
++GetTickCount64
+ GetTimeFormatA
+ GetTimeFormatW
+ GetTimeZoneInformation

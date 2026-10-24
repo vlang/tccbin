@@ -127,6 +127,13 @@ case "$target_id" in
 			"$staging_root/0007-win32-declare-secure-narrow-stdio.patch" \
 			"$staging_root/0008-win32-fix-exp2-range-reduction.patch" \
 			"$staging_root/0009-win32-declare-CancelIoEx.patch" \
+			"$staging_root/0010-win32-export-batched-iocp.patch" \
+			"$staging_root/0011-win32-include-synchapi-from-windows-h.patch" \
+			"$staging_root/0012-win32-declare-and-export-GetTickCount64.patch" \
+			"$staging_root/0013-win32-export-GetFileSizeEx-and-TryAcquireSRWLockExclusive.patch" \
+			"$staging_root/0014-win32-declare-and-export-GetFileInformationByHandleEx.patch" \
+			"$staging_root/0015-win32-export-SRW-lock-functions.patch" \
+			"$staging_root/0016-win32-export-bundled-kernel32-functions.patch" \
 			"$staging_root/vlang-header-compat.patch" \
 			"$staging_root/v-ae88ee5-tinycc-bdwgc.patch"
 		;;
@@ -172,8 +179,10 @@ cc_path=$(command -v -- "$cc_name")
 [[ "$cc_path" == /* && -x "$cc_path" ]]
 
 if [[ "$target_id" == windows-amd64 ]]; then
+	# -lbcrypt: the vc snapshot pinned by the contract's vc.lock calls
+	# BCryptGenRandom, matching the contract's own bootstrap.sh link line.
 	"$cc_path" -std=c99 -municode -w -o "$contract_root/v1.exe" "$vc_root/v_win.c" \
-		-ladvapi32 -lws2_32 -Wl,-stack=33554432
+		-ladvapi32 -lws2_32 -lbcrypt -Wl,-stack=33554432
 	(
 		cd -P -- "$contract_root"
 		./v1.exe -no-parallel -nocache -cc "$cc_path" -o ./v2.exe -gc none cmd/v

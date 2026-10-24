@@ -1,0 +1,41 @@
+win32: declare and export GetFileInformationByHandleEx
+
+GetFileInformationByHandleEx is available from Windows Vista onward. tcc's
+winbase.h declares GetFileInformationByHandle but nothing declares the Ex
+variant, and kernel32.def does not export it. A program that calls it
+therefore compiles with an implicit declaration and fails to link with
+"unresolved reference to 'GetFileInformationByHandleEx'". The vlang tccbin
+Windows payload calls this function, so a tcc-built bundle has to fall back
+to another compiler.
+
+Add its gated declaration beside GetFileInformationByHandle in winbase.h,
+under _WIN32_WINNT >= 0x0600, following the CancelIoEx and GetTickCount64
+patches. The class parameter is declared as int because
+FILE_INFO_BY_HANDLE_CLASS is not defined in this tree. The enum is int-sized
+on both MSVC and tcc, so the ABI matches. Add the kernel32 export.
+diff --git a/win32/include/winapi/winbase.h b/win32/include/winapi/winbase.h
+index 728a2fa..43a5d01 100644
+--- a/win32/include/winapi/winbase.h
++++ b/win32/include/winapi/winbase.h
+@@ -1386,6 +1386,9 @@ extern "C" {
+ #endif
+ 
+   WINBASEAPI WINBOOL WINAPI GetFileInformationByHandle(HANDLE hFile,LPBY_HANDLE_FILE_INFORMATION lpFileInformation);
++#if _WIN32_WINNT >= 0x0600
++  WINBASEAPI WINBOOL WINAPI GetFileInformationByHandleEx(HANDLE hFile,int FileInformationClass,LPVOID lpFileInformation,DWORD dwBufferSize);
++#endif
+   WINBASEAPI DWORD WINAPI GetFileType(HANDLE hFile);
+   WINBASEAPI DWORD WINAPI GetFileSize(HANDLE hFile,LPDWORD lpFileSizeHigh);
+   WINBASEAPI WINBOOL WINAPI GetFileSizeEx(HANDLE hFile,PLARGE_INTEGER lpFileSize);
+diff --git a/win32/lib/kernel32.def b/win32/lib/kernel32.def
+index c9828ae..60f8139 100644
+--- a/win32/lib/kernel32.def
++++ b/win32/lib/kernel32.def
+@@ -272,6 +272,7 @@ GetFileAttributesExA
+ GetFileAttributesExW
+ GetFileAttributesW
+ GetFileInformationByHandle
++GetFileInformationByHandleEx
+ GetFileSize
+ GetFileSizeEx
+ GetFileTime
