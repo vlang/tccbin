@@ -260,6 +260,7 @@ GetDiskFreeSpaceExW
 GetDiskFreeSpaceW
 GetDriveTypeA
 GetDriveTypeW
+GetDynamicTimeZoneInformation
 GetEnvironmentStrings
 GetEnvironmentStringsA
 GetEnvironmentStringsW
@@ -384,6 +385,7 @@ GetTickCount64
 GetTimeFormatA
 GetTimeFormatW
 GetTimeZoneInformation
+GetTimeZoneInformationForYear
 GetUserDefaultLCID
 GetUserDefaultLangID
 GetUserDefaultUILanguage

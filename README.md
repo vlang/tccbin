@@ -83,3 +83,11 @@ Patches 0012-0015 add the Vista-era file, tick and SRW lock exports, and patch
 copy (`CreateHardLinkW`, `GetFinalPathNameByHandleW`, `GetNativeSystemInfo`,
 `K32GetProcessMemoryInfo`, the condition-variable functions, and others). The
 committed `lib/kernel32.def` is the file those patches produce.
+
+Patch 0016 also exports `GetDynamicTimeZoneInformation` and
+`GetTimeZoneInformationForYear`, which V's time module uses for historical
+timezone rules. Existing distributions only need the updated `lib/kernel32.def`;
+the compiler binaries and runtime archives do not need rebuilding. V supplies
+the declarations missing from the bundled Windows headers. The
+`tests/winapi_dynamic_timezone.c` probe checks both imports with those explicit
+declarations for the x64 and i386 compilers.

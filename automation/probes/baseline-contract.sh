@@ -219,7 +219,7 @@ VEOF
 smoke_binary="$smoke_root/tccbin-v-smoke${exe_suffix}"
 if ! showcc_output=$(
 	cd -P -- "$contract_root"
-	"./v${exe_suffix}" -cc tcc -gc none -showcc -no-retry-compilation -no-rsp \
+	"./v${exe_suffix}" -cc tcc -gc none -showcc -no-retry-compilation \
 		-o "$smoke_binary" "$smoke_root/main.v" 2>&1
 ); then
 	printf '%s\n' "$showcc_output" >&2
