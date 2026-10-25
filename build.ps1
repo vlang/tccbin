@@ -38,6 +38,7 @@ $TccPatch13 = Join-Path $PSScriptRoot "0013-win32-export-GetFileSizeEx-and-TryAc
 $TccPatch14 = Join-Path $PSScriptRoot "0014-win32-declare-and-export-GetFileInformationByHandleEx.patch"
 $TccPatch15 = Join-Path $PSScriptRoot "0015-win32-export-SRW-lock-functions.patch"
 $TccPatch16 = Join-Path $PSScriptRoot "0016-win32-export-bundled-kernel32-functions.patch"
+$TccPatch17 = Join-Path $PSScriptRoot "0017-win32-ignore-remaining-benign-debug-exceptions.patch"
 $GcPatch = Join-Path $PSScriptRoot "v-ae88ee5-tinycc-bdwgc.patch"
 $OutDir = $PSScriptRoot
 
@@ -83,6 +84,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "$TccPatch15 failed to apply" }
     git apply $TccPatch16
     if ($LASTEXITCODE -ne 0) { throw "$TccPatch16 failed to apply" }
+    git apply $TccPatch17
+    if ($LASTEXITCODE -ne 0) { throw "$TccPatch17 failed to apply" }
 
     Set-Location win32
     & .\build-tcc.bat -clean

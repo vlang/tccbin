@@ -134,6 +134,7 @@ case "$target_id" in
 			"$staging_root/0014-win32-declare-and-export-GetFileInformationByHandleEx.patch" \
 			"$staging_root/0015-win32-export-SRW-lock-functions.patch" \
 			"$staging_root/0016-win32-export-bundled-kernel32-functions.patch" \
+			"$staging_root/0017-win32-ignore-remaining-benign-debug-exceptions.patch" \
 			"$staging_root/vlang-header-compat.patch" \
 			"$staging_root/v-ae88ee5-tinycc-bdwgc.patch"
 		;;
