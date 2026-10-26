@@ -29,9 +29,9 @@ jobs:
       TCCBIN_CLONE_SHA: ${{ github.sha }}
       CONTRACT_REPOSITORY: vlang/v
       CONTRACT_CLONE_URL: https://github.com/vlang/v
-      CONTRACT_SHA: 7545e515b434cd399333d43659238427d72e22e7
+      CONTRACT_SHA: 9ba76b64fa3b0d3dfeff3136a164c36720df4f06
       VC_CLONE_URL: https://github.com/vlang/vc
-      VC_SHA: dfc458a13ba8923ebc249e262c331f8169aa728b
+      VC_SHA: 0781dbf8ed16a8e9ebce3771a645b814456c0103
       PUBLISH: 'false'
       TCCBIN_PUBLISH: 'false'
     steps:

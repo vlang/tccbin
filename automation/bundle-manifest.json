@@ -2,9 +2,9 @@
   "schema_version": 1,
   "contract_version": 1,
   "contract_repository": "vlang/v",
-  "contract_sha": "7545e515b434cd399333d43659238427d72e22e7",
+  "contract_sha": "9ba76b64fa3b0d3dfeff3136a164c36720df4f06",
   "contract_mode": "production",
-  "v_source_sha": "7545e515b434cd399333d43659238427d72e22e7",
+  "v_source_sha": "9ba76b64fa3b0d3dfeff3136a164c36720df4f06",
   "target_id": "openbsd-amd64",
   "branch": "thirdparty-openbsd-amd64",
   "sources": [
