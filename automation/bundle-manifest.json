@@ -2,9 +2,9 @@
   "schema_version": 1,
   "contract_version": 1,
   "contract_repository": "vlang/v",
-  "contract_sha": "3e77bb6a44d9b1ab276f06b38206a1ef18d981e3",
+  "contract_sha": "9ba76b64fa3b0d3dfeff3136a164c36720df4f06",
   "contract_mode": "production",
-  "v_source_sha": "3e77bb6a44d9b1ab276f06b38206a1ef18d981e3",
+  "v_source_sha": "9ba76b64fa3b0d3dfeff3136a164c36720df4f06",
   "target_id": "windows-amd64",
   "branch": "thirdparty-windows-amd64",
   "sources": [
