@@ -118,6 +118,10 @@ case "$target_id" in
 		;;
 	*) printf '%s\n' 'unknown target for payload staging' >&2; exit 1 ;;
 esac
+if [[ "$target_id" == macos-arm64 ]]; then
+	rm -f -- "$staging_root/patches/tccmacho-page-count-filesize.diff"
+	rmdir -- "$staging_root/patches"
+fi
 
 staged_result=$(validator_command staged-preflight \
 	"$manifest" "$staging_root" "$bundle_root" "$bundle_sha" false)
