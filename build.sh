@@ -30,6 +30,15 @@ if ! test -f vlib/v/compiler_errors_test.v; then
   exit 1
 fi
 
+## the patches live in the V repo, and this script changes into tinycc/ before applying them:
+export V_ROOT="$(pwd)"
+export TCCMACHO_PATCH="$V_ROOT/thirdparty/build_scripts/patches/tccmacho-page-count-filesize.diff"
+if ! test -f "$TCCMACHO_PATCH"; then
+  echo "missing patch: $TCCMACHO_PATCH" >&2
+  echo "this script needs a V checkout that contains vlang/v#31146" >&2
+  exit 2
+fi
+
 export CFLAGS='-O3'
 export CURRENT_SCRIPT_PATH=$(realpath "$0")
 
@@ -57,6 +66,14 @@ cd tinycc
 
 git checkout $TCC_COMMIT
 export TCC_COMMIT_FULL_HASH=$(git rev-parse HEAD)
+
+## vlang/v#29744: with chained fixups, TCC lists the zero-fill __bss pages in __DATA's
+## page_count, and macOS 27 dyld maps them from the file, which gives garbage globals.
+## The patch counts only file-backed pages. It is only needed for builds that keep chained fixups.
+git apply "$TCCMACHO_PATCH" || {
+  echo "tccmacho page_count patch failed to apply" >&2
+  exit 2
+}
 
 ### NB: the symlinks below are needed, to ensure proper support for bootstrapping tcc, otherwise backtraces will be disabled .
 for i in include/*.h; do echo $i; ln -s $i $(basename $i); done
