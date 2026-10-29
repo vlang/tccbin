@@ -69,7 +69,8 @@ export TCC_COMMIT_FULL_HASH=$(git rev-parse HEAD)
 
 ## vlang/v#29744: with chained fixups, TCC lists the zero-fill __bss pages in __DATA's
 ## page_count, and macOS 27 dyld maps them from the file, which gives garbage globals.
-## The patch counts only file-backed pages. It is only needed for builds that keep chained fixups.
+## The patch counts only file-backed pages. It only affects builds that keep chained fixups,
+## so the configure step below (--config-new_macho=no) does not use it. See vlang/v#29744.
 git apply "$TCCMACHO_PATCH" || {
   echo "tccmacho page_count patch failed to apply" >&2
   exit 2
@@ -80,6 +81,10 @@ for i in include/*.h; do echo $i; ln -s $i $(basename $i); done
 
 #	    --libdir=$TCC_FOLDER/lib \
 
+## --config-new_macho=no: write the older LC_DYLD_INFO_ONLY rebase/bind info instead of
+## chained fixups. TCC's chained fixups also list the zero-fill __bss pages, which macOS 27
+## then maps from the file, so programs can start with garbage in their globals.
+## See https://github.com/vlang/v/issues/29744 .
 ./configure \
         --prefix=$TCC_FOLDER \
         --bindir=$TCC_FOLDER \
@@ -88,7 +93,7 @@ for i in include/*.h; do echo $i; ln -s $i $(basename $i); done
         --crtprefix=$TCC_FOLDER/lib:/usr/lib \
         --sysincludepaths=$TCC_FOLDER/include:$TCC_FOLDER/lib/include:/usr/local/include:/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include:/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include \
         --libpaths=$TCC_FOLDER/lib:/usr/local/lib:/usr/lib:/lib \
-	    --config-new_macho=yes \
+	    --config-new_macho=no \
 	    --config-codesign \
         --cc="$CC" \
         --extra-cflags="$CFLAGS" \
