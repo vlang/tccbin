@@ -33,7 +33,7 @@
   "recipe": {
     "path": "build.sh",
     "version": 1,
-    "sha256": "4bee95d75db3dfd03dc2ebc04be08037a23ef002a4aaa004b4d2f596780e35ee"
+    "sha256": "5237a3f2ff5a3816fc6958cf2e41220e0375833ae380e63686be34dd99f142ad"
   },
   "toolchain": {
     "profile_id": null,
