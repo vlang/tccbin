@@ -8,6 +8,10 @@
 
 #include <_mingw_unicode.h>
 
+#ifndef COM_NO_WINDOWS_H
+#include <windows.h>
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
