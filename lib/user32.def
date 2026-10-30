@@ -21,7 +21,6 @@ BroadcastSystemMessageA
 BroadcastSystemMessageExA
 BroadcastSystemMessageExW
 BroadcastSystemMessageW
-CalcChildScroll
 CallMsgFilter
 CallMsgFilterA
 CallMsgFilterW
@@ -43,11 +42,9 @@ CharLowerBuffW
 CharLowerW
 CharNextA
 CharNextExA
-CharNextExW
 CharNextW
 CharPrevA
 CharPrevExA
-CharPrevExW
 CharPrevW
 CharToOemA
 CharToOemBuffA
@@ -63,7 +60,6 @@ CheckMenuRadioItem
 CheckRadioButton
 ChildWindowFromPoint
 ChildWindowFromPointEx
-ClientThreadConnect
 ClientToScreen
 ClipCursor
 CloseClipboard
@@ -308,11 +304,9 @@ GetMessageTime
 GetMessageW
 GetMonitorInfoA
 GetMonitorInfoW
-GetMouseMovePoints
 GetMouseMovePointsEx
 GetNextDlgGroupItem
 GetNextDlgTabItem
-GetNextQueueWindow
 GetOpenClipboardWindow
 GetParent
 GetPriorityClipboardFormat
@@ -383,7 +377,6 @@ GetWindowThreadProcessId
 GetWindowWord
 GrayStringA
 GrayStringW
-HasSystemSleepStarted
 HideCaret
 HiliteMenuItem
 IMPGetIMEA
@@ -396,8 +389,6 @@ ImpersonateDdeClientWindow
 InSendMessage
 InSendMessageEx
 InflateRect
-InitSharedTable
-InitTask
 InsertMenuA
 InsertMenuItemA
 InsertMenuItemW
@@ -421,7 +412,6 @@ IsDialogMessage
 IsDialogMessageA
 IsDialogMessageW
 IsDlgButtonChecked
-IsHungThread
 IsIconic
 IsMenu
 IsRectEmpty
@@ -470,7 +460,6 @@ MessageBoxExW
 MessageBoxIndirectA
 MessageBoxIndirectW
 MessageBoxW
-ModifyAccess
 ModifyMenuA
 ModifyMenuW
 MonitorFromPoint
@@ -497,7 +486,6 @@ PackDDElParam
 PaintDesktop
 PeekMessageA
 PeekMessageW
-PlaySoundEvent
 PostMessageA
 PostMessageW
 PostQuitMessage
@@ -517,7 +505,6 @@ RegisterDeviceNotificationA
 RegisterDeviceNotificationW
 RegisterHotKey
 RegisterLogonProcess
-RegisterNetworkCapabilities
 RegisterRawInputDevices
 RegisterSystemThread
 RegisterTasklist
@@ -560,7 +547,6 @@ SetCursor
 SetCursorPos
 SetDebugErrorLevel
 SetDeskWallpaper
-SetDesktopBitmap
 SetDlgItemInt
 SetDlgItemTextA
 SetDlgItemTextW
@@ -570,7 +556,6 @@ SetForegroundWindow
 SetInternalWindowPos
 SetKeyboardState
 SetLastErrorEx
-SetLogonNotifyWindow
 SetMenu
 SetMenuContextHelpId
 SetMenuDefaultItem
@@ -601,7 +586,6 @@ SetUserObjectInformationW
 SetUserObjectSecurity
 SetWinEventHook
 SetWindowContextHelpId
-SetWindowFullScreenState
 SetWindowLongA
 SetWindowLongW
 SetWindowPlacement
@@ -624,7 +608,6 @@ SubtractRect
 SwapMouseButton
 SwitchDesktop
 SwitchToThisWindow
-SysErrorBox
 SystemParametersInfoA
 SystemParametersInfoW
 TabbedTextOutA
@@ -659,10 +642,6 @@ UpdateLayeredWindowIndirect
 UpdateWindow
 UserClientDllInitialize
 UserHandleGrantAccess
-UserIsSystemResumeAutomatic
-UserSetDeviceHoldState
-UserSignalProc
-UserTickleTimer
 ValidateRect
 ValidateRgn
 VkKeyScanA
@@ -672,16 +651,12 @@ VkKeyScanW
 WINNLSEnableIME
 WINNLSGetEnableStatus
 WINNLSGetIMEHotkey
-WNDPROC_CALLBACK
 WaitForInputIdle
 WaitMessage
 WinHelpA
 WinHelpW
-WinOldAppHackoMatic
 WindowFromDC
 WindowFromPoint
-YieldTask
-_SetProcessDefaultLayout
 keybd_event
 mouse_event
 wsprintfA

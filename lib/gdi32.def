@@ -14,7 +14,6 @@ Arc
 ArcTo
 BeginPath
 BitBlt
-ByeByeGDI
 CancelDC
 CheckColorsInGamut
 ChoosePixelFormat
@@ -79,7 +78,6 @@ DeleteEnhMetaFile
 DeleteMetaFile
 DeleteObject
 DescribePixelFormat
-DeviceCapabilitiesEx
 DeviceCapabilitiesExA
 DeviceCapabilitiesExW
 DrawEscape
@@ -167,7 +165,6 @@ GetEnhMetaFilePixelFormat
 GetEnhMetaFileW
 GetFontData
 GetFontLanguageInfo
-GetFontResourceInfo
 GetFontUnicodeRanges
 GetGlyphIndicesA
 GetGlyphIndicesW
@@ -316,7 +313,6 @@ SetMapperFlags
 SetMetaFileBitsEx
 SetMetaRgn
 SetMiterLimit
-SetObjectOwner
 SetPaletteEntries
 SetPixel
 SetPixelFormat
@@ -353,5 +349,3 @@ UpdateICMRegKeyA
 UpdateICMRegKeyW
 WidenPath
 gdiPlaySpoolStream
-pfnRealizePalette
-pfnSelectPalette
