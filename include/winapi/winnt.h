@@ -5997,4 +5997,27 @@ typedef DWORD LCID;
 #ifdef __cplusplus
   }
 #endif
+#ifndef _PZZ_STRING_TYPES_DEFINED
+#define _PZZ_STRING_TYPES_DEFINED
+  typedef CHAR *PZZSTR;
+  typedef CONST CHAR *PCZZSTR;
+  typedef WCHAR *PZZWSTR;
+  typedef CONST WCHAR *PCZZWSTR;
+#endif
+#ifndef DEFINE_ENUM_FLAG_OPERATORS
+#ifdef __cplusplus
+#define DEFINE_ENUM_FLAG_OPERATORS(ENUMTYPE) \
+extern "C++" { \
+inline ENUMTYPE operator | (ENUMTYPE a, ENUMTYPE b) { return ENUMTYPE(((int)a) | ((int)b)); } \
+inline ENUMTYPE &operator |= (ENUMTYPE &a, ENUMTYPE b) { return (ENUMTYPE &)(((int &)a) |= ((int)b)); } \
+inline ENUMTYPE operator & (ENUMTYPE a, ENUMTYPE b) { return ENUMTYPE(((int)a) & ((int)b)); } \
+inline ENUMTYPE &operator &= (ENUMTYPE &a, ENUMTYPE b) { return (ENUMTYPE &)(((int &)a) &= ((int)b)); } \
+inline ENUMTYPE operator ~ (ENUMTYPE a) { return ENUMTYPE(~((int)a)); } \
+inline ENUMTYPE operator ^ (ENUMTYPE a, ENUMTYPE b) { return ENUMTYPE(((int)a) ^ ((int)b)); } \
+inline ENUMTYPE &operator ^= (ENUMTYPE &a, ENUMTYPE b) { return (ENUMTYPE &)(((int &)a) ^= ((int)b)); } \
+}
+#else
+#define DEFINE_ENUM_FLAG_OPERATORS(ENUMTYPE)
+#endif
+#endif
 #endif
