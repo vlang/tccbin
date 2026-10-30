@@ -3,9 +3,9 @@
 This repository contains a prebuilt [tcc compiler](https://repo.or.cz/tinycc.git),
 whose source code is cut at commit
 [d9d02c5](https://repo.or.cz/tinycc.git/commit/d9d02c56401e43be43760b63f7d82f771a7ed1f6),
-from the mob branch, plus two patches (included here, and submitted
-upstream to tinycc-devel): `0001-tccpe-...patch` and
-`0002-win32-don-t-treat-DBG_PRINTEXCEPTION_C-...patch`.
+from the mob branch, plus the numbered patches `0001` to `0017` in this directory
+(applied to the tinycc sources by `build.ps1`; `0001` and `0002` were also submitted
+upstream to tinycc-devel), and the Win32 GUI series described in the next section.
 
 Previously this branch was cut at the much older commit
 [9eef339](https://repo.or.cz/tinycc.git/commit/9eef33993ade2d3b964d19b1081978ceae5d359d)
@@ -17,6 +17,32 @@ executables. For that, use MSVC, GCC or CLANG instead.
 
 ## Target OS
 The tcc build here produces ***64-bit executables***, compatiable with ***64-bit Windows***.  
+
+## The Win32 GUI series
+
+Commits `0018` onwards of this branch (not files to apply: they are in the tree) make a GUI
+program build under this tcc, as it would under mingw-w64:
+
+- `include/winapi`: `commctrl.h`, `commdlg.h`, `shlobj.h`, `shtypes.h`, `oleacc.h` and the
+  headers they include (24 files, from mingw-w64 11.0.1), and changes to `rpcndr.h`
+  (`small` is a macro only under `RC_INVOKED`), `winuser.h` (`SM_` and `EVENT_` constants),
+  `winnt.h`, `objbase.h`, `shellapi.h`, `winapifamily.h` and `_mingw.h`.
+- `lib/*.def`: the functions that the headers declare and that the Windows DLL exports, for
+  `gdi32`, `kernel32`, `shell32`, `user32` and `advapi32`. The rule is the export table of the
+  DLL, intersected with the export list of mingw-w64's import library and with the names the
+  headers mention. mingw's import libraries alone are not enough: they carry intrinsic stubs
+  (`_BitScanForward`, `_Interlocked*`) that no DLL exports.
+- `lib/uuid.c`: the GUIDs of those headers, built into `lib/libuuid.a` by `build.ps1`. Programs
+  that take the address of an `IID_` or `CLSID_` link with `-luuid` as under mingw-w64
+  (`#flag windows -luuid` in V), or define `INITGUID` before the includes in one file.
+- `tests/gui_additions.v` touches each addition: `v -cc tcc tests/gui_additions.v`.
+
+A rebuild with `build.ps1` keeps the series: `series-files.txt` lists the header files it
+sets aside before copying tinycc's `include/` and puts back after; `series/<dll>.add` and
+`series/<dll>.drop` are merged into the `kernel32.def` and `shell32.def` that `build.ps1`
+copies from tinycc (the other three `.def` files are not copied, so they stay as they are);
+`libuuid.a` is built from `lib/uuid.c`. When tinycc changes one of the listed headers, the
+branch's version wins until the list is edited.
 
 ## What if V reports missing C header files?
 In this case, please create a PR to help us improve it.
