@@ -52,6 +52,16 @@
 
 #define _CRTIMP extern
 #define __CRT_INLINE static __inline__
+#ifndef __MSABI_LONG
+#  ifndef __LP64__
+#    define __MSABI_LONG(x) x ## l
+#  else
+#    define __MSABI_LONG(x) x
+#  endif
+#endif
+#ifndef __forceinline
+#define __forceinline static __inline__
+#endif
 
 #define _CRT_ALIGN(x) __attribute__((aligned(x)))
 #define DECLSPEC_ALIGN(x) __attribute__((aligned(x)))

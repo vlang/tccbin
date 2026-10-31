@@ -3,7 +3,10 @@ LIBRARY gdi32.dll
 EXPORTS
 AbortDoc
 AbortPath
+AddFontMemResourceEx
 AddFontResourceA
+AddFontResourceExA
+AddFontResourceExW
 AddFontResourceW
 AngleArc
 AnimatePalette
@@ -11,7 +14,6 @@ Arc
 ArcTo
 BeginPath
 BitBlt
-ByeByeGDI
 CancelDC
 CheckColorsInGamut
 ChoosePixelFormat
@@ -47,6 +49,8 @@ CreateEnhMetaFileA
 CreateEnhMetaFileW
 CreateFontA
 CreateFontIndirectA
+CreateFontIndirectExA
+CreateFontIndirectExW
 CreateFontIndirectW
 CreateFontW
 CreateHalftonePalette
@@ -74,7 +78,6 @@ DeleteEnhMetaFile
 DeleteMetaFile
 DeleteObject
 DescribePixelFormat
-DeviceCapabilitiesEx
 DeviceCapabilitiesExA
 DeviceCapabilitiesExW
 DrawEscape
@@ -128,12 +131,14 @@ GetBrushOrgEx
 GetCharABCWidthsA
 GetCharABCWidthsFloatA
 GetCharABCWidthsFloatW
+GetCharABCWidthsI
 GetCharABCWidthsW
 GetCharWidth32A
 GetCharWidth32W
 GetCharWidthA
 GetCharWidthFloatA
 GetCharWidthFloatW
+GetCharWidthI
 GetCharWidthW
 GetCharacterPlacementA
 GetCharacterPlacementW
@@ -143,7 +148,9 @@ GetColorAdjustment
 GetColorSpace
 GetCurrentObject
 GetCurrentPositionEx
+GetDCBrushColor
 GetDCOrgEx
+GetDCPenColor
 GetDIBColorTable
 GetDIBits
 GetDeviceCaps
@@ -154,10 +161,13 @@ GetEnhMetaFileDescriptionA
 GetEnhMetaFileDescriptionW
 GetEnhMetaFileHeader
 GetEnhMetaFilePaletteEntries
+GetEnhMetaFilePixelFormat
 GetEnhMetaFileW
 GetFontData
 GetFontLanguageInfo
-GetFontResourceInfo
+GetFontUnicodeRanges
+GetGlyphIndicesA
+GetGlyphIndicesW
 GetGlyphOutline
 GetGlyphOutlineA
 GetGlyphOutlineW
@@ -203,10 +213,12 @@ GetTextCharset
 GetTextCharsetInfo
 GetTextColor
 GetTextExtentExPointA
+GetTextExtentExPointI
 GetTextExtentExPointW
 GetTextExtentPoint32A
 GetTextExtentPoint32W
 GetTextExtentPointA
+GetTextExtentPointI
 GetTextExtentPointW
 GetTextFaceA
 GetTextFaceW
@@ -255,7 +267,10 @@ RealizePalette
 RectInRegion
 RectVisible
 Rectangle
+RemoveFontMemResourceEx
 RemoveFontResourceA
+RemoveFontResourceExA
+RemoveFontResourceExW
 RemoveFontResourceW
 ResetDCA
 ResetDCW
@@ -279,6 +294,8 @@ SetBoundsRect
 SetBrushOrgEx
 SetColorAdjustment
 SetColorSpace
+SetDCBrushColor
+SetDCPenColor
 SetDIBColorTable
 SetDIBits
 SetDIBitsToDevice
@@ -296,7 +313,6 @@ SetMapperFlags
 SetMetaFileBitsEx
 SetMetaRgn
 SetMiterLimit
-SetObjectOwner
 SetPaletteEntries
 SetPixel
 SetPixelFormat
@@ -333,5 +349,3 @@ UpdateICMRegKeyA
 UpdateICMRegKeyW
 WidenPath
 gdiPlaySpoolStream
-pfnRealizePalette
-pfnSelectPalette

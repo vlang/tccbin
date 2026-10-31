@@ -30,6 +30,10 @@
 #define THIS void
 #define DECLARE_INTERFACE(iface) __STRUCT__ iface
 #define DECLARE_INTERFACE_(iface,baseiface) __STRUCT__ iface : public baseiface
+#ifndef DECLARE_INTERFACE_IID
+#define DECLARE_INTERFACE_IID(iface,iid) DECLARE_INTERFACE(iface)
+#define DECLARE_INTERFACE_IID_(iface,baseiface,iid) DECLARE_INTERFACE_(iface,baseiface)
+#endif
 
 #if !defined(BEGIN_INTERFACE)
 #define BEGIN_INTERFACE
@@ -64,6 +68,10 @@
 #define DECLARE_INTERFACE(iface) typedef struct iface { struct iface##Vtbl *lpVtbl; } iface; typedef struct iface##Vtbl iface##Vtbl; struct iface##Vtbl
 #endif
 #define DECLARE_INTERFACE_(iface,baseiface) DECLARE_INTERFACE(iface)
+#ifndef DECLARE_INTERFACE_IID
+#define DECLARE_INTERFACE_IID(iface,iid) DECLARE_INTERFACE(iface)
+#define DECLARE_INTERFACE_IID_(iface,baseiface,iid) DECLARE_INTERFACE_(iface,baseiface)
+#endif
 #endif
 
 #ifndef FARSTRUCT

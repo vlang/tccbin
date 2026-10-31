@@ -42,6 +42,43 @@ $TccPatch17 = Join-Path $PSScriptRoot "0017-win32-ignore-remaining-benign-debug-
 $GcPatch = Join-Path $PSScriptRoot "v-ae88ee5-tinycc-bdwgc.patch"
 $OutDir = $PSScriptRoot
 
+# ---- the Win32 GUI series (patches 0018 onwards of this branch) ----
+# The series adds headers, replaces a few, and extends the export lists.
+# build.ps1 copies tinycc's include/ and kernel32.def and shell32.def over the
+# bundled ones, so the series keeps itself through a rebuild like this:
+#   - series-files.txt names every header file the series adds or changes; they are set
+#     aside before the copy and put back after it (so a rebuild does not take them away);
+#   - series/<dll>.add and series/<dll>.drop are merged into the copied .def: names to add
+#     (sorted into place) and names that no Windows DLL exports (dropped);
+#   - lib\uuid.c is built into lib\libuuid.a, the GUIDs of the headers (-luuid).
+# gdi32.def, user32.def and advapi32.def are not copied from tinycc, so they stay as committed.
+function Merge-SeriesDef([string]$Path, [string]$AddFile, [string]$DropFile) {
+    $drop = @{}
+    foreach ($n in (Get-Content $DropFile)) { if ($n.Trim()) { $drop[$n.Trim()] = $true } }
+    $head = New-Object System.Collections.Generic.List[string]
+    $names = New-Object System.Collections.Generic.List[string]
+    foreach ($l in (Get-Content $Path)) {
+        $t = $l.Trim()
+        if ($t -eq '' -or $t -eq 'EXPORTS' -or $t.StartsWith('LIBRARY')) {
+            if ($t -eq '' -and $names.Count -gt 0) { continue }
+            $head.Add($l)
+        } elseif (-not $drop.ContainsKey($t)) { $names.Add($t) }
+    }
+    $have = @{}
+    foreach ($n in $names) { $have[$n] = $true }
+    $pend = New-Object System.Collections.Generic.List[string]
+    foreach ($n in (Get-Content $AddFile)) { $t = $n.Trim(); if ($t -and -not $have.ContainsKey($t)) { $pend.Add($t) } }
+    $pend.Sort([System.StringComparer]::Ordinal)
+    $out = New-Object System.Collections.Generic.List[string]
+    $i = 0
+    foreach ($e in $names) {
+        while ($i -lt $pend.Count -and [string]::CompareOrdinal($pend[$i], $e) -lt 0) { $out.Add($pend[$i]); $i++ }
+        $out.Add($e)
+    }
+    while ($i -lt $pend.Count) { $out.Add($pend[$i]); $i++ }
+    [System.IO.File]::WriteAllText($Path, ((@($head) + @($out)) -join "`n") + "`n")
+}
+
 $Work = Join-Path ([System.IO.Path]::GetTempPath()) ("tccbin-bump-" + [guid]::NewGuid())
 New-Item -ItemType Directory -Path $Work | Out-Null
 
@@ -101,6 +138,9 @@ try {
     Copy-Item lib\i386-win32-libtcc1.a (Join-Path $OutDir "lib\i386-win32-libtcc1.a") -Force
     Copy-Item lib\shell32.def          (Join-Path $OutDir "lib\shell32.def") -Force
     Copy-Item lib\kernel32.def         (Join-Path $OutDir "lib\kernel32.def") -Force
+    foreach ($dll in @("kernel32","shell32")) {
+        Merge-SeriesDef (Join-Path $OutDir "lib\$dll.def") (Join-Path $OutDir "series\$dll.add") (Join-Path $OutDir "series\$dll.drop")
+    }
     foreach ($f in @("bcheck.o","bt-exe.o","bt-log.o","bt-dll.o","runmain.o",
                       "i386-win32-bcheck.o","i386-win32-bt-exe.o","i386-win32-bt-log.o",
                       "i386-win32-bt-dll.o","i386-win32-runmain.o",
@@ -110,7 +150,22 @@ try {
     }
     Copy-Item libtcc\libtcc.def (Join-Path $OutDir "libtcc\libtcc.def") -Force
     Copy-Item libtcc\libtcc.h   (Join-Path $OutDir "libtcc\libtcc.h") -Force
+    # Set the series' header files aside, copy tinycc's include/, put them back.
+    $SeriesFiles = @(Get-Content (Join-Path $OutDir "series-files.txt") | Where-Object { $_.Trim() })
+    $SeriesStash = Join-Path $Work "series-stash"
+    foreach ($f in $SeriesFiles) {
+        $src = Join-Path $OutDir $f
+        if (Test-Path $src) {
+            $dst = Join-Path $SeriesStash $f
+            New-Item -ItemType Directory -Path (Split-Path $dst) -Force | Out-Null
+            Copy-Item $src $dst -Force
+        }
+    }
     Copy-Item -Recurse -Force include\* (Join-Path $OutDir "include")
+    foreach ($f in $SeriesFiles) {
+        $stashed = Join-Path $SeriesStash $f
+        if (Test-Path $stashed) { Copy-Item $stashed (Join-Path $OutDir $f) -Force }
+    }
 
     Pop-Location
     Push-Location $Work
@@ -141,6 +196,13 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "gc.c compile failed" }
     & $tcc -ar (Join-Path $OutDir "lib\libgc.a") gc.o
     if ($LASTEXITCODE -ne 0) { throw "libgc.a archive failed" }
+
+    # ---- libuuid.a: the GUIDs of the headers, as mingw-w64's libuuid.a (link with -luuid) ----
+    Set-Location $Work
+    & $tcc -c (Join-Path $OutDir "lib\uuid.c") -I (Join-Path $OutDir "include") -I (Join-Path $OutDir "include\winapi") -o uuid.o
+    if ($LASTEXITCODE -ne 0) { throw "uuid.c compile failed" }
+    & $tcc -ar (Join-Path $OutDir "lib\libuuid.a") uuid.o
+    if ($LASTEXITCODE -ne 0) { throw "libuuid.a archive failed" }
 }
 finally {
     Pop-Location
@@ -151,4 +213,4 @@ date                                   > (Join-Path $OutDir "lib\libgc_build_on_
 $TccBaseCommit                         > (Join-Path $OutDir "lib\libgc_build_tcc_commit.txt")
 (Get-FileHash (Join-Path $OutDir "tcc.exe") -Algorithm SHA256).Hash > (Join-Path $OutDir "lib\libgc_build_tcc_exe_sha256.txt")
 
-Write-Host "Done. Updated tcc.exe, libtcc.dll, i386-win32-tcc.exe, include/, lib/ in $OutDir"
+Write-Host "Done. Updated tcc.exe, libtcc.dll, i386-win32-tcc.exe, include/, lib/ (with libuuid.a) in $OutDir"
