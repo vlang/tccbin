@@ -85,7 +85,8 @@ typedef struct {
     atomic_store_explicit(object, desired, __ATOMIC_RELAXED)
 
 #define __atomic_store_n(ptr, val, order)                                 \
-    (*(ptr) = (val), __atomic_store((ptr), &(typeof(*(ptr))){val}, (order)))
+    ({ __typeof__ ((void)0, *(ptr)) __val = (val);                      \
+       __atomic_store((ptr), &__val, (order)); })
 #define atomic_store_explicit(object, desired, order)                     \
     ({ __typeof__ (object) ptr = (object);                                \
        __typeof__ (*ptr) tmp = (desired);                                 \
@@ -160,7 +161,6 @@ extern void atomic_thread_fence (memory_order);
 #define __atomic_thread_fence(order) atomic_thread_fence (order)
 extern void atomic_signal_fence (memory_order);
 #define __atomic_signal_fence(order) atomic_signal_fence(order)
-#define atomic_signal_fence(order) __atomic_signal_fence  (order)
 extern bool __atomic_is_lock_free(size_t size, void *ptr);
 #define atomic_is_lock_free(OBJ) __atomic_is_lock_free (sizeof (*(OBJ)), (OBJ))
 

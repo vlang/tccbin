@@ -92,7 +92,7 @@
       "path": "build_machine_uname.txt",
       "kind": "file",
       "git_mode": "100644",
-      "sha256": "e270b56ca7e6780354f35b656ee6485a55194f62b90f5e332e4f144310d76fc0",
+      "sha256": "9055a870316ccc3104fffa62cca8714e376e6b2f76e1ef9fc39979ac508e028e",
       "symlink_target": null,
       "provenance": {
         "status": "incomplete",
@@ -113,7 +113,7 @@
       "path": "build_on_date.txt",
       "kind": "file",
       "git_mode": "100644",
-      "sha256": "26d30397439e29c1615fc33cb250a666420425e58533bd57f5b5950897ecfcce",
+      "sha256": "339294d7e1d47df31c4bbba668c23ca1523c290b684fe233d0aaabefd276d275",
       "symlink_target": null,
       "provenance": {
         "status": "incomplete",
@@ -134,7 +134,7 @@
       "path": "build_source_hash.txt",
       "kind": "file",
       "git_mode": "100644",
-      "sha256": "cbc5e7d0a22103555385be4076566b25e22adbe198089ce7404e50d2c75aa97e",
+      "sha256": "7b1e8e7f3a43bd8a3e9734e0f19597a1783962cfb965355a45f2258cb566f559",
       "symlink_target": null,
       "provenance": {
         "status": "incomplete",
@@ -155,7 +155,7 @@
       "path": "build_version.txt",
       "kind": "file",
       "git_mode": "100644",
-      "sha256": "48ea21824450117f62d8740199f4966a177569a16888ac626c9ba32ad66a5b00",
+      "sha256": "aaf6a7bd22ee4fac355e21919245219faf90305746258339ff7b009688c8524c",
       "symlink_target": null,
       "provenance": {
         "status": "incomplete",
@@ -197,7 +197,28 @@
       "path": "lib/bcheck.o",
       "kind": "file",
       "git_mode": "100644",
-      "sha256": "d7e877d7095e2f454b9fc0638449574628c88c9271152b2b4f781245cc88edfe",
+      "sha256": "f2fb4c3c5a7ad8ecbedc79656d5d1e50db7169c7aa6dea5e0d0f7dcedff2182a",
+      "symlink_target": null,
+      "provenance": {
+        "status": "incomplete",
+        "repository": null,
+        "sha": null,
+        "source_path": null,
+        "license": null
+      },
+      "role": "legacy-bundle-payload",
+      "opaque": false,
+      "opaque_acceptance_id": null,
+      "format": null,
+      "object_type": null,
+      "machine": null,
+      "os_abi": null
+    },
+    {
+      "path": "lib/bcheck_run.o",
+      "kind": "file",
+      "git_mode": "100644",
+      "sha256": "f2fb4c3c5a7ad8ecbedc79656d5d1e50db7169c7aa6dea5e0d0f7dcedff2182a",
       "symlink_target": null,
       "provenance": {
         "status": "incomplete",
@@ -218,7 +239,7 @@
       "path": "lib/bt-exe.o",
       "kind": "file",
       "git_mode": "100644",
-      "sha256": "4c161e2df3d1e10f14cd31b28ac8178a3b4aac60cba7fef63fc36389a0723d43",
+      "sha256": "caa0ffa653456068715c9c62023b040089b96e94db6afbeec83a16f29b37253f",
       "symlink_target": null,
       "provenance": {
         "status": "incomplete",
@@ -239,7 +260,7 @@
       "path": "lib/bt-log.o",
       "kind": "file",
       "git_mode": "100644",
-      "sha256": "c6369a5e26207c7c1758faa2dd5dae999f4af5ae9b662f7d30efb2a359fe4ce3",
+      "sha256": "48724858bf09e743ebc14d685d54b8648d1dd63131eb07c00cf7806152192f91",
       "symlink_target": null,
       "provenance": {
         "status": "incomplete",
@@ -344,7 +365,7 @@
       "path": "lib/include/stdatomic.h",
       "kind": "file",
       "git_mode": "100644",
-      "sha256": "4fbd9d6ec9add338d41c06f44115121925f087dd91f445b56cca1aacb84360e1",
+      "sha256": "c2801843caf8c79a8dd90b0a0e46ad420a1ac5c27b0a5420a983da827950b581",
       "symlink_target": null,
       "provenance": {
         "status": "incomplete",
@@ -932,7 +953,7 @@
       "path": "lib/libtcc.a",
       "kind": "file",
       "git_mode": "100644",
-      "sha256": "84320aebf433b2f21ca1be99e331e67d7d213922400d3f5975d4238396d50d8a",
+      "sha256": "83a97a0cea54b9a8ed99d053ef65209f97496d0d49ddf82c238ba5c67127ae61",
       "symlink_target": null,
       "provenance": {
         "status": "incomplete",
@@ -953,7 +974,7 @@
       "path": "lib/libtcc1.a",
       "kind": "file",
       "git_mode": "100644",
-      "sha256": "3971b76159655b7947b4e9d43266538dc46b23a9025df93b3990ad851a8b285b",
+      "sha256": "4ccda394397e9bfd5e6b471b829cb1f2488eeae9ab49c40e9db040077200b649",
       "symlink_target": null,
       "provenance": {
         "status": "incomplete",
@@ -974,7 +995,7 @@
       "path": "lib/runmain.o",
       "kind": "file",
       "git_mode": "100644",
-      "sha256": "90a367afe4693e1aa330557ce16a4d3ad0f7c055fc11288c7ad33cf06d0c21e1",
+      "sha256": "52a10553b1a2c9b1c5565c4da4a0e16a54579caee32a6b33486085eafdef1fda",
       "symlink_target": null,
       "provenance": {
         "status": "incomplete",
@@ -995,7 +1016,7 @@
       "path": "share/man/man1/tcc.1",
       "kind": "file",
       "git_mode": "100644",
-      "sha256": "20926877dc596cd2a6c91ac2488d9b4608d9cfeebf381cf3bbbae341e480ba25",
+      "sha256": "40d533889973c64eb3ce2636f7aa2739eaa6afbb7cc360da931732207a5d94cd",
       "symlink_target": null,
       "provenance": {
         "status": "incomplete",
@@ -1018,7 +1039,7 @@
       "path": "tcc.exe",
       "kind": "executable",
       "git_mode": "100755",
-      "sha256": "63d6696349fc3cbd1905e89e60fb169e6d2904036c625867c087a9f030bea5c5",
+      "sha256": "85f911e9fcbd43d49c071499e459adaf2c34809dfa840131b5883602ddca3a59",
       "symlink_target": null,
       "provenance": {
         "status": "incomplete",
